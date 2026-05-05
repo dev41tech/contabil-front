@@ -30,9 +30,9 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
-EXPOSE 80
+EXPOSE 3013
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-    CMD wget -qO- http://localhost:80/ | grep -q "<!doctype html>" || exit 1
+    CMD wget -qO- http://localhost:3013/ | grep -q "<!doctype html>" || exit 1
 
 ENTRYPOINT ["/docker-entrypoint.sh"]

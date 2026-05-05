@@ -5,7 +5,7 @@ set -e
 # Padrão: "backend" (nome do serviço no EasyPanel/Docker network)
 BACKEND_HOST="${BACKEND_HOST:-backend}"
 
-echo "Configurando proxy nginx → http://${BACKEND_HOST}:8000"
+echo "Configurando proxy nginx → http://${BACKEND_HOST}:3012"
 sed -i "s|BACKEND_HOST|${BACKEND_HOST}|g" /etc/nginx/conf.d/app.conf
 
 # Inicia nginx em foreground
