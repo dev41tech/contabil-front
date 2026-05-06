@@ -32,7 +32,9 @@ RUN chmod +x /docker-entrypoint.sh
 
 EXPOSE 3013
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD wget -qO /dev/null http://localhost:3013/ || exit 1
+# Health check aponta para /health (retorna 200 direto no nginx, sem depender do backend)
+# No EasyPanel: configure o health check path como /health na porta 3013
+HEALTHCHECK --interval=20s --timeout=5s --start-period=15s --retries=3 \
+    CMD wget -qO- http://localhost:3013/health | grep -q "ok" || exit 1
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
