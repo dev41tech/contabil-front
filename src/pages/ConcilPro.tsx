@@ -47,10 +47,27 @@ const STATUS_VARIANT: Record<string, any> = {
   QUITADO: 'success',
   EM_ABERTO: 'warning',
   ADIANTADO: 'secondary',
+  // Sem movimento não é bom nem ruim — é ausência de fato. Fica neutro para não
+  // competir visualmente com o que exige ação.
+  SEM_MOVIMENTO: 'outline',
   PAGO: 'success',
   PARCIAL: 'warning',
   PENDENTE: 'destructive',
 }
+
+/** Rótulos em PT-BR. Sem isso o badge mostra o enum cru ("SEM MOVIMENTO"). */
+const STATUS_LABEL: Record<string, string> = {
+  QUITADO: 'Quitado',
+  EM_ABERTO: 'Em aberto',
+  ADIANTADO: 'Adiantado',
+  SEM_MOVIMENTO: 'Sem movimento',
+  PAGO: 'Pago',
+  PARCIAL: 'Parcial',
+  PENDENTE: 'Pendente',
+}
+
+const rotuloStatus = (status: string) =>
+  STATUS_LABEL[status?.toUpperCase()] ?? status
 
 const SEVERIDADE_VARIANT: Record<string, any> = {
   CRITICA: 'destructive',
@@ -252,7 +269,7 @@ function ModalFornecedor({
                               <td className="py-1.5 px-2 text-right font-mono text-xs text-red-600">{formatCurrency(c.valor_saldo)}</td>
                               <td className="py-1.5 px-2 text-center">
                                 <Badge variant={STATUS_VARIANT[c.status_pagamento] ?? 'outline'} className="text-xs">
-                                  {c.status_pagamento}
+                                  {rotuloStatus(c.status_pagamento)}
                                 </Badge>
                               </td>
                             </tr>
@@ -509,11 +526,14 @@ export default function ConcilProPage() {
 
       {/* Cards de resumo */}
       {est && !processando && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {[
             { label: 'Total Fornecedores', value: est.total_fornecedores, suffix: '', color: 'text-foreground' },
             { label: 'Quitados', value: est.fornecedores_quitados, suffix: '', color: 'text-emerald-600' },
             { label: 'Em Aberto', value: est.fornecedores_em_aberto, suffix: '', color: 'text-amber-600' },
+            // Contas sem lançamento no período. Card próprio porque não são
+            // quitadas — juntá-las mascararia quantas contas de fato fecharam.
+            { label: 'Sem Movimento', value: est.fornecedores_sem_movimento ?? 0, suffix: '', color: 'text-muted-foreground' },
             { label: 'Valor a Pagar', value: formatCurrency(est.valor_total_a_pagar), suffix: '', color: 'text-red-600' },
           ].map(({ label, value, color }) => (
             <Card key={label}>
@@ -570,9 +590,10 @@ export default function ConcilProPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="todos">Todos</SelectItem>
-                      <SelectItem value="EM_ABERTO">Em Aberto</SelectItem>
+                      <SelectItem value="EM_ABERTO">Em aberto</SelectItem>
                       <SelectItem value="QUITADO">Quitado</SelectItem>
                       <SelectItem value="ADIANTADO">Adiantado</SelectItem>
+                      <SelectItem value="SEM_MOVIMENTO">Sem movimento</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -628,7 +649,7 @@ export default function ConcilProPage() {
                             </td>
                             <td className="py-2.5 px-2 text-center">
                               <Badge variant={STATUS_VARIANT[f.status_pagamento] ?? 'outline'} className="text-xs">
-                                {f.status_pagamento.replace('_', ' ')}
+                                {rotuloStatus(f.status_pagamento)}
                               </Badge>
                             </td>
                           </tr>
