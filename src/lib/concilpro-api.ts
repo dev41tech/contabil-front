@@ -30,6 +30,8 @@ export interface Resumo {
     fornecedores_quitados: number
     fornecedores_em_aberto: number
     fornecedores_adiantados: number
+    /** Contas do plano sem nenhum lançamento no período — não entram em "quitados". */
+    fornecedores_sem_movimento: number
     fornecedores_com_divergencia: number
     valor_total_a_pagar: number
   }
@@ -44,7 +46,12 @@ export interface Fornecedor {
   total_debito: number
   saldo_final: number
   valor_a_pagar: number
-  status_pagamento: 'QUITADO' | 'EM_ABERTO' | 'ADIANTADO'
+  /**
+   * SEM_MOVIMENTO = conta aberta no plano que não teve lançamento no período.
+   * É categoria à parte de QUITADO de propósito: somá-la aos quitados inflaria a
+   * métrica com contas que nunca tiveram movimento.
+   */
+  status_pagamento: 'QUITADO' | 'EM_ABERTO' | 'ADIANTADO' | 'SEM_MOVIMENTO'
   qtd_nfs_pendentes: number
   qtd_nfs_parciais: number
   divergencia_calculo: boolean
