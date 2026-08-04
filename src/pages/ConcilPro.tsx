@@ -195,8 +195,11 @@ function ModalFornecedor({
                 <Badge variant="destructive" className="ml-2 text-xs">Divergência</Badge>
               )}
             </DialogTitle>
+            {/* Reduzido primeiro, para bater com a coluna "Conta" da tabela. */}
             <p className="text-xs text-muted-foreground">
-              Conta {fornecedor?.conta_contabil} · {fornecedor?.codigo_conta}
+              Conta <span className="font-mono">{fornecedor?.codigo_conta}</span>
+              {' · '}
+              <span className="font-mono">{fornecedor?.conta_contabil}</span>
             </p>
           </DialogHeader>
 
@@ -443,7 +446,7 @@ export default function ConcilProPage() {
           <div className="flex gap-4 items-end flex-wrap">
             {/* Upload */}
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Importar PDF</label>
+              <label className="text-sm font-medium">Importar Razão</label>
               <Button
                 onClick={() => fileRef.current?.click()}
                 disabled={uploadMutation.isPending || processando}
@@ -453,8 +456,20 @@ export default function ConcilProPage() {
                   : <><Upload className="h-4 w-4 mr-2" />Enviar Razão de Fornecedores</>
                 }
               </Button>
-              <p className="text-xs text-muted-foreground">Aceita PDF do Razão de Fornecedores</p>
-              <input ref={fileRef} type="file" accept=".pdf,.PDF,.zip,.ZIP" className="hidden" onChange={handleFile} />
+              {/* Prefira XLSX: a planilha declara o que o PDF obriga a inferir
+                  (célula tipada, coluna nomeada, sem paginação), entao o parsing
+                  e deterministico e nao usa IA. */}
+              <p className="text-xs text-muted-foreground">
+                Aceita <strong>Excel (.xlsx)</strong> ou PDF do Razão de Fornecedores.
+                Prefira Excel quando o sistema contábil permitir — a leitura é mais precisa.
+              </p>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".xlsx,.XLSX,.xls,.XLS,.pdf,.PDF,.zip,.ZIP"
+                className="hidden"
+                onChange={handleFile}
+              />
             </div>
 
             {/* Seletor de arquivo */}
@@ -517,7 +532,7 @@ export default function ConcilProPage() {
             <div>
               <p className="font-medium text-amber-800">Processando arquivo…</p>
               <p className="text-sm text-amber-700">
-                Isso pode levar alguns minutos dependendo do tamanho do PDF.
+                Isso pode levar alguns minutos dependendo do tamanho do arquivo.
               </p>
             </div>
           </CardContent>
@@ -636,7 +651,10 @@ export default function ConcilProPage() {
                                 <span className="font-medium truncate max-w-[220px]">{f.nome_fornecedor}</span>
                               </div>
                             </td>
-                            <td className="py-2.5 px-2 text-xs text-muted-foreground">{f.conta_contabil}</td>
+                            {/* Codigo reduzido (1667), nao a classificacao completa
+                                (2.1.3.01.0002): e por ele que a conta e procurada no
+                                dia a dia. As duas continuam no export em Excel. */}
+                            <td className="py-2.5 px-2 text-xs font-mono text-muted-foreground">{f.codigo_conta}</td>
                             <td className="py-2.5 px-2 text-right font-mono text-xs">{formatCurrency(f.total_credito)}</td>
                             <td className="py-2.5 px-2 text-right font-mono text-xs text-emerald-600">{formatCurrency(f.total_debito)}</td>
                             <td className="py-2.5 px-2 text-right font-mono text-xs text-red-600 font-semibold">

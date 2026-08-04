@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import { Pagination } from '@/components/ui/pagination'
-import { Upload, Loader2, RefreshCw, AlertTriangle } from 'lucide-react'
+import { Upload, Loader2, RefreshCw, AlertTriangle, Download } from 'lucide-react'
 
 const STATUS_COLORS: Record<string, any> = {
   pendente: 'warning',
@@ -96,6 +96,44 @@ export default function ExtratoPage() {
     e.target.value = ''
   }
 
+  // Exporta as MESMAS linhas que a tela está mostrando — mesmos filtros de
+  // agência, status e período. A paginação não entra: o relatório traz o
+  // período inteiro, não só a página aberta.
+  const exportMutation = useMutation({
+    mutationFn: async () => {
+      const { data } = await api.post(
+        `/empresas/${selectedEmpresa}/exportacao/gerar`,
+        {
+          formato: 'xlsx',
+          tipo: 'extrato',
+          agencia_id: selectedAgencia || null,
+          status: statusFiltro !== 'todos' ? statusFiltro : null,
+          data_de: dataInicio || null,
+          data_ate: dataFim || null,
+        },
+        { responseType: 'blob' },
+      )
+      return data
+    },
+    onSuccess: (blob: Blob) => {
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `extrato_${new Date().toISOString().slice(0, 10)}.xlsx`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    },
+    onError: (e: unknown) => {
+      toast({
+        title: 'Erro ao exportar extrato',
+        description: extractApiError(e),
+        variant: 'destructive',
+      })
+    },
+  })
+
   const items: any[] = extrato?.items ?? []
   const total: number = extrato?.total ?? 0
 
@@ -103,9 +141,23 @@ export default function ExtratoPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Extrato Bancário</h1>
-        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={!selectedEmpresa}>
-          <RefreshCw className="h-4 w-4 mr-2" /> Atualizar
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => exportMutation.mutate()}
+            disabled={!selectedEmpresa || total === 0 || exportMutation.isPending}
+            title={total === 0 ? 'Nenhuma transação para exportar' : 'Exporta as transações com os filtros atuais'}
+          >
+            {exportMutation.isPending
+              ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              : <Download className="h-4 w-4 mr-2" />}
+            Exportar
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={!selectedEmpresa}>
+            <RefreshCw className="h-4 w-4 mr-2" /> Atualizar
+          </Button>
+        </div>
       </div>
 
       <Card>
