@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Loader2, Printer, TrendingUp, BookOpen, Landmark } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useEmpresas } from '@/hooks/useEmpresas'
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
 
@@ -293,10 +294,7 @@ export default function RelatoriosPage() {
   const [fetchParams, setFetchParams] = useState({ empresa: '', dataDe: '', dataAte: '' })
   const printRef = useRef<HTMLDivElement>(null)
 
-  const { data: empresas = [] } = useQuery<any[]>({
-    queryKey: ['empresas'],
-    queryFn: () => api.get('/empresas').then(r => r.data.items ?? r.data),
-  })
+  const { data: empresas = [] } = useEmpresas()
 
   const isReady = !!fetchParams.empresa
 

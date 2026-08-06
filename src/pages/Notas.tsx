@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Pagination } from '@/components/ui/pagination'
 import { Plus, Loader2, Link2, XCircle, Upload } from 'lucide-react'
+import { useEmpresas } from '@/hooks/useEmpresas'
 
 const STATUS_COLORS: Record<string, any> = {
   pendente: 'warning',
@@ -47,10 +48,7 @@ export default function NotasPage() {
   const [openCreate, setOpenCreate] = useState(false)
   const [openAssociar, setOpenAssociar] = useState<string | null>(null) // nota id
 
-  const { data: empresas = [] } = useQuery<any[]>({
-    queryKey: ['empresas'],
-    queryFn: () => api.get('/empresas').then(r => r.data.items ?? r.data),
-  })
+  const { data: empresas = [] } = useEmpresas()
 
   const buildParams = () => {
     const p = new URLSearchParams()

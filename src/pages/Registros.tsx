@@ -19,6 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { useEmpresas } from '@/hooks/useEmpresas'
 
 type ExportTipo =
   | 'lancamentos'
@@ -53,10 +54,7 @@ export default function RegistrosPage() {
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 20
 
-  const { data: empresas = [] } = useQuery<any[]>({
-    queryKey: ['empresas'],
-    queryFn: () => api.get('/empresas').then(r => r.data.items ?? r.data),
-  })
+  const { data: empresas = [] } = useEmpresas()
 
   const buildParams = () => {
     const params = new URLSearchParams()

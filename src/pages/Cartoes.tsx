@@ -14,6 +14,7 @@ import {
   CreditCard, Plus, ChevronRight, ChevronLeft, Trash2, Pencil,
   Upload, Loader2, LinkIcon, Unlink, FileText,
 } from 'lucide-react'
+import { useEmpresas } from '@/hooks/useEmpresas'
 
 // ── tipos ─────────────────────────────────────────────────────────────────────
 
@@ -82,10 +83,7 @@ export default function CartoesPage() {
 
   // ── queries ─────────────────────────────────────────────────────────────────
 
-  const { data: empresas = [] } = useQuery<any[]>({
-    queryKey: ['empresas'],
-    queryFn: () => api.get('/empresas').then(r => r.data.items ?? r.data),
-  })
+  const { data: empresas = [] } = useEmpresas()
 
   const { data: cartoes, isLoading: loadingCartoes } = useQuery<{ items: Cartao[] }>({
     queryKey: ['cartoes', selectedEmpresa],

@@ -22,6 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import { Pagination } from '@/components/ui/pagination'
 import { Zap, Loader2, Link2, BookOpen } from 'lucide-react'
+import { useEmpresas } from '@/hooks/useEmpresas'
 
 // ── Cores por resultado ────────────────────────────────────────────────────────
 const RESULTADO_COLORS: Record<string, any> = {
@@ -62,10 +63,7 @@ export default function NeoPage() {
   const [criarRegraDecisao, setCriarRegraDecisao] = useState<any>(null)
 
   // ── Queries ──────────────────────────────────────────────────────────────────
-  const { data: empresas = [] } = useQuery<any[]>({
-    queryKey: ['empresas'],
-    queryFn: () => api.get('/empresas').then(r => r.data.items ?? r.data),
-  })
+  const { data: empresas = [] } = useEmpresas()
 
   const { data: decisoes, isLoading } = useQuery<any>({
     queryKey: ['neo-decisoes', selectedEmpresa, page],
