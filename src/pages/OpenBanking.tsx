@@ -14,6 +14,7 @@ import {
   Wifi, WifiOff, RefreshCw, Trash2, Plus, Loader2,
   CheckCircle2, AlertCircle, Clock, Building2, ArrowDownToLine,
 } from 'lucide-react'
+import { useEmpresas } from '@/hooks/useEmpresas'
 
 // ── tipos ─────────────────────────────────────────────────────────────────────
 
@@ -182,10 +183,7 @@ export default function OpenBankingPage() {
   // confirm delete
   const [deletando, setDeletando] = useState<Conexao | null>(null)
 
-  const { data: empresas = [] } = useQuery<any[]>({
-    queryKey: ['empresas'],
-    queryFn: () => api.get('/empresas').then(r => r.data.items ?? r.data),
-  })
+  const { data: empresas = [] } = useEmpresas()
 
   const { data: conexoes, isLoading } = useQuery<{ items: Conexao[]; total: number }>({
     queryKey: ['conexoes', selectedEmpresa],

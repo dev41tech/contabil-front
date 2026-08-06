@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
 import { Building2, ChevronDown, Search } from 'lucide-react'
 import { Sidebar } from './Sidebar'
 import { useEmpresa } from '@/contexts/EmpresaContext'
-import { api } from '@/lib/api'
+import { useEmpresas } from '@/hooks/useEmpresas'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,11 +17,7 @@ function EmpresaSelector() {
   const { empresa, setEmpresa } = useEmpresa()
   const [search, setSearch] = useState('')
 
-  const { data: empresas = [] } = useQuery<any[]>({
-    queryKey: ['empresas'],
-    queryFn: () => api.get('/empresas').then(r => r.data.items ?? r.data),
-    staleTime: 60_000,
-  })
+  const { data: empresas = [] } = useEmpresas()
 
   const filtered = empresas.filter((e: any) =>
     e.razao_social.toLowerCase().includes(search.toLowerCase())

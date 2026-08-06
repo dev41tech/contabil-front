@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { ShieldAlert, UserPlus, Pencil, Trash2, Loader2, ShieldCheck } from 'lucide-react'
+import { useEmpresas } from '@/hooks/useEmpresas'
 
 // ── tipos ─────────────────────────────────────────────────────────────────────
 
@@ -169,10 +170,7 @@ export default function PermissoesPage() {
     )
   }
 
-  const { data: empresas = [] } = useQuery<any[]>({
-    queryKey: ['empresas'],
-    queryFn: () => api.get('/empresas').then(r => r.data.items ?? r.data),
-  })
+  const { data: empresas = [] } = useEmpresas()
 
   // Chave própria para evitar conflito com Usuarios.tsx que usa ['usuarios']
   // com shape diferente {items, total} — se compartilhassem cache, .filter() quebraria

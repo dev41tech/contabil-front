@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Pagination } from '@/components/ui/pagination'
 import { Plus, Loader2, Link2, Unlink, FileText, Eye } from 'lucide-react'
+import { useEmpresas } from '@/hooks/useEmpresas'
 
 const comprovanteSchema = z.object({
   favorecido: z.string().optional(),
@@ -44,10 +45,7 @@ export default function ComprovantesPage() {
   const [openArquivo, setOpenArquivo] = useState<any | null>(null)
   const [pendingFile, setPendingFile] = useState<{ nome: string; base64: string } | null>(null)
 
-  const { data: empresas = [] } = useQuery<any[]>({
-    queryKey: ['empresas'],
-    queryFn: () => api.get('/empresas').then(r => r.data.items ?? r.data),
-  })
+  const { data: empresas = [] } = useEmpresas()
 
   const buildParams = () => {
     const p = new URLSearchParams()

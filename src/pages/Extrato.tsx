@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import { Pagination } from '@/components/ui/pagination'
 import { Upload, Loader2, RefreshCw, AlertTriangle, Download } from 'lucide-react'
+import { useEmpresas } from '@/hooks/useEmpresas'
 
 const STATUS_COLORS: Record<string, any> = {
   pendente: 'warning',
@@ -34,10 +35,7 @@ export default function ExtratoPage() {
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 20
 
-  const { data: empresas = [] } = useQuery<any[]>({
-    queryKey: ['empresas'],
-    queryFn: () => api.get('/empresas').then(r => r.data.items ?? r.data),
-  })
+  const { data: empresas = [] } = useEmpresas()
 
   const { data: agencias = [] } = useQuery<any[]>({
     queryKey: ['agencias', selectedEmpresa],

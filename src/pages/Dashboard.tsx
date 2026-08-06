@@ -16,6 +16,7 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { api } from '@/lib/api'
+import { useEmpresas } from '@/hooks/useEmpresas'
 import { extractApiError } from '@/lib/utils'
 import { toast } from '@/hooks/useToast'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -40,8 +41,6 @@ const empresaSchema = z.object({
   }),
 })
 type EmpresaForm = z.infer<typeof empresaSchema>
-
-interface Empresa { id: string; razao_social: string; cnpj: string; regime_tributario: string }
 
 interface ResumoStats {
   total_transacoes: number
@@ -91,10 +90,7 @@ export default function DashboardPage() {
   const [open, setOpen] = useState(false)
   const [statsEmpresa, setStatsEmpresa] = useEmpresaDefault()
 
-  const { data: empresas = [], isLoading } = useQuery<Empresa[]>({
-    queryKey: ['empresas'],
-    queryFn: () => api.get('/empresas').then(r => r.data.items ?? r.data),
-  })
+  const { data: empresas = [], isLoading } = useEmpresas()
 
   const { data: stats, isLoading: statsLoading } = useQuery<StatsResponse>({
     queryKey: ['stats', statsEmpresa],

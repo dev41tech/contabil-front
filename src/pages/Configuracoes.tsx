@@ -20,6 +20,7 @@ import {
   BookOpen, Building2, Zap, TrendingUp, TrendingDown, ToggleLeft, ToggleRight,
   Pencil, Trash2, Upload, AlertCircle, CheckCircle2,
 } from 'lucide-react'
+import { useEmpresas } from '@/hooks/useEmpresas'
 
 // ── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -1169,10 +1170,7 @@ function RegrasList({ empresaId }: { empresaId: string }) {
 
 export default function ConfiguracoesPage() {
   const [selectedEmpresa, setSelectedEmpresa] = useEmpresaDefault()
-  const { data: empresas = [] } = useQuery<any[]>({
-    queryKey: ['empresas'],
-    queryFn: () => api.get('/empresas').then(r => r.data.items ?? r.data),
-  })
+  const { data: empresas = [] } = useEmpresas()
 
   return (
     <div className="space-y-6">
