@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Pagination } from '@/components/ui/pagination'
-import { Plus, Loader2, Link2, XCircle, Upload } from 'lucide-react'
+import { Plus, Loader2, Link2, XCircle, Upload, FileUp } from 'lucide-react'
 import { useEmpresas } from '@/hooks/useEmpresas'
 
 const STATUS_COLORS: Record<string, any> = {
@@ -40,6 +40,8 @@ type NotaForm = z.infer<typeof notaSchema>
 export default function NotasPage() {
   const qc = useQueryClient()
   const fileRef = useRef<HTMLInputElement>(null)
+  const dragCounter = useRef(0)
+  const [isDragging, setIsDragging] = useState(false)
   const [selectedEmpresa, setSelectedEmpresa] = useEmpresaDefault()
   const [tipoFiltro, setTipoFiltro] = useState('todos')
   const [statusFiltro, setStatusFiltro] = useState('todos')
@@ -112,17 +114,31 @@ export default function NotasPage() {
   })
 
   const xmlMutation = useMutation({
-    mutationFn: async (file: File) => {
-      const form = new FormData()
-      form.append('arquivo', file)
-      return api.post(`/empresas/${selectedEmpresa}/notas/importar-xml`, form)
+    mutationFn: async (files: File[]) => {
+      // Cada arquivo vai numa chamada isolada: um XML inválido no meio do lote
+      // não pode derrubar os demais que já foram importados com sucesso.
+      let importadas = 0
+      let duplicadas = 0
+      const erros: string[] = []
+      for (const file of files) {
+        const form = new FormData()
+        form.append('arquivo', file)
+        try {
+          const res = await api.post(`/empresas/${selectedEmpresa}/notas/importar-xml`, form)
+          importadas += res.data.importadas ?? 0
+          duplicadas += res.data.duplicadas ?? 0
+          if (res.data.erros?.length) erros.push(...res.data.erros)
+        } catch (e: unknown) {
+          erros.push(`${file.name}: ${extractApiError(e)}`)
+        }
+      }
+      return { importadas, duplicadas, erros }
     },
-    onSuccess: (res) => {
-      const d = res.data
+    onSuccess: (d) => {
       toast({
-        title: 'XML importado!',
-        description: `${d.importadas ?? 0} nota(s) importada(s), ${d.duplicadas ?? 0} duplicada(s) ignorada(s).${d.erros?.length ? ` ${d.erros.length} erro(s).` : ''}`,
-        variant: d.erros?.length ? 'default' : 'success',
+        title: d.importadas > 0 ? 'Importação concluída' : 'Nenhuma nota importada',
+        description: `${d.importadas} nota(s) importada(s), ${d.duplicadas} duplicada(s) ignorada(s).${d.erros.length ? ` ${d.erros.length} erro(s).` : ''}`,
+        variant: d.erros.length && d.importadas === 0 ? 'destructive' : d.erros.length ? 'default' : 'success',
       })
       qc.invalidateQueries({ queryKey: ['notas', selectedEmpresa] })
     },
@@ -130,20 +146,84 @@ export default function NotasPage() {
   })
 
   const handleXmlFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) xmlMutation.mutate(file)
+    const files = Array.from(e.target.files ?? [])
+    if (files.length > 0) xmlMutation.mutate(files)
     e.target.value = ''
+  }
+
+  const ARQUIVO_VALIDO_RE = /\.(xml|zip)$/i
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!selectedEmpresa) return
+    if (!Array.from(e.dataTransfer.types).includes('Files')) return
+    dragCounter.current += 1
+    setIsDragging(true)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounter.current = Math.max(0, dragCounter.current - 1)
+    if (dragCounter.current === 0) setIsDragging(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounter.current = 0
+    setIsDragging(false)
+
+    if (!selectedEmpresa) {
+      toast({ title: 'Selecione uma empresa', description: 'Escolha a empresa antes de soltar o arquivo.', variant: 'destructive' })
+      return
+    }
+
+    const soltos = Array.from(e.dataTransfer.files)
+    const validos = soltos.filter(f => ARQUIVO_VALIDO_RE.test(f.name))
+    if (validos.length === 0) {
+      toast({ title: 'Arquivo inválido', description: 'Solte arquivos .xml ou .zip.', variant: 'destructive' })
+      return
+    }
+    if (validos.length < soltos.length) {
+      toast({ title: 'Alguns arquivos foram ignorados', description: 'Só .xml e .zip são aceitos.', variant: 'default' })
+    }
+    xmlMutation.mutate(validos)
   }
 
   const items: any[] = notas?.items ?? []
   const total: number = notas?.total ?? 0
 
   return (
-    <div className="space-y-6">
+    <div
+      className="space-y-6 relative"
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {isDragging && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm pointer-events-none">
+          <div className="rounded-lg border-2 border-dashed border-primary bg-card px-12 py-10 text-center shadow-lg">
+            <FileUp className="mx-auto h-10 w-10 text-primary mb-3" />
+            <p className="text-lg font-medium">Solte o(s) arquivo(s) aqui</p>
+            <p className="text-sm text-muted-foreground">XML ou ZIP de notas fiscais</p>
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Notas Fiscais</h1>
-          <p className="text-muted-foreground">NF-e e NFS-e associadas às transações</p>
+          <p className="text-muted-foreground">
+            NF-e e NFS-e associadas às transações
+            {selectedEmpresa && ' · arraste arquivos .xml ou .zip para esta página para importar'}
+          </p>
         </div>
         {selectedEmpresa && (
           <div className="flex gap-2">
@@ -156,7 +236,7 @@ export default function NotasPage() {
                 ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Importando...</>
                 : <><Upload className="h-4 w-4 mr-2" />Importar XML</>}
             </Button>
-            <input ref={fileRef} type="file" accept=".xml,.XML,.zip,.ZIP" className="hidden" onChange={handleXmlFile} />
+            <input ref={fileRef} type="file" accept=".xml,.XML,.zip,.ZIP" multiple className="hidden" onChange={handleXmlFile} />
             <Button onClick={() => setOpenCreate(true)}>
               <Plus className="h-4 w-4 mr-2" /> Nova Nota
             </Button>
