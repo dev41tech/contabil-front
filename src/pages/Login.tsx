@@ -143,14 +143,6 @@ export default function LoginPage() {
               }
             </Button>
           </form>
-
-          {/* Dica de desenvolvimento */}
-          <div className="mt-5 p-3 bg-muted rounded-md text-xs text-muted-foreground space-y-0.5">
-            <p className="font-semibold text-foreground mb-1">Dados de teste (seed):</p>
-            <p>CNPJ: <code className="bg-background px-1 rounded">41.000.000/0001-00</code></p>
-            <p>Email: <code className="bg-background px-1 rounded">admin@contabil.dev</code></p>
-            <p>Senha: <code className="bg-background px-1 rounded">Admin@1234</code></p>
-          </div>
         </CardContent>
       </Card>
     </div>
