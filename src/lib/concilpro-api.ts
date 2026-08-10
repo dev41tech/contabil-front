@@ -1,13 +1,17 @@
 /**
- * Cliente HTTP para o módulo CONCILPRO (conBank backend na porta 8001).
- * O Vite proxy redireciona /concilpro/* → http://127.0.0.1:8001/*
+ * Cliente para o módulo CONCILPRO.
+ *
+ * As rotas do backend são escopadas por empresa
+ * (`/empresas/{empresa_id}/concilpro/...`) — todo método aqui recebe
+ * `empresaId` como primeiro argumento e monta a URL com ele. Antes este
+ * arquivo tinha um axios próprio apontando para `/api/v1/concilpro` sem
+ * empresa nenhuma (resquício de quando o ConcilPro era um serviço à parte);
+ * isso fazia trocar de empresa não mudar a URL chamada, então os dados de
+ * fornecedores ficavam iguais para qualquer empresa selecionada.
  */
-import axios from 'axios'
+import { api } from '@/lib/api'
 
-export const concilproApi = axios.create({
-  baseURL: '/api/v1/concilpro',
-  timeout: 30_000,
-})
+const base = (empresaId: string) => `/empresas/${empresaId}/concilpro`
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 
@@ -112,54 +116,54 @@ export interface Divergencia {
 
 export const concilproService = {
 
-  uploadArquivo: async (file: File): Promise<{ success: boolean; arquivo_id: number; status: string }> => {
+  uploadArquivo: async (empresaId: string, file: File): Promise<{ success: boolean; arquivo_id: number; status: string }> => {
     const form = new FormData()
     form.append('file', file)
-    const { data } = await concilproApi.post('/upload', form)
+    const { data } = await api.post(`${base(empresaId)}/upload`, form)
     return data
   },
 
-  statusArquivo: async (arquivoId: number) => {
-    const { data } = await concilproApi.get(`/arquivos/${arquivoId}/status`)
+  statusArquivo: async (empresaId: string, arquivoId: number) => {
+    const { data } = await api.get(`${base(empresaId)}/arquivos/${arquivoId}/status`)
     return data as { status: string; total_fornecedores: number; total_lancamentos: number; mensagem_erro?: string }
   },
 
-  listarArquivos: async (): Promise<Arquivo[]> => {
-    const { data } = await concilproApi.get('/arquivos')
+  listarArquivos: async (empresaId: string): Promise<Arquivo[]> => {
+    const { data } = await api.get(`${base(empresaId)}/arquivos`)
     return data
   },
 
-  obterResumo: async (arquivoId: number): Promise<Resumo> => {
-    const { data } = await concilproApi.get(`/resumo/${arquivoId}`)
+  obterResumo: async (empresaId: string, arquivoId: number): Promise<Resumo> => {
+    const { data } = await api.get(`${base(empresaId)}/resumo/${arquivoId}`)
     return data
   },
 
-  listarFornecedores: async (arquivoId: number, status?: string): Promise<Fornecedor[]> => {
-    const { data } = await concilproApi.get('/fornecedores', {
+  listarFornecedores: async (empresaId: string, arquivoId: number, status?: string): Promise<Fornecedor[]> => {
+    const { data } = await api.get(`${base(empresaId)}/fornecedores`, {
       params: { arquivo_id: arquivoId, status, limit: 500 },
     })
     return Array.isArray(data) ? data : data.fornecedores ?? []
   },
 
-  obterFornecedorDetalhado: async (fornecedorId: number): Promise<FornecedorDetalhado> => {
-    const { data } = await concilproApi.get(`/fornecedores/${fornecedorId}`)
+  obterFornecedorDetalhado: async (empresaId: string, fornecedorId: number): Promise<FornecedorDetalhado> => {
+    const { data } = await api.get(`${base(empresaId)}/fornecedores/${fornecedorId}`)
     return data
   },
 
-  obterConciliacaoFifo: async (fornecedorId: number): Promise<ConciliacaoFifoItem[]> => {
-    const { data } = await concilproApi.get(`/fornecedores/${fornecedorId}/conciliacao-fifo`)
+  obterConciliacaoFifo: async (empresaId: string, fornecedorId: number): Promise<ConciliacaoFifoItem[]> => {
+    const { data } = await api.get(`${base(empresaId)}/fornecedores/${fornecedorId}/conciliacao-fifo`)
     return data.conciliacao ?? data
   },
 
-  listarDivergencias: async (arquivoId: number): Promise<Divergencia[]> => {
-    const { data } = await concilproApi.get('/divergencias', {
+  listarDivergencias: async (empresaId: string, arquivoId: number): Promise<Divergencia[]> => {
+    const { data } = await api.get(`${base(empresaId)}/divergencias`, {
       params: { arquivo_id: arquivoId },
     })
     return data
   },
 
-  exportarExcel: async (arquivoId: number, tipo: 'completo' | 'em_aberto' | 'divergencias') => {
-    const { data } = await concilproApi.get(`/export/excel/${arquivoId}`, {
+  exportarExcel: async (empresaId: string, arquivoId: number, tipo: 'completo' | 'em_aberto' | 'divergencias') => {
+    const { data } = await api.get(`${base(empresaId)}/export/excel/${arquivoId}`, {
       params: { tipo },
       responseType: 'blob',
     })
