@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEmpresaDefault } from '@/hooks/useEmpresaDefault'
 import { useForm } from 'react-hook-form'
@@ -50,6 +50,24 @@ export default function NotasPage() {
   const [openCreate, setOpenCreate] = useState(false)
   const [openAssociar, setOpenAssociar] = useState<string | null>(null) // nota id
 
+  // Busca — campos de texto usam debounce para não disparar uma request por tecla
+  const [buscaInputs, setBuscaInputs] = useState({ numero: '', emitente: '', cnpj: '', chave_acesso: '' })
+  const [busca, setBusca] = useState({ numero: '', emitente: '', cnpj: '', chave_acesso: '' })
+  const [dataDe, setDataDe] = useState('')
+  const [dataAte, setDataAte] = useState('')
+
+  useEffect(() => {
+    const t = setTimeout(() => { setBusca(buscaInputs); setPage(1) }, 400)
+    return () => clearTimeout(t)
+  }, [buscaInputs.numero, buscaInputs.emitente, buscaInputs.cnpj, buscaInputs.chave_acesso])
+
+  const filtrosAtivos = Object.values(busca).some(Boolean) || !!dataDe || !!dataAte
+  const limparFiltros = () => {
+    setBuscaInputs({ numero: '', emitente: '', cnpj: '', chave_acesso: '' })
+    setBusca({ numero: '', emitente: '', cnpj: '', chave_acesso: '' })
+    setDataDe(''); setDataAte(''); setPage(1)
+  }
+
   const { data: empresas = [] } = useEmpresas()
 
   const buildParams = () => {
@@ -58,11 +76,17 @@ export default function NotasPage() {
     p.set('page_size', String(PAGE_SIZE))
     if (tipoFiltro !== 'todos') p.set('tipo', tipoFiltro)
     if (statusFiltro !== 'todos') p.set('status', statusFiltro)
+    if (busca.numero) p.set('numero', busca.numero)
+    if (busca.emitente) p.set('emitente', busca.emitente)
+    if (busca.cnpj) p.set('cnpj', busca.cnpj)
+    if (busca.chave_acesso) p.set('chave_acesso', busca.chave_acesso)
+    if (dataDe) p.set('data_de', new Date(dataDe).toISOString())
+    if (dataAte) p.set('data_ate', new Date(dataAte + 'T23:59:59').toISOString())
     return p.toString()
   }
 
   const { data: notas, isLoading } = useQuery<any>({
-    queryKey: ['notas', selectedEmpresa, tipoFiltro, statusFiltro, page],
+    queryKey: ['notas', selectedEmpresa, tipoFiltro, statusFiltro, busca, dataDe, dataAte, page],
     queryFn: () => api.get(`/empresas/${selectedEmpresa}/notas?${buildParams()}`).then(r => r.data),
     enabled: !!selectedEmpresa,
   })
@@ -80,10 +104,16 @@ export default function NotasPage() {
   })
 
   const createMutation = useMutation({
-    mutationFn: (data: NotaForm) => api.post(`/empresas/${selectedEmpresa}/notas`, {
-      ...data,
-      data_emissao: new Date(data.data_emissao).toISOString(),
-    }),
+    mutationFn: (data: NotaForm) => {
+      const payload: any = { ...data, data_emissao: new Date(data.data_emissao).toISOString() }
+      // Campos opcionais chegam como string vazia do form; o backend trata
+      // "" como valor informado (ex: chave_acesso="" falha a validação de
+      // 44 dígitos em vez de ser tratado como ausente).
+      for (const campo of ['serie', 'nome_emitente', 'chave_acesso', 'observacao']) {
+        if (!payload[campo]) delete payload[campo]
+      }
+      return api.post(`/empresas/${selectedEmpresa}/notas`, payload)
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['notas', selectedEmpresa] })
       toast({ title: 'Nota fiscal criada!', variant: 'success' })
@@ -280,6 +310,53 @@ export default function NotasPage() {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Busca */}
+          <div className="flex gap-4 flex-wrap items-end mt-4 pt-4 border-t">
+            <div className="min-w-[140px]">
+              <label className="text-sm font-medium mb-1 block">Número</label>
+              <Input
+                placeholder="Buscar por número"
+                value={buscaInputs.numero}
+                onChange={e => setBuscaInputs(b => ({ ...b, numero: e.target.value }))}
+              />
+            </div>
+            <div className="flex-1 min-w-[180px]">
+              <label className="text-sm font-medium mb-1 block">Emitente</label>
+              <Input
+                placeholder="Buscar por nome do emitente"
+                value={buscaInputs.emitente}
+                onChange={e => setBuscaInputs(b => ({ ...b, emitente: e.target.value }))}
+              />
+            </div>
+            <div className="min-w-[160px]">
+              <label className="text-sm font-medium mb-1 block">CNPJ</label>
+              <Input
+                placeholder="Emitente ou destinatário"
+                value={buscaInputs.cnpj}
+                onChange={e => setBuscaInputs(b => ({ ...b, cnpj: e.target.value }))}
+              />
+            </div>
+            <div className="min-w-[180px]">
+              <label className="text-sm font-medium mb-1 block">Chave de Acesso</label>
+              <Input
+                placeholder="Trecho da chave (44 dígitos)"
+                value={buscaInputs.chave_acesso}
+                onChange={e => setBuscaInputs(b => ({ ...b, chave_acesso: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Emissão de</label>
+              <Input type="date" value={dataDe} onChange={e => { setDataDe(e.target.value); setPage(1) }} className="w-40" />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">até</label>
+              <Input type="date" value={dataAte} onChange={e => { setDataAte(e.target.value); setPage(1) }} className="w-40" />
+            </div>
+            {filtrosAtivos && (
+              <Button variant="ghost" size="sm" onClick={limparFiltros}>Limpar busca</Button>
+            )}
           </div>
         </CardContent>
       </Card>
