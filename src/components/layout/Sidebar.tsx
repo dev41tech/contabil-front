@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, FileText, Zap, Scale, BookOpen, Settings, LogOut, Receipt, Users, ClipboardCheck, ShieldCheck, CreditCard, Wifi, TrendingUp } from 'lucide-react'
+import { LayoutDashboard, FileText, Zap, Scale, BookOpen, Settings, LogOut, Receipt, Users, ClipboardCheck, ShieldCheck, CreditCard, Wifi, TrendingUp, PiggyBank } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { cn } from '@/lib/utils'
 
@@ -12,6 +12,7 @@ const navItems = [
   { to: '/notas', icon: Receipt, label: 'Notas Fiscais', adminOnly: false },
   { to: '/comprovantes', icon: ClipboardCheck, label: 'Comprovantes', adminOnly: false },
   { to: '/cartoes', icon: CreditCard, label: 'Cartão de Crédito', adminOnly: false },
+  { to: '/aplicacoes-financeiras', icon: PiggyBank, label: 'Aplicações Financeiras', adminOnly: false },
   { to: '/openbanking', icon: Wifi, label: 'Open Banking', adminOnly: false },
   { to: '/relatorios', icon: TrendingUp, label: 'Relatórios', adminOnly: false },
   { to: '/configuracoes', icon: Settings, label: 'Configurações', adminOnly: false },
