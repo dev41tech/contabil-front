@@ -194,6 +194,10 @@ function PlanoContasList({ empresaId }: { empresaId: string }) {
   const [editConta, setEditConta] = useState<any>(null)
   const [deleteConta, setDeleteConta] = useState<any>(null)
   const [importResult, setImportResult] = useState<any>(null)
+  const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set())
+  const [confirmExcluirSelecionadas, setConfirmExcluirSelecionadas] = useState(false)
+  const [confirmExcluirTodas, setConfirmExcluirTodas] = useState(false)
+  const [loteResult, setLoteResult] = useState<any>(null)
   const DISPLAY_LIMIT = 100
 
   const { data, isLoading } = useQuery<any>({
@@ -251,6 +255,24 @@ function PlanoContasList({ empresaId }: { empresaId: string }) {
     onError: (e: unknown) => toast({ title: 'Não foi possível remover', description: extractApiError(e), variant: 'destructive' }),
   })
 
+  const excluirLoteMutation = useMutation({
+    mutationFn: (payload: { ids?: string[]; todas?: boolean }) =>
+      api.post(`/empresas/${empresaId}/plano-contas/excluir-lote`, payload).then(r => r.data),
+    onSuccess: (res: any) => {
+      qc.invalidateQueries({ queryKey: ['plano-contas', empresaId] })
+      setSelecionadas(new Set())
+      setConfirmExcluirSelecionadas(false)
+      setConfirmExcluirTodas(false)
+      setLoteResult(res)
+      toast({
+        title: `${res.removidas} conta(s) removida(s)`,
+        description: res.bloqueadas?.length ? `${res.bloqueadas.length} não puderam ser removidas — veja detalhes abaixo.` : undefined,
+        variant: res.bloqueadas?.length ? 'default' : 'success',
+      })
+    },
+    onError: (e: unknown) => toast({ title: 'Erro ao excluir em lote', description: extractApiError(e), variant: 'destructive' }),
+  })
+
   const importMutation = useMutation({
     mutationFn: (file: File) => {
       const form = new FormData()
@@ -297,6 +319,29 @@ function PlanoContasList({ empresaId }: { empresaId: string }) {
 
   const displayed = showAll ? filtered : filtered.slice(0, DISPLAY_LIMIT)
 
+  const toggleSelecionada = (id: string) => {
+    setSelecionadas(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+
+  const todosVisiveisSelecionados = displayed.length > 0 && displayed.every((c: any) => selecionadas.has(c.id))
+  const algumVisivelSelecionado = displayed.some((c: any) => selecionadas.has(c.id))
+
+  const toggleSelecionarVisiveis = () => {
+    setSelecionadas(prev => {
+      const next = new Set(prev)
+      if (todosVisiveisSelecionados) {
+        displayed.forEach((c: any) => next.delete(c.id))
+      } else {
+        displayed.forEach((c: any) => next.add(c.id))
+      }
+      return next
+    })
+  }
+
   if (isLoading) return (
     <div className="flex justify-center py-10">
       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -328,9 +373,30 @@ function PlanoContasList({ empresaId }: { empresaId: string }) {
             className="hidden"
             onChange={e => { const f = e.target.files?.[0]; if (f) importMutation.mutate(f); e.target.value = '' }}
           />
+          <Button
+            size="sm" variant="outline"
+            className="text-destructive hover:text-destructive"
+            onClick={() => setConfirmExcluirTodas(true)}
+            disabled={!allContas.length}
+          >
+            <Trash2 className="h-4 w-4 mr-1" /> Excluir Todas
+          </Button>
         </div>
         <span className="text-xs text-muted-foreground">{allContas.length} contas</span>
       </div>
+
+      {/* Barra de seleção em lote */}
+      {selecionadas.size > 0 && (
+        <div className="flex items-center justify-between gap-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2">
+          <span className="text-sm text-blue-900">{selecionadas.size} conta(s) selecionada(s)</span>
+          <div className="flex gap-2">
+            <Button size="sm" variant="ghost" onClick={() => setSelecionadas(new Set())}>Limpar seleção</Button>
+            <Button size="sm" variant="destructive" onClick={() => setConfirmExcluirSelecionadas(true)}>
+              <Trash2 className="h-4 w-4 mr-1" /> Excluir selecionadas
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Resultado da importação */}
       {importResult && (
@@ -356,6 +422,35 @@ function PlanoContasList({ empresaId }: { empresaId: string }) {
                   <span className="font-medium shrink-0">Linha {e.linha}:</span>
                   {e.codigo && <span className="font-mono text-muted-foreground shrink-0">{e.codigo}</span>}
                   <span className="truncate">{e.erro}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Resultado da exclusão em lote */}
+      {loteResult && (
+        <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 text-sm">
+              <span className="flex items-center gap-1 text-emerald-700 font-medium">
+                <CheckCircle2 className="h-4 w-4" /> {loteResult.removidas} removida(s)
+              </span>
+              {loteResult.bloqueadas?.length > 0 && (
+                <span className="flex items-center gap-1 text-amber-700 font-medium">
+                  <AlertCircle className="h-4 w-4" /> {loteResult.bloqueadas.length} bloqueada(s)
+                </span>
+              )}
+            </div>
+            <button onClick={() => setLoteResult(null)} className="text-xs text-muted-foreground hover:text-foreground">Fechar</button>
+          </div>
+          {loteResult.bloqueadas?.length > 0 && (
+            <div className="max-h-40 overflow-y-auto space-y-1">
+              {loteResult.bloqueadas.map((b: any) => (
+                <div key={b.id} className="text-xs flex items-start gap-2 text-amber-800 bg-amber-50 px-2 py-1 rounded">
+                  <span className="font-mono font-medium shrink-0">{b.codigo}</span>
+                  <span className="truncate">{b.erro}</span>
                 </div>
               ))}
             </div>
@@ -397,7 +492,15 @@ function PlanoContasList({ empresaId }: { empresaId: string }) {
       </div>
 
       {/* Cabeçalho */}
-      <div className="grid grid-cols-[4rem_8rem_1fr_3rem_5rem_4rem] gap-2 px-2 py-1.5 bg-muted/50 rounded text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+      <div className="grid grid-cols-[1.5rem_4rem_8rem_1fr_3rem_5rem_4rem] gap-2 px-2 py-1.5 bg-muted/50 rounded text-xs font-semibold text-muted-foreground uppercase tracking-wide items-center">
+        <input
+          type="checkbox"
+          className="h-3.5 w-3.5"
+          checked={todosVisiveisSelecionados}
+          ref={el => { if (el) el.indeterminate = !todosVisiveisSelecionados && algumVisivelSelecionado }}
+          onChange={toggleSelecionarVisiveis}
+          aria-label="Selecionar todas as contas visíveis"
+        />
         <span>Conta</span>
         <span>Classificação</span>
         <span>Descrição</span>
@@ -423,9 +526,16 @@ function PlanoContasList({ empresaId }: { empresaId: string }) {
               return (
                 <div
                   key={c.id}
-                  className={`grid grid-cols-[4rem_8rem_1fr_3rem_5rem_4rem] gap-2 items-center px-2 py-2 hover:bg-muted/30 transition-colors group ${isSintetico ? 'bg-slate-50/70' : ''}`}
+                  className={`grid grid-cols-[1.5rem_4rem_8rem_1fr_3rem_5rem_4rem] gap-2 items-center px-2 py-2 hover:bg-muted/30 transition-colors group ${isSintetico ? 'bg-slate-50/70' : ''} ${selecionadas.has(c.id) ? 'bg-blue-50/60' : ''}`}
                   style={{ paddingLeft: `${8 + depth * 16}px` }}
                 >
+                  <input
+                    type="checkbox"
+                    className="h-3.5 w-3.5"
+                    checked={selecionadas.has(c.id)}
+                    onChange={() => toggleSelecionada(c.id)}
+                    aria-label={`Selecionar ${c.codigo}`}
+                  />
                   <span className="font-mono text-xs text-muted-foreground truncate">
                     {c.conta_numero ?? '—'}
                   </span>
@@ -627,6 +737,56 @@ function PlanoContasList({ empresaId }: { empresaId: string }) {
               onClick={() => deleteMutation.mutate(deleteConta.id)}
             >
               {deleteMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Removendo...</> : 'Remover'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog — Confirmar Exclusão em Lote (selecionadas) */}
+      <Dialog open={confirmExcluirSelecionadas} onOpenChange={setConfirmExcluirSelecionadas}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" /> Excluir contas selecionadas
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Remover <span className="font-semibold text-foreground">{selecionadas.size}</span> conta(s) selecionada(s)?
+            Contas com lançamentos, regras ou subcontas vinculadas não serão removidas.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmExcluirSelecionadas(false)}>Cancelar</Button>
+            <Button
+              variant="destructive"
+              disabled={excluirLoteMutation.isPending}
+              onClick={() => excluirLoteMutation.mutate({ ids: Array.from(selecionadas) })}
+            >
+              {excluirLoteMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Removendo...</> : 'Excluir'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog — Confirmar Exclusão Total */}
+      <Dialog open={confirmExcluirTodas} onOpenChange={setConfirmExcluirTodas}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" /> Excluir todo o plano de contas
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Remover as <span className="font-semibold text-foreground">{allContas.length}</span> contas cadastradas nesta empresa?
+            Contas com lançamentos, regras ou subcontas vinculadas não serão removidas. Esta ação não pode ser desfeita.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmExcluirTodas(false)}>Cancelar</Button>
+            <Button
+              variant="destructive"
+              disabled={excluirLoteMutation.isPending}
+              onClick={() => excluirLoteMutation.mutate({ todas: true })}
+            >
+              {excluirLoteMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Removendo...</> : 'Excluir Todas'}
             </Button>
           </DialogFooter>
         </DialogContent>
