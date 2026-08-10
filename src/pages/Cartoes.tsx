@@ -80,6 +80,7 @@ export default function CartoesPage() {
   const [transacaoSelecionada, setTransacaoSelecionada] = useState('')
 
   const csvRef = useRef<HTMLInputElement>(null)
+  const pdfRef = useRef<HTMLInputElement>(null)
 
   // ── queries ─────────────────────────────────────────────────────────────────
 
@@ -225,6 +226,31 @@ export default function CartoesPage() {
       toast({ title: `${importados} lançamentos importados.${erros.length ? ` (${erros.length} erros)` : ''}`, variant: 'success' })
     },
     onError: (e: unknown) => toast({ title: 'Erro', description: extractApiError(e), variant: 'destructive' }),
+  })
+
+  const pdfMut = useMutation({
+    mutationFn: async (file: File) => {
+      const fd = new FormData()
+      fd.append('arquivo', file)
+      return api.post(
+        `/empresas/${selectedEmpresa}/cartoes/${viewCartao!.id}/faturas/${viewFatura!.id}/lancamentos/importar-pdf`,
+        fd
+      )
+    },
+    onSuccess: (res) => {
+      invLanc(); invFaturas()
+      const { importados, duplicados, erros } = res.data
+      toast({
+        title: importados > 0 ? `${importados} lançamentos importados da fatura.` : 'Nenhum lançamento importado.',
+        description: `${duplicados} duplicado(s) ignorado(s).${erros?.length ? ` ${erros.length} erro(s).` : ''}`,
+        variant: erros?.length && importados === 0 ? 'destructive' : 'success',
+      })
+    },
+    onError: (e: unknown) => toast({
+      title: 'Erro ao importar PDF',
+      description: extractApiError(e) || 'Não foi possível extrair os lançamentos. Tente importar via CSV.',
+      variant: 'destructive',
+    }),
   })
 
   // ── render helpers ────────────────────────────────────────────────────────
@@ -440,6 +466,13 @@ export default function CartoesPage() {
             </Button>
             <input ref={csvRef} type="file" accept=".csv" className="hidden"
               onChange={e => { const f = e.target.files?.[0]; if (f) csvMut.mutate(f); e.target.value = '' }} />
+            <Button variant="outline" size="sm" onClick={() => { pdfRef.current?.click() }} disabled={pdfMut.isPending}>
+              {pdfMut.isPending
+                ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Importando...</>
+                : <><FileText className="h-4 w-4 mr-2" /> Importar PDF</>}
+            </Button>
+            <input ref={pdfRef} type="file" accept=".pdf" className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) pdfMut.mutate(f); e.target.value = '' }} />
             <Button size="sm" onClick={() => setModalNovoLanc(true)}>
               <Plus className="h-4 w-4 mr-2" /> Lançamento
             </Button>
@@ -447,15 +480,18 @@ export default function CartoesPage() {
         )}
       </div>
 
-      {/* Resumo da fatura */}
+      {/* Resumo da fatura
+          Total/Lançamentos vêm da query de lançamentos (sempre fresca após
+          import/adicionar/remover) em vez do snapshot de viewFatura, que só é
+          atualizado quando o usuário reabre a fatura na lista. */}
       <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
         <Card><CardContent className="p-4">
           <p className="text-xs text-muted-foreground">Total</p>
-          <p className="text-xl font-bold">{formatCurrency(viewFatura.valor_total)}</p>
+          <p className="text-xl font-bold">{formatCurrency(lancamentos?.valor_total ?? viewFatura.valor_total)}</p>
         </CardContent></Card>
         <Card><CardContent className="p-4">
           <p className="text-xs text-muted-foreground">Lançamentos</p>
-          <p className="text-xl font-bold">{viewFatura.total_lancamentos}</p>
+          <p className="text-xl font-bold">{lancamentos?.total ?? viewFatura.total_lancamentos}</p>
         </CardContent></Card>
         <Card><CardContent className="p-4">
           <p className="text-xs text-muted-foreground">Status</p>
