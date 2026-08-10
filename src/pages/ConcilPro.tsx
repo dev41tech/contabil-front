@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { toast } from '@/hooks/useToast'
+import { useEmpresaDefault } from '@/hooks/useEmpresaDefault'
+import { useEmpresas } from '@/hooks/useEmpresas'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -79,10 +81,12 @@ const SEVERIDADE_VARIANT: Record<string, any> = {
 // ─── Sub-componente: Modal FIFO ───────────────────────────────────────────────
 
 function ModalFifo({
+  empresaId,
   fornecedorId,
   open,
   onClose,
 }: {
+  empresaId: string
   fornecedorId: number | null
   open: boolean
   onClose: () => void
@@ -90,9 +94,9 @@ function ModalFifo({
   const [expandido, setExpandido] = useState<number | null>(null)
 
   const { data: fifo = [], isLoading } = useQuery<ConciliacaoFifoItem[]>({
-    queryKey: ['concilpro-fifo', fornecedorId],
-    queryFn: () => concilproService.obterConciliacaoFifo(fornecedorId!),
-    enabled: open && fornecedorId !== null,
+    queryKey: ['concilpro-fifo', empresaId, fornecedorId],
+    queryFn: () => concilproService.obterConciliacaoFifo(empresaId, fornecedorId!),
+    enabled: open && !!empresaId && fornecedorId !== null,
   })
 
   return (
@@ -168,10 +172,12 @@ function ModalFifo({
 // ─── Sub-componente: Modal Fornecedor ─────────────────────────────────────────
 
 function ModalFornecedor({
+  empresaId,
   fornecedor,
   open,
   onClose,
 }: {
+  empresaId: string
   fornecedor: Fornecedor | null
   open: boolean
   onClose: () => void
@@ -179,9 +185,9 @@ function ModalFornecedor({
   const [fifoOpen, setFifoOpen] = useState(false)
 
   const { data, isLoading } = useQuery<FornecedorDetalhado>({
-    queryKey: ['concilpro-fornecedor', fornecedor?.id],
-    queryFn: () => concilproService.obterFornecedorDetalhado(fornecedor!.id),
-    enabled: open && fornecedor !== null,
+    queryKey: ['concilpro-fornecedor', empresaId, fornecedor?.id],
+    queryFn: () => concilproService.obterFornecedorDetalhado(empresaId, fornecedor!.id),
+    enabled: open && !!empresaId && fornecedor !== null,
   })
 
   return (
@@ -327,6 +333,7 @@ function ModalFornecedor({
       </Dialog>
 
       <ModalFifo
+        empresaId={empresaId}
         fornecedorId={fornecedor?.id ?? null}
         open={fifoOpen}
         onClose={() => setFifoOpen(false)}
@@ -340,6 +347,8 @@ function ModalFornecedor({
 export default function ConcilProPage() {
   const qc = useQueryClient()
   const fileRef = useRef<HTMLInputElement>(null)
+  const { data: empresas = [] } = useEmpresas()
+  const [selectedEmpresa, setSelectedEmpresa] = useEmpresaDefault()
 
   const [arquivoSelecionado, setArquivoSelecionado] = useState<number | null>(null)
   const [statusFiltro, setStatusFiltro] = useState('todos')
@@ -350,10 +359,18 @@ export default function ConcilProPage() {
   // Poll de status enquanto PROCESSANDO
   const [pollingId, setPollingId] = useState<number | null>(null)
 
+  // Troca de empresa: nada do arquivo/aba anterior faz sentido para a nova empresa.
+  useEffect(() => {
+    setArquivoSelecionado(null)
+    setPollingId(null)
+    setAbaAtiva('fornecedores')
+  }, [selectedEmpresa])
+
   // ── Lista de arquivos ─────────────────────────────────────────────────────
   const { data: arquivos = [], isLoading: loadingArquivos } = useQuery<Arquivo[]>({
-    queryKey: ['concilpro-arquivos'],
-    queryFn: concilproService.listarArquivos,
+    queryKey: ['concilpro-arquivos', selectedEmpresa],
+    queryFn: () => concilproService.listarArquivos(selectedEmpresa),
+    enabled: !!selectedEmpresa,
     refetchInterval: pollingId !== null ? 4_000 : false,
   })
 
@@ -364,43 +381,44 @@ export default function ConcilProPage() {
     if (!arquivoSelecionado) setArquivoSelecionado(mais_recente.id)
     if (pollingId !== null && mais_recente.status !== 'PROCESSANDO') {
       setPollingId(null)
-      qc.invalidateQueries({ queryKey: ['concilpro-resumo'] })
-      qc.invalidateQueries({ queryKey: ['concilpro-fornecedores'] })
+      qc.invalidateQueries({ queryKey: ['concilpro-resumo', selectedEmpresa] })
+      qc.invalidateQueries({ queryKey: ['concilpro-fornecedores', selectedEmpresa] })
     }
   }, [arquivos])
 
   // ── Resumo / stats ────────────────────────────────────────────────────────
   const { data: resumo } = useQuery<Resumo>({
-    queryKey: ['concilpro-resumo', arquivoSelecionado],
-    queryFn: () => concilproService.obterResumo(arquivoSelecionado!),
-    enabled: !!arquivoSelecionado,
+    queryKey: ['concilpro-resumo', selectedEmpresa, arquivoSelecionado],
+    queryFn: () => concilproService.obterResumo(selectedEmpresa, arquivoSelecionado!),
+    enabled: !!selectedEmpresa && !!arquivoSelecionado,
   })
 
   // ── Lista de fornecedores ─────────────────────────────────────────────────
   const { data: fornecedores = [], isLoading: loadingFornecedores } = useQuery<Fornecedor[]>({
-    queryKey: ['concilpro-fornecedores', arquivoSelecionado, statusFiltro],
+    queryKey: ['concilpro-fornecedores', selectedEmpresa, arquivoSelecionado, statusFiltro],
     queryFn: () => concilproService.listarFornecedores(
+      selectedEmpresa,
       arquivoSelecionado!,
       statusFiltro === 'todos' ? undefined : statusFiltro,
     ),
-    enabled: !!arquivoSelecionado,
+    enabled: !!selectedEmpresa && !!arquivoSelecionado,
   })
 
   // ── Divergências ──────────────────────────────────────────────────────────
   const { data: divergencias = [] } = useQuery<Divergencia[]>({
-    queryKey: ['concilpro-divergencias', arquivoSelecionado],
-    queryFn: () => concilproService.listarDivergencias(arquivoSelecionado!),
-    enabled: !!arquivoSelecionado,
+    queryKey: ['concilpro-divergencias', selectedEmpresa, arquivoSelecionado],
+    queryFn: () => concilproService.listarDivergencias(selectedEmpresa, arquivoSelecionado!),
+    enabled: !!selectedEmpresa && !!arquivoSelecionado,
   })
 
   // ── Upload ────────────────────────────────────────────────────────────────
   const uploadMutation = useMutation({
-    mutationFn: (file: File) => concilproService.uploadArquivo(file),
+    mutationFn: (file: File) => concilproService.uploadArquivo(selectedEmpresa, file),
     onSuccess: (res) => {
       toast({ title: 'Arquivo enviado!', description: 'Processamento iniciado…', variant: 'success' })
       setArquivoSelecionado(res.arquivo_id)
       setPollingId(res.arquivo_id)
-      qc.invalidateQueries({ queryKey: ['concilpro-arquivos'] })
+      qc.invalidateQueries({ queryKey: ['concilpro-arquivos', selectedEmpresa] })
     },
     onError: () => toast({ title: 'Erro ao enviar arquivo', variant: 'destructive' }),
   })
@@ -440,6 +458,27 @@ export default function ConcilProPage() {
 
       </div>
 
+      {/* Seletor de empresa */}
+      <Card>
+        <CardContent className="pt-6">
+          <label className="text-sm font-medium mb-1 block">Empresa</label>
+          <Select value={selectedEmpresa} onValueChange={setSelectedEmpresa}>
+            <SelectTrigger className="max-w-xs"><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
+            <SelectContent>
+              {empresas.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.razao_social}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
+      {!selectedEmpresa ? (
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-muted-foreground text-center py-8">Selecione uma empresa para começar.</p>
+          </CardContent>
+        </Card>
+      ) : (
+      <>
       {/* Controles: upload + seletor de arquivo */}
       <Card>
         <CardContent className="pt-6">
@@ -512,7 +551,7 @@ export default function ConcilProPage() {
                     key={tipo}
                     variant="outline"
                     size="sm"
-                    onClick={() => concilproService.exportarExcel(arquivoSelecionado, tipo as any)}
+                    onClick={() => concilproService.exportarExcel(selectedEmpresa, arquivoSelecionado, tipo as any)}
                   >
                     <FileSpreadsheet className="h-4 w-4 mr-1" />
                     {label}
@@ -732,10 +771,13 @@ export default function ConcilProPage() {
 
       {/* Modal de detalhe do fornecedor */}
       <ModalFornecedor
+        empresaId={selectedEmpresa}
         fornecedor={fornecedorModal}
         open={!!fornecedorModal}
         onClose={() => setFornecedorModal(null)}
       />
+      </>
+      )}
     </div>
   )
 }
