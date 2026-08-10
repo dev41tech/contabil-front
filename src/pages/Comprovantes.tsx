@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Pagination } from '@/components/ui/pagination'
-import { Plus, Loader2, Link2, Unlink, FileText, Eye } from 'lucide-react'
+import { Plus, Loader2, Link2, Unlink, FileText, Eye, CheckCircle2, AlertCircle } from 'lucide-react'
 import { useEmpresas } from '@/hooks/useEmpresas'
 
 const comprovanteSchema = z.object({
@@ -44,6 +44,8 @@ export default function ComprovantesPage() {
   const [openAssociar, setOpenAssociar] = useState<string | null>(null)
   const [openArquivo, setOpenArquivo] = useState<any | null>(null)
   const [pendingFile, setPendingFile] = useState<{ nome: string; base64: string } | null>(null)
+  const [extracaoStatus, setExtracaoStatus] = useState<'idle' | 'extraindo' | 'extraido' | 'falhou'>('idle')
+  const [extracaoConfianca, setExtracaoConfianca] = useState<string | null>(null)
 
   const { data: empresas = [] } = useEmpresas()
 
@@ -67,7 +69,7 @@ export default function ComprovantesPage() {
     enabled: !!selectedEmpresa && !!openAssociar,
   })
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<ComprovanteForm>({
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<ComprovanteForm>({
     resolver: zodResolver(comprovanteSchema),
   })
 
@@ -121,6 +123,46 @@ export default function ComprovantesPage() {
     onError: (e: unknown) => toast({ title: 'Erro ao excluir', description: extractApiError(e), variant: 'destructive' }),
   })
 
+  // Extrai os campos de um PDF para pré-preencher o formulário — não persiste
+  // nada, só devolve os valores para o usuário revisar antes de salvar.
+  const extrairMutation = useMutation({
+    mutationFn: (file: File) => {
+      const form = new FormData()
+      form.append('arquivo', file)
+      return api.post(`/empresas/${selectedEmpresa}/comprovantes/extrair-pdf`, form).then(r => r.data)
+    },
+    onMutate: () => {
+      setExtracaoStatus('extraindo')
+      setExtracaoConfianca(null)
+    },
+    onSuccess: (d: any) => {
+      setExtracaoStatus('extraido')
+      setExtracaoConfianca(d.confianca ?? null)
+      if (d.favorecido) setValue('favorecido', d.favorecido)
+      if (d.cpf_cnpj) setValue('cpf_cnpj', d.cpf_cnpj)
+      if (d.valor_pago != null) setValue('valor_pago', d.valor_pago)
+      if (d.valor_documento != null) setValue('valor_documento', d.valor_documento)
+      if (d.data_pagamento) setValue('data_pagamento', d.data_pagamento.slice(0, 10))
+      if (d.data_vencimento) setValue('data_vencimento', d.data_vencimento.slice(0, 10))
+      if (d.juros != null) setValue('juros', d.juros)
+      if (d.multa != null) setValue('multa', d.multa)
+      if (d.desconto != null) setValue('desconto', d.desconto)
+      toast({
+        title: 'Dados extraídos do PDF',
+        description: 'Revise os campos antes de salvar.',
+        variant: 'success',
+      })
+    },
+    onError: (e: unknown) => {
+      setExtracaoStatus('falhou')
+      toast({
+        title: 'Não foi possível extrair os dados automaticamente',
+        description: extractApiError(e) || 'Preencha os campos manualmente.',
+        variant: 'default',
+      })
+    },
+  })
+
   // ── File handling ──────────────────────────────────────────────────────────
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -132,6 +174,13 @@ export default function ComprovantesPage() {
       setPendingFile({ nome: file.name, base64 })
     }
     reader.readAsDataURL(file)
+
+    if (/\.pdf$/i.test(file.name)) {
+      extrairMutation.mutate(file)
+    } else {
+      setExtracaoStatus('idle')
+      setExtracaoConfianca(null)
+    }
     e.target.value = ''
   }
 
@@ -276,7 +325,10 @@ export default function ComprovantesPage() {
       </Card>
 
       {/* Modal Novo Comprovante */}
-      <Dialog open={openCreate} onOpenChange={v => { setOpenCreate(v); if (!v) { reset(); setPendingFile(null) } }}>
+      <Dialog open={openCreate} onOpenChange={v => {
+        setOpenCreate(v)
+        if (!v) { reset(); setPendingFile(null); setExtracaoStatus('idle'); setExtracaoConfianca(null) }
+      }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Novo Comprovante</DialogTitle>
@@ -335,12 +387,35 @@ export default function ComprovantesPage() {
                   {pendingFile ? pendingFile.nome : 'Selecionar arquivo'}
                 </Button>
                 {pendingFile && (
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setPendingFile(null)}>
+                  <Button
+                    type="button" variant="ghost" size="sm"
+                    onClick={() => { setPendingFile(null); setExtracaoStatus('idle'); setExtracaoConfianca(null) }}
+                  >
                     Remover
                   </Button>
                 )}
               </div>
               <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={handleFileSelect} />
+              <p className="text-xs text-muted-foreground">
+                PDFs de comprovante têm os campos preenchidos automaticamente — revise antes de salvar.
+              </p>
+              {extracaoStatus === 'extraindo' && (
+                <p className="text-xs text-blue-700 flex items-center gap-1.5">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Extraindo dados do PDF...
+                </p>
+              )}
+              {extracaoStatus === 'extraido' && (
+                <p className="text-xs text-emerald-700 flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Dados extraídos{extracaoConfianca === 'ia' ? ' via IA' : ''} — revise os campos antes de salvar.
+                </p>
+              )}
+              {extracaoStatus === 'falhou' && (
+                <p className="text-xs text-amber-700 flex items-center gap-1.5">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  Não foi possível extrair automaticamente. Preencha os campos manualmente.
+                </p>
+              )}
             </div>
 
             <DialogFooter>
