@@ -177,4 +177,18 @@ export const concilproService = {
     window.URL.revokeObjectURL(url)
   },
 
+  exportarLancamentosImportacao: async (empresaId: string, arquivoId: number) => {
+    const { data } = await api.get(`${base(empresaId)}/export/lancamentos/${arquivoId}`, {
+      responseType: 'blob',
+    })
+    const url = window.URL.createObjectURL(new Blob([data]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', `lancamentos_importacao_${arquivoId}.xlsx`)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+  },
+
 }
