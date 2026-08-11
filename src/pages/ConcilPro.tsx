@@ -541,7 +541,7 @@ export default function ConcilProPage() {
 
             {/* Exports */}
             {arquivoSelecionado && !processando && (
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 {[
                   { tipo: 'completo', label: 'Completo' },
                   { tipo: 'em_aberto', label: 'Em Aberto' },
@@ -557,6 +557,14 @@ export default function ConcilProPage() {
                     {label}
                   </Button>
                 ))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => concilproService.exportarLancamentosImportacao(selectedEmpresa, arquivoSelecionado)}
+                >
+                  <FileSpreadsheet className="h-4 w-4 mr-1" />
+                  Layout Importação Contábil
+                </Button>
               </div>
             )}
           </div>
