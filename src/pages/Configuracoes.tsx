@@ -18,7 +18,7 @@ import { Badge } from '@/components/ui/badge'
 import {
   Plus, Loader2, Search, ChevronDown, ChevronLeft, ChevronRight,
   BookOpen, Building2, Zap, TrendingUp, TrendingDown, ToggleLeft, ToggleRight,
-  Pencil, Trash2, Upload, AlertCircle, CheckCircle2,
+  Pencil, Trash2, Upload, AlertCircle, CheckCircle2, Settings,
 } from 'lucide-react'
 import { useEmpresas } from '@/hooks/useEmpresas'
 
@@ -184,6 +184,13 @@ const contaSchema = z.object({
 })
 type ContaForm = z.infer<typeof contaSchema>
 
+interface FaixaDraft {
+  id: string
+  tipo: string
+  codigo_de: string
+  codigo_ate: string
+}
+
 function PlanoContasList({ empresaId }: { empresaId: string }) {
   const qc = useQueryClient()
   const fileRef = useRef<HTMLInputElement>(null)
@@ -198,6 +205,8 @@ function PlanoContasList({ empresaId }: { empresaId: string }) {
   const [confirmExcluirSelecionadas, setConfirmExcluirSelecionadas] = useState(false)
   const [confirmExcluirTodas, setConfirmExcluirTodas] = useState(false)
   const [loteResult, setLoteResult] = useState<any>(null)
+  const [openFaixas, setOpenFaixas] = useState(false)
+  const [faixasDraft, setFaixasDraft] = useState<FaixaDraft[]>([])
   const DISPLAY_LIMIT = 100
 
   const { data, isLoading } = useQuery<any>({
@@ -291,6 +300,54 @@ function PlanoContasList({ empresaId }: { empresaId: string }) {
     onError: (e: unknown) => toast({ title: 'Erro na importação', description: extractApiError(e), variant: 'destructive' }),
   })
 
+  const faixasQuery = useQuery<any>({
+    queryKey: ['plano-contas-faixas', empresaId],
+    queryFn: () => api.get(`/empresas/${empresaId}/plano-contas/faixas-tipo`).then(r => r.data),
+    enabled: !!empresaId && openFaixas,
+  })
+
+  useEffect(() => {
+    if (openFaixas && faixasQuery.data) {
+      setFaixasDraft(
+        (faixasQuery.data.faixas ?? []).map((f: any, i: number) => ({
+          id: f.id ?? `existente-${i}`,
+          tipo: f.tipo,
+          codigo_de: f.codigo_de,
+          codigo_ate: f.codigo_ate,
+        }))
+      )
+    }
+  }, [openFaixas, faixasQuery.data])
+
+  const salvarFaixasMutation = useMutation({
+    mutationFn: (faixas: { tipo: string; codigo_de: string; codigo_ate: string }[]) =>
+      api.put(`/empresas/${empresaId}/plano-contas/faixas-tipo`, { faixas }).then(r => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['plano-contas-faixas', empresaId] })
+      toast({ title: 'Faixas de classificação salvas!', variant: 'success' })
+      setOpenFaixas(false)
+    },
+    onError: (e: unknown) => toast({ title: 'Erro ao salvar faixas', description: extractApiError(e), variant: 'destructive' }),
+  })
+
+  const adicionarFaixa = (tipo: string) => {
+    setFaixasDraft(prev => [
+      ...prev,
+      { id: `nova-${Date.now()}-${Math.random()}`, tipo, codigo_de: '', codigo_ate: '' },
+    ])
+  }
+  const removerFaixa = (id: string) => {
+    setFaixasDraft(prev => prev.filter(f => f.id !== id))
+  }
+  const atualizarFaixa = (id: string, campo: 'codigo_de' | 'codigo_ate', valor: string) => {
+    setFaixasDraft(prev => prev.map(f => (f.id === id ? { ...f, [campo]: valor } : f)))
+  }
+  const handleSalvarFaixas = () => {
+    salvarFaixasMutation.mutate(
+      faixasDraft.map(({ tipo, codigo_de, codigo_ate }) => ({ tipo, codigo_de, codigo_ate }))
+    )
+  }
+
   // Preenche o form de edição quando uma conta é selecionada
   useEffect(() => {
     if (editConta) {
@@ -380,6 +437,9 @@ function PlanoContasList({ empresaId }: { empresaId: string }) {
             disabled={!allContas.length}
           >
             <Trash2 className="h-4 w-4 mr-1" /> Excluir Todas
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setOpenFaixas(true)}>
+            <Settings className="h-4 w-4 mr-1" /> Configurar Plano de Contas
           </Button>
         </div>
         <span className="text-xs text-muted-foreground">{allContas.length} contas</span>
@@ -787,6 +847,86 @@ function PlanoContasList({ empresaId }: { empresaId: string }) {
               onClick={() => excluirLoteMutation.mutate({ todas: true })}
             >
               {excluirLoteMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Removendo...</> : 'Excluir Todas'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog — Configurar Plano de Contas (faixas de classificação) */}
+      <Dialog open={openFaixas} onOpenChange={setOpenFaixas}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5 text-emerald-600" /> Configurar Plano de Contas
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Faixas de código usadas para classificar o tipo automaticamente quando a
+            planilha importada não traz a coluna "Tipo". Um código fora de qualquer
+            faixa configurada vira erro na importação — nunca é adivinhado. Faixas de
+            tipos diferentes não podem se sobrepor.
+          </p>
+          {faixasQuery.isLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="space-y-5 max-h-[55vh] overflow-y-auto pr-1">
+              {TIPOS_OPCOES.map(t => {
+                const faixasDoTipo = faixasDraft.filter(f => f.tipo === t.value)
+                return (
+                  <div key={t.value} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Badge className={TIPO_COLOR[t.value]}>{t.label}</Badge>
+                      <Button
+                        type="button" size="sm" variant="ghost"
+                        onClick={() => adicionarFaixa(t.value)}
+                      >
+                        <Plus className="h-3.5 w-3.5 mr-1" /> Faixa
+                      </Button>
+                    </div>
+                    {faixasDoTipo.length === 0 ? (
+                      <p className="text-xs text-muted-foreground pl-1">Nenhuma faixa configurada.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {faixasDoTipo.map(f => (
+                          <div key={f.id} className="flex items-center gap-2">
+                            <Input
+                              placeholder="De (ex: 1)"
+                              value={f.codigo_de}
+                              onChange={e => atualizarFaixa(f.id, 'codigo_de', e.target.value)}
+                              className="font-mono text-sm"
+                            />
+                            <span className="text-xs text-muted-foreground shrink-0">até</span>
+                            <Input
+                              placeholder="Até (ex: 1.999999)"
+                              value={f.codigo_ate}
+                              onChange={e => atualizarFaixa(f.id, 'codigo_ate', e.target.value)}
+                              className="font-mono text-sm"
+                            />
+                            <Button
+                              type="button" size="icon" variant="ghost"
+                              onClick={() => removerFaixa(f.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpenFaixas(false)}>
+              Cancelar
+            </Button>
+            <Button type="button" onClick={handleSalvarFaixas} disabled={salvarFaixasMutation.isPending}>
+              {salvarFaixasMutation.isPending
+                ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Salvando...</>
+                : 'Salvar Faixas'}
             </Button>
           </DialogFooter>
         </DialogContent>
