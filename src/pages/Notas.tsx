@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Pagination } from '@/components/ui/pagination'
-import { Plus, Loader2, Link2, XCircle, Upload, FileUp } from 'lucide-react'
+import { Plus, Loader2, Link2, XCircle, Upload, FileUp, CheckCircle2, AlertCircle } from 'lucide-react'
 import { useEmpresas } from '@/hooks/useEmpresas'
 
 const STATUS_COLORS: Record<string, any> = {
@@ -49,6 +49,7 @@ export default function NotasPage() {
   const PAGE_SIZE = 20
   const [openCreate, setOpenCreate] = useState(false)
   const [openAssociar, setOpenAssociar] = useState<string | null>(null) // nota id
+  const [importResult, setImportResult] = useState<{ importadas: number; duplicadas: number; erros: string[] } | null>(null)
 
   // Busca — campos de texto usam debounce para não disparar uma request por tecla
   const [buscaInputs, setBuscaInputs] = useState({ numero: '', emitente: '', cnpj: '', chave_acesso: '' })
@@ -167,9 +168,10 @@ export default function NotasPage() {
     onSuccess: (d) => {
       toast({
         title: d.importadas > 0 ? 'Importação concluída' : 'Nenhuma nota importada',
-        description: `${d.importadas} nota(s) importada(s), ${d.duplicadas} duplicada(s) ignorada(s).${d.erros.length ? ` ${d.erros.length} erro(s).` : ''}`,
+        description: `${d.importadas} nota(s) importada(s), ${d.duplicadas} duplicada(s) ignorada(s).${d.erros.length ? ` ${d.erros.length} erro(s) — veja os detalhes abaixo.` : ''}`,
         variant: d.erros.length && d.importadas === 0 ? 'destructive' : d.erros.length ? 'default' : 'success',
       })
+      setImportResult(d)
       qc.invalidateQueries({ queryKey: ['notas', selectedEmpresa] })
     },
     onError: (e: unknown) => toast({ title: 'Erro ao importar XML', description: extractApiError(e), variant: 'destructive' }),
@@ -273,6 +275,35 @@ export default function NotasPage() {
           </div>
         )}
       </div>
+
+      {/* Resultado da importação */}
+      {importResult && (
+        <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 text-sm">
+              <span className="flex items-center gap-1 text-emerald-700 font-medium">
+                <CheckCircle2 className="h-4 w-4" /> {importResult.importadas} importada(s)
+              </span>
+              <span className="text-muted-foreground">{importResult.duplicadas} duplicada(s) ignorada(s)</span>
+              {importResult.erros.length > 0 && (
+                <span className="flex items-center gap-1 text-amber-700 font-medium">
+                  <AlertCircle className="h-4 w-4" /> {importResult.erros.length} erro(s)
+                </span>
+              )}
+            </div>
+            <button onClick={() => setImportResult(null)} className="text-xs text-muted-foreground hover:text-foreground">Fechar</button>
+          </div>
+          {importResult.erros.length > 0 && (
+            <div className="max-h-48 overflow-y-auto space-y-1">
+              {importResult.erros.map((erro, i) => (
+                <div key={i} className="text-xs text-amber-800 bg-amber-50 px-2 py-1.5 rounded">
+                  {erro}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Filtros */}
       <Card>
