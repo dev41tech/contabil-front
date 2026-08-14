@@ -148,7 +148,7 @@ export default function ComprovantesPage() {
       if (d.multa != null) setValue('multa', d.multa)
       if (d.desconto != null) setValue('desconto', d.desconto)
       toast({
-        title: 'Dados extraídos do PDF',
+        title: 'Dados extraídos do arquivo',
         description: 'Revise os campos antes de salvar.',
         variant: 'success',
       })
@@ -175,7 +175,7 @@ export default function ComprovantesPage() {
     }
     reader.readAsDataURL(file)
 
-    if (/\.pdf$/i.test(file.name)) {
+    if (/\.(pdf|jpe?g|png)$/i.test(file.name)) {
       extrairMutation.mutate(file)
     } else {
       setExtracaoStatus('idle')
@@ -397,11 +397,11 @@ export default function ComprovantesPage() {
               </div>
               <input ref={fileInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={handleFileSelect} />
               <p className="text-xs text-muted-foreground">
-                PDFs de comprovante têm os campos preenchidos automaticamente — revise antes de salvar.
+                PDFs e imagens de comprovante têm os campos preenchidos automaticamente — revise antes de salvar.
               </p>
               {extracaoStatus === 'extraindo' && (
                 <p className="text-xs text-blue-700 flex items-center gap-1.5">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Extraindo dados do PDF...
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Extraindo dados do arquivo...
                 </p>
               )}
               {extracaoStatus === 'extraido' && (
