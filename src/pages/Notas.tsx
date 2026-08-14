@@ -183,7 +183,7 @@ export default function NotasPage() {
     e.target.value = ''
   }
 
-  const ARQUIVO_VALIDO_RE = /\.(xml|zip)$/i
+  const ARQUIVO_VALIDO_RE = /\.(xml|zip|pdf|png|jpe?g)$/i
 
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault()
@@ -220,11 +220,11 @@ export default function NotasPage() {
     const soltos = Array.from(e.dataTransfer.files)
     const validos = soltos.filter(f => ARQUIVO_VALIDO_RE.test(f.name))
     if (validos.length === 0) {
-      toast({ title: 'Arquivo inválido', description: 'Solte arquivos .xml ou .zip.', variant: 'destructive' })
+      toast({ title: 'Arquivo inválido', description: 'Solte arquivos .xml, .zip, .pdf, .png ou .jpg.', variant: 'destructive' })
       return
     }
     if (validos.length < soltos.length) {
-      toast({ title: 'Alguns arquivos foram ignorados', description: 'Só .xml e .zip são aceitos.', variant: 'default' })
+      toast({ title: 'Alguns arquivos foram ignorados', description: 'Só .xml, .zip, .pdf, .png e .jpg são aceitos.', variant: 'default' })
     }
     xmlMutation.mutate(validos)
   }
@@ -245,7 +245,7 @@ export default function NotasPage() {
           <div className="rounded-lg border-2 border-dashed border-primary bg-card px-12 py-10 text-center shadow-lg">
             <FileUp className="mx-auto h-10 w-10 text-primary mb-3" />
             <p className="text-lg font-medium">Solte o(s) arquivo(s) aqui</p>
-            <p className="text-sm text-muted-foreground">XML ou ZIP de notas fiscais</p>
+            <p className="text-sm text-muted-foreground">XML, ZIP, PDF ou imagem de notas fiscais</p>
           </div>
         </div>
       )}
@@ -254,7 +254,7 @@ export default function NotasPage() {
           <h1 className="text-3xl font-bold">Notas Fiscais</h1>
           <p className="text-muted-foreground">
             NF-e e NFS-e associadas às transações
-            {selectedEmpresa && ' · arraste arquivos .xml ou .zip para esta página para importar'}
+            {selectedEmpresa && ' · arraste arquivos .xml, .zip, .pdf ou imagem para esta página para importar'}
           </p>
         </div>
         {selectedEmpresa && (
@@ -266,9 +266,16 @@ export default function NotasPage() {
             >
               {xmlMutation.isPending
                 ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Importando...</>
-                : <><Upload className="h-4 w-4 mr-2" />Importar XML</>}
+                : <><Upload className="h-4 w-4 mr-2" />Importar Nota</>}
             </Button>
-            <input ref={fileRef} type="file" accept=".xml,.XML,.zip,.ZIP" multiple className="hidden" onChange={handleXmlFile} />
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".xml,.XML,.zip,.ZIP,.pdf,.PDF,.png,.PNG,.jpg,.JPG,.jpeg,.JPEG"
+              multiple
+              className="hidden"
+              onChange={handleXmlFile}
+            />
             <Button onClick={() => setOpenCreate(true)}>
               <Plus className="h-4 w-4 mr-2" /> Nova Nota
             </Button>
@@ -423,7 +430,18 @@ export default function NotasPage() {
                     {items.map((n: any) => (
                       <tr key={n.id} className="border-b hover:bg-muted/50 transition-colors">
                         <td className="py-2 px-2">
-                          <Badge variant="outline" className="uppercase text-xs">{n.tipo}</Badge>
+                          <div className="flex items-center gap-1">
+                            <Badge variant="outline" className="uppercase text-xs">{n.tipo}</Badge>
+                            {n.origem === 'ocr' && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs text-amber-700 border-amber-300"
+                                title="Extraída de PDF/imagem por OCR — sem verificação de assinatura digital."
+                              >
+                                OCR
+                              </Badge>
+                            )}
+                          </div>
                         </td>
                         <td className="py-2 px-2 font-mono text-xs">{n.numero}{n.serie ? `-${n.serie}` : ''}</td>
                         <td className="py-2 px-2 max-w-[180px] truncate">
