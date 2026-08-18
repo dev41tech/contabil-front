@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Pagination } from '@/components/ui/pagination'
-import { Plus, Loader2, Link2, Unlink, FileText, Eye, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Plus, Loader2, Link2, Unlink, FileText, Eye, CheckCircle2, AlertCircle, FileUp, SkipForward } from 'lucide-react'
 import { useEmpresas } from '@/hooks/useEmpresas'
 
 const comprovanteSchema = z.object({
@@ -37,6 +37,8 @@ const PAGE_SIZE = 20
 export default function ComprovantesPage() {
   const qc = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const dragCounter = useRef(0)
+  const [isDragging, setIsDragging] = useState(false)
   const [selectedEmpresa, setSelectedEmpresa] = useEmpresaDefault()
   const [statusFiltro, setStatusFiltro] = useState('todos')
   const [page, setPage] = useState(1)
@@ -46,6 +48,13 @@ export default function ComprovantesPage() {
   const [pendingFile, setPendingFile] = useState<{ nome: string; base64: string } | null>(null)
   const [extracaoStatus, setExtracaoStatus] = useState<'idle' | 'extraindo' | 'extraido' | 'falhou'>('idle')
   const [extracaoConfianca, setExtracaoConfianca] = useState<string | null>(null)
+
+  // Fila de arquivos soltos de uma vez (item 5 do PDF de feedback dos contadores).
+  // Processa um por vez — reaproveita o mesmo fluxo de extração + revisão de
+  // sempre, só avança para o próximo arquivo depois que o atual é salvo ou pulado.
+  const [batch, setBatch] = useState<File[]>([])
+  const [batchIndex, setBatchIndex] = useState(0)
+  const emLote = batch.length > 1
 
   const { data: empresas = [] } = useEmpresas()
 
@@ -86,9 +95,7 @@ export default function ComprovantesPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['comprovantes', selectedEmpresa] })
       toast({ title: 'Comprovante criado!', variant: 'success' })
-      setOpenCreate(false)
-      reset()
-      setPendingFile(null)
+      avancarFila()
     },
     onError: (e: unknown) => toast({ title: 'Erro ao criar', description: extractApiError(e), variant: 'destructive' }),
   })
@@ -165,9 +172,9 @@ export default function ComprovantesPage() {
 
   // ── File handling ──────────────────────────────────────────────────────────
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  // Carrega um arquivo no formulário e dispara a extração — usado tanto pelo
+  // seletor manual (1 arquivo) quanto pela fila de arrastar-e-soltar (N arquivos).
+  const carregarArquivo = (file: File) => {
     const reader = new FileReader()
     reader.onload = () => {
       const base64 = (reader.result as string).split(',')[1]
@@ -181,7 +188,99 @@ export default function ComprovantesPage() {
       setExtracaoStatus('idle')
       setExtracaoConfianca(null)
     }
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    carregarArquivo(file)
     e.target.value = ''
+  }
+
+  // Depois de salvar (ou pular) o arquivo atual da fila, limpa o formulário e
+  // carrega o próximo — se não houver mais nenhum, fecha o modal normalmente.
+  const avancarFila = () => {
+    reset()
+    setPendingFile(null)
+    setExtracaoStatus('idle')
+    setExtracaoConfianca(null)
+
+    const proximoIndex = batchIndex + 1
+    if (proximoIndex < batch.length) {
+      setBatchIndex(proximoIndex)
+      carregarArquivo(batch[proximoIndex])
+    } else {
+      setOpenCreate(false)
+      setBatch([])
+      setBatchIndex(0)
+    }
+  }
+
+  const pularArquivo = () => {
+    toast({ title: `${batch[batchIndex]?.name ?? 'Arquivo'} pulado.`, variant: 'default' })
+    avancarFila()
+  }
+
+  const fecharFila = () => {
+    setOpenCreate(false)
+    reset()
+    setPendingFile(null)
+    setExtracaoStatus('idle')
+    setExtracaoConfianca(null)
+    setBatch([])
+    setBatchIndex(0)
+  }
+
+  // ── Arrastar e soltar (item 5 do PDF de feedback dos contadores) ────────────
+
+  const ARQUIVO_COMPROVANTE_RE = /\.(pdf|png|jpe?g)$/i
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!selectedEmpresa) return
+    if (!Array.from(e.dataTransfer.types).includes('Files')) return
+    dragCounter.current += 1
+    setIsDragging(true)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounter.current = Math.max(0, dragCounter.current - 1)
+    if (dragCounter.current === 0) setIsDragging(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragCounter.current = 0
+    setIsDragging(false)
+
+    if (!selectedEmpresa) {
+      toast({ title: 'Selecione uma empresa', description: 'Escolha a empresa antes de soltar o arquivo.', variant: 'destructive' })
+      return
+    }
+
+    const soltos = Array.from(e.dataTransfer.files)
+    const validos = soltos.filter(f => ARQUIVO_COMPROVANTE_RE.test(f.name))
+    if (validos.length === 0) {
+      toast({ title: 'Arquivo inválido', description: 'Solte arquivos .pdf, .png ou .jpg.', variant: 'destructive' })
+      return
+    }
+    if (validos.length < soltos.length) {
+      toast({ title: 'Alguns arquivos foram ignorados', description: 'Só .pdf, .png e .jpg são aceitos.', variant: 'default' })
+    }
+
+    setBatch(validos)
+    setBatchIndex(0)
+    setOpenCreate(true)
+    carregarArquivo(validos[0])
   }
 
   const verArquivo = async (comprovante: any) => {
@@ -197,11 +296,29 @@ export default function ComprovantesPage() {
   const total: number = comprovantes?.total ?? 0
 
   return (
-    <div className="space-y-6">
+    <div
+      className="space-y-6 relative"
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {isDragging && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm pointer-events-none">
+          <div className="rounded-lg border-2 border-dashed border-primary bg-card px-12 py-10 text-center shadow-lg">
+            <FileUp className="mx-auto h-10 w-10 text-primary mb-3" />
+            <p className="text-lg font-medium">Solte o(s) comprovante(s) aqui</p>
+            <p className="text-sm text-muted-foreground">PDF, PNG ou JPG — pode soltar vários de uma vez</p>
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Comprovantes</h1>
-          <p className="text-muted-foreground">Comprovantes de pagamento vinculados ao extrato</p>
+          <p className="text-muted-foreground">
+            Comprovantes de pagamento vinculados ao extrato
+            {selectedEmpresa && ' · arraste um ou vários arquivos para esta página para importar'}
+          </p>
         </div>
         {selectedEmpresa && (
           <Button onClick={() => setOpenCreate(true)}>
@@ -326,12 +443,17 @@ export default function ComprovantesPage() {
 
       {/* Modal Novo Comprovante */}
       <Dialog open={openCreate} onOpenChange={v => {
-        setOpenCreate(v)
-        if (!v) { reset(); setPendingFile(null); setExtracaoStatus('idle'); setExtracaoConfianca(null) }
+        if (!v) fecharFila(); else setOpenCreate(true)
       }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Novo Comprovante</DialogTitle>
+            <DialogTitle>
+              Novo Comprovante
+              {emLote && <span className="text-muted-foreground font-normal text-base"> ({batchIndex + 1} de {batch.length})</span>}
+            </DialogTitle>
+            {emLote && (
+              <p className="text-xs text-muted-foreground truncate">{batch[batchIndex]?.name}</p>
+            )}
           </DialogHeader>
           <form onSubmit={handleSubmit(d => createMutation.mutate(d))} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -419,9 +541,18 @@ export default function ComprovantesPage() {
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => { setOpenCreate(false); reset(); setPendingFile(null) }}>Cancelar</Button>
+              <Button type="button" variant="outline" onClick={fecharFila}>
+                {emLote ? 'Cancelar tudo' : 'Cancelar'}
+              </Button>
+              {emLote && (
+                <Button type="button" variant="outline" onClick={pularArquivo} disabled={createMutation.isPending}>
+                  <SkipForward className="h-4 w-4 mr-2" /> Pular este
+                </Button>
+              )}
               <Button type="submit" disabled={createMutation.isPending}>
-                {createMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Salvando...</> : 'Criar Comprovante'}
+                {createMutation.isPending
+                  ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Salvando...</>
+                  : emLote ? 'Salvar e continuar' : 'Criar Comprovante'}
               </Button>
             </DialogFooter>
           </form>
