@@ -75,7 +75,7 @@ export default function RegistrosPage() {
   })
 
   const exportMutation = useMutation({
-    mutationFn: async ({ tipo, formato }: { tipo: ExportTipo; formato: 'csv' | 'xlsx' }) => {
+    mutationFn: async ({ tipo, formato }: { tipo: ExportTipo; formato: 'csv' | 'xlsx' | 'txt' }) => {
       const body: any = { formato, tipo }
       if (dataInicio) body.data_de = new Date(dataInicio).toISOString()
       if (dataFim) body.data_ate = new Date(dataFim + 'T23:59:59').toISOString()
@@ -98,7 +98,7 @@ export default function RegistrosPage() {
       toast({ title: 'Erro na exportação', description: extractApiError(e), variant: 'destructive' }),
   })
 
-  const doExport = (tipo: ExportTipo, formato: 'csv' | 'xlsx') =>
+  const doExport = (tipo: ExportTipo, formato: 'csv' | 'xlsx' | 'txt') =>
     exportMutation.mutate({ tipo, formato })
 
   const items: any[] = registros?.items ?? []
@@ -149,6 +149,9 @@ export default function RegistrosPage() {
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => doExport('lancamentos_importacao', 'csv')}>
                     Lançamentos (Layout de Importação) (.csv)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => doExport('lancamentos_importacao', 'txt')}>
+                    Lançamentos (Layout de Importação) (.txt)
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
 
