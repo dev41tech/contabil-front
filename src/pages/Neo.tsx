@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -62,19 +62,65 @@ export default function NeoPage() {
   const [associarDecisao, setAssociarDecisao] = useState<any>(null)
   const [criarRegraDecisao, setCriarRegraDecisao] = useState<any>(null)
 
+  // Busca e filtros (item 4 do PDF de feedback dos contadores)
+  const [termoInput, setTermoInput] = useState('')
+  const [termo, setTermo] = useState('')
+  const [resultadoFiltro, setResultadoFiltro] = useState('todos')
+  const [estrategiaFiltro, setEstrategiaFiltro] = useState('todas')
+  const [dcFiltro, setDcFiltro] = useState('todos')
+  const [agenciaFiltro, setAgenciaFiltro] = useState('todas')
+  const [contaFiltro, setContaFiltro] = useState('todas')
+  const [mesFiltro, setMesFiltro] = useState('')
+
+  useEffect(() => {
+    const t = setTimeout(() => { setTermo(termoInput); setPage(1) }, 400)
+    return () => clearTimeout(t)
+  }, [termoInput])
+
+  const filtrosAtivos =
+    !!termo || resultadoFiltro !== 'todos' || estrategiaFiltro !== 'todas' ||
+    dcFiltro !== 'todos' || agenciaFiltro !== 'todas' || contaFiltro !== 'todas' || !!mesFiltro
+
+  const limparFiltros = () => {
+    setTermoInput(''); setTermo('')
+    setResultadoFiltro('todos'); setEstrategiaFiltro('todas')
+    setDcFiltro('todos'); setAgenciaFiltro('todas'); setContaFiltro('todas')
+    setMesFiltro(''); setPage(1)
+  }
+
   // ── Queries ──────────────────────────────────────────────────────────────────
   const { data: empresas = [] } = useEmpresas()
 
+  const { data: agencias = [] } = useQuery<any[]>({
+    queryKey: ['agencias', selectedEmpresa],
+    queryFn: () => api.get(`/empresas/${selectedEmpresa}/agencias`).then(r => r.data.items ?? r.data),
+    enabled: !!selectedEmpresa,
+  })
+
+  const buildDecisoesParams = () => {
+    const p = new URLSearchParams()
+    p.set('page', String(page))
+    p.set('page_size', String(PAGE_SIZE))
+    if (termo) p.set('termo', termo)
+    if (resultadoFiltro !== 'todos') p.set('resultado', resultadoFiltro)
+    if (estrategiaFiltro !== 'todas') p.set('estrategia', estrategiaFiltro)
+    if (dcFiltro !== 'todos') p.set('dc', dcFiltro)
+    if (agenciaFiltro !== 'todas') p.set('agencia_id', agenciaFiltro)
+    if (contaFiltro !== 'todas') p.set('conta_id', contaFiltro)
+    if (mesFiltro) p.set('mes', mesFiltro)
+    return p.toString()
+  }
+
   const { data: decisoes, isLoading } = useQuery<any>({
-    queryKey: ['neo-decisoes', selectedEmpresa, page],
+    queryKey: ['neo-decisoes', selectedEmpresa, page, termo, resultadoFiltro, estrategiaFiltro, dcFiltro, agenciaFiltro, contaFiltro, mesFiltro],
     queryFn: () =>
       api
-        .get(`/empresas/${selectedEmpresa}/neo/decisoes?page=${page}&page_size=${PAGE_SIZE}`)
+        .get(`/empresas/${selectedEmpresa}/neo/decisoes?${buildDecisoesParams()}`)
         .then(r => r.data),
     enabled: !!selectedEmpresa,
   })
 
-  // Plano de contas para os modais (carregado quando empresa selecionada)
+  // Plano de contas para os modais e para o filtro por conta (carregado quando empresa selecionada)
   const { data: planoConta = [] } = useQuery<any[]>({
     queryKey: ['plano-contas', selectedEmpresa],
     queryFn: () =>
@@ -241,6 +287,95 @@ export default function NeoPage() {
                 )}
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Busca e filtros (item 4 do PDF de feedback dos contadores) */}
+      {selectedEmpresa && (
+        <Card>
+          <CardContent className="pt-6 space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-1 block">Buscar</label>
+              <Input
+                placeholder="Histórico do extrato ou descrição da regra"
+                value={termoInput}
+                onChange={e => setTermoInput(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-4 flex-wrap items-end">
+              <div className="min-w-[130px]">
+                <label className="text-sm font-medium mb-1 block">Resultado</label>
+                <Select value={resultadoFiltro} onValueChange={v => { setResultadoFiltro(v); setPage(1) }}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="associada">Associada</SelectItem>
+                    <SelectItem value="sem_regra">Sem Regra</SelectItem>
+                    <SelectItem value="erro">Erro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="min-w-[140px]">
+                <label className="text-sm font-medium mb-1 block">Estratégia</label>
+                <Select value={estrategiaFiltro} onValueChange={v => { setEstrategiaFiltro(v); setPage(1) }}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas</SelectItem>
+                    <SelectItem value="exato">Exato</SelectItem>
+                    <SelectItem value="substring">Substring</SelectItem>
+                    <SelectItem value="prefixo">Prefixo</SelectItem>
+                    <SelectItem value="manual">Manual</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="min-w-[110px]">
+                <label className="text-sm font-medium mb-1 block">D/C</label>
+                <Select value={dcFiltro} onValueChange={v => { setDcFiltro(v); setPage(1) }}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="D">Débito</SelectItem>
+                    <SelectItem value="C">Crédito</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="min-w-[180px]">
+                <label className="text-sm font-medium mb-1 block">Agência</label>
+                <Select value={agenciaFiltro} onValueChange={v => { setAgenciaFiltro(v); setPage(1) }}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas</SelectItem>
+                    {agencias.map((ag: any) => (
+                      <SelectItem key={ag.id} value={ag.id}>
+                        {ag.descricao ?? `${ag.banco_sigla} ${ag.agencia}/${ag.numero}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="min-w-[220px]">
+                <label className="text-sm font-medium mb-1 block">Conta contábil</label>
+                <SearchableSelect
+                  value={contaFiltro}
+                  onValueChange={v => { setContaFiltro(v); setPage(1) }}
+                  options={[{ value: 'todas', label: 'Todas' }, ...contaOptions]}
+                  placeholder="Todas"
+                  searchPlaceholder="Buscar conta..."
+                />
+              </div>
+              <div className="min-w-[130px]">
+                <label className="text-sm font-medium mb-1 block">Competência</label>
+                <Input
+                  type="month"
+                  value={mesFiltro}
+                  onChange={e => { setMesFiltro(e.target.value); setPage(1) }}
+                />
+              </div>
+              {filtrosAtivos && (
+                <Button variant="ghost" size="sm" onClick={limparFiltros}>Limpar filtros</Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}
