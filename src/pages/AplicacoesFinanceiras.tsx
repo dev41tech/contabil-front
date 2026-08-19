@@ -56,8 +56,8 @@ export default function AplicacoesFinanceirasPage() {
   const { data: empresas = [] } = useEmpresas()
 
   const { data: agencias = [] } = useQuery<any[]>({
-    queryKey: ['agencias', selectedEmpresa],
-    queryFn: () => api.get(`/empresas/${selectedEmpresa}/agencias`).then(r => r.data.items ?? r.data),
+    queryKey: ['agencias', selectedEmpresa, 'ativas'],
+    queryFn: () => api.get(`/empresas/${selectedEmpresa}/agencias?apenas_ativas=true`).then(r => r.data.items ?? r.data),
     enabled: !!selectedEmpresa,
   })
 

@@ -40,6 +40,7 @@ const agenciaSchema = z.object({
   agencia: z.string().regex(/^\d+$/, 'Apenas dígitos'),
   numero: z.string().min(1, 'Informe o número da conta'),
   digito: z.string().optional(),
+  conta_contabil_id: z.union([z.string().uuid(), z.literal('')]).nullable().optional(),
 })
 type AgenciaForm = z.infer<typeof agenciaSchema>
 
@@ -940,14 +941,32 @@ function PlanoContasList({ empresaId }: { empresaId: string }) {
 function AgenciasList({ empresaId }: { empresaId: string }) {
   const qc = useQueryClient()
   const [open, setOpen] = useState(false)
+  const [editAgencia, setEditAgencia] = useState<any>(null)
+  const [desativarAgencia, setDesativarAgencia] = useState<any>(null)
   const { data = [], isLoading } = useQuery<any[]>({
     queryKey: ['agencias', empresaId],
     queryFn: () => api.get(`/empresas/${empresaId}/agencias`).then(r => r.data.items ?? r.data),
     enabled: !!empresaId,
   })
+
+  const { data: contas = [] } = useQuery<any[]>({
+    queryKey: ['plano-contas', empresaId],
+    queryFn: () => api.get(`/empresas/${empresaId}/plano-contas`).then(r => r.data.items ?? r.data),
+    enabled: !!empresaId,
+  })
+  const contaOptions = useMemo<ComboOption[]>(() => [
+    { value: '', label: 'Sem vínculo com o Plano de Contas' },
+    ...contas.map((c: any) => ({
+      value: c.id,
+      label: `${c.codigo} — ${c.descricao}`,
+      sublabel: c.tipo_sa === 'A' ? 'Analítica' : c.tipo_sa === 'S' ? 'Sintética' : undefined,
+    })),
+  ], [contas])
+
   const { register, handleSubmit, reset, formState: { errors } } = useForm<AgenciaForm>({
     resolver: zodResolver(agenciaSchema),
   })
+  const editForm = useForm<AgenciaForm>({ resolver: zodResolver(agenciaSchema) })
   const createMutation = useMutation({
     mutationFn: (d: AgenciaForm) => api.post(`/empresas/${empresaId}/agencias`, d),
     onSuccess: () => {
@@ -958,6 +977,44 @@ function AgenciasList({ empresaId }: { empresaId: string }) {
     },
     onError: (e: unknown) => toast({ title: 'Erro', description: extractApiError(e), variant: 'destructive' }),
   })
+
+  const editMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: AgenciaForm }) => api.patch(
+      `/empresas/${empresaId}/agencias/${id}`,
+      {
+        ...data,
+        digito: data.digito || null,
+        conta_contabil_id: data.conta_contabil_id || null,
+      },
+    ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['agencias', empresaId] })
+      toast({ title: 'Conta bancária atualizada!', variant: 'success' })
+      setEditAgencia(null)
+    },
+    onError: (e: unknown) => toast({ title: 'Erro ao atualizar conta bancária', description: extractApiError(e), variant: 'destructive' }),
+  })
+
+  const desativarMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/empresas/${empresaId}/agencias/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['agencias', empresaId] })
+      toast({ title: 'Conta bancária desativada.', variant: 'default' })
+      setDesativarAgencia(null)
+    },
+    onError: (e: unknown) => toast({ title: 'Erro ao desativar conta bancária', description: extractApiError(e), variant: 'destructive' }),
+  })
+
+  const abrirEdicao = (agencia: any) => {
+    editForm.reset({
+      banco_sigla: agencia.banco_sigla,
+      agencia: agencia.agencia,
+      numero: agencia.numero,
+      digito: agencia.digito ?? '',
+      conta_contabil_id: agencia.conta_contabil_id ?? '',
+    })
+    setEditAgencia(agencia)
+  }
 
   return (
     <div className="space-y-4">
@@ -978,7 +1035,7 @@ function AgenciasList({ empresaId }: { empresaId: string }) {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {data.map((a: any) => (
-            <div key={a.id} className="flex items-center justify-between p-4 rounded-lg border bg-white hover:shadow-sm transition-shadow">
+            <div key={a.id} className={`flex items-center justify-between gap-3 p-4 rounded-lg border transition-shadow ${a.ativa ? 'bg-white hover:shadow-sm' : 'bg-muted/50 opacity-75'}`}>
               <div className="flex items-start gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-600 font-bold text-sm shrink-0">
                   {a.banco_sigla?.slice(0, 2).toUpperCase()}
@@ -990,11 +1047,26 @@ function AgenciasList({ empresaId }: { empresaId: string }) {
                     {' · '}
                     CC: <span className="font-mono">{a.numero}{a.digito ? `-${a.digito}` : ''}</span>
                   </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Conta contábil: {a.conta_contabil_id
+                      ? `${a.conta_contabil_codigo ?? ''}${a.conta_contabil_codigo ? ' — ' : ''}${a.conta_contabil_descricao ?? a.conta_contabil_id}`
+                      : 'sem vínculo'}
+                  </p>
                 </div>
               </div>
-              <Badge variant={a.ativa ? 'success' : 'secondary'} className="text-xs">
-                {a.ativa ? 'Ativa' : 'Inativa'}
-              </Badge>
+              <div className="flex items-center gap-1 shrink-0">
+                <Badge variant={a.ativa ? 'success' : 'secondary'} className="text-xs">
+                  {a.ativa ? 'Ativa' : 'Inativa'}
+                </Badge>
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => abrirEdicao(a)} title="Editar conta bancária">
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                {a.ativa && (
+                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDesativarAgencia(a)} title="Desativar conta bancária">
+                    <ToggleLeft className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -1038,6 +1110,73 @@ function AgenciasList({ empresaId }: { empresaId: string }) {
           </form>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!editAgencia} onOpenChange={v => { if (!v) setEditAgencia(null) }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5 text-muted-foreground" /> Editar Conta Bancária
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={editForm.handleSubmit(d => editAgencia && editMutation.mutate({ id: editAgencia.id, data: d }))} className="space-y-4">
+            <div className="space-y-1">
+              <Label>Banco</Label>
+              <Input placeholder="Ex: BRADESCO" {...editForm.register('banco_sigla')} />
+              {editForm.formState.errors.banco_sigla && <p className="text-xs text-destructive">{editForm.formState.errors.banco_sigla.message}</p>}
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <Label>Agência</Label>
+                <Input placeholder="0001" {...editForm.register('agencia')} />
+                {editForm.formState.errors.agencia && <p className="text-xs text-destructive">{editForm.formState.errors.agencia.message}</p>}
+              </div>
+              <div className="space-y-1">
+                <Label>Conta</Label>
+                <Input placeholder="12345" {...editForm.register('numero')} />
+                {editForm.formState.errors.numero && <p className="text-xs text-destructive">{editForm.formState.errors.numero.message}</p>}
+              </div>
+              <div className="space-y-1">
+                <Label>Dígito</Label>
+                <Input placeholder="6" {...editForm.register('digito')} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Conta do Plano de Contas</Label>
+              <SearchableCombobox
+                options={contaOptions}
+                value={editForm.watch('conta_contabil_id') ?? ''}
+                onChange={v => editForm.setValue('conta_contabil_id', v, { shouldValidate: true })}
+                placeholder="Sem vínculo com o Plano de Contas"
+              />
+              <p className="text-xs text-muted-foreground">
+                Se ficar sem vínculo, o motor NEO criará automaticamente uma conta sintética para a contrapartida bancária.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditAgencia(null)}>Cancelar</Button>
+              <Button type="submit" disabled={editMutation.isPending}>
+                {editMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Salvando...</> : 'Salvar Alterações'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!desativarAgencia} onOpenChange={v => { if (!v) setDesativarAgencia(null) }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Desativar Conta Bancária</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Desativar <span className="font-medium text-foreground">{desativarAgencia?.descricao ?? `${desativarAgencia?.banco_sigla} — Ag ${desativarAgencia?.agencia} / CC ${desativarAgencia?.numero}${desativarAgencia?.digito ? `-${desativarAgencia.digito}` : ''}`}</span>?
+            A conta deixará de aparecer nas seleções, mas todo o histórico de transações será preservado.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDesativarAgencia(null)}>Cancelar</Button>
+            <Button variant="destructive" onClick={() => desativarAgencia && desativarMutation.mutate(desativarAgencia.id)} disabled={desativarMutation.isPending}>
+              {desativarMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Desativando...</> : 'Desativar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -1077,8 +1216,8 @@ function RegrasList({ empresaId }: { empresaId: string }) {
   const contas: any[] = Array.isArray(contasRaw) ? contasRaw : (contasRaw?.items ?? [])
 
   const { data: agencias = [] } = useQuery<any[]>({
-    queryKey: ['agencias', empresaId],
-    queryFn: () => api.get(`/empresas/${empresaId}/agencias`).then(r => r.data.items ?? r.data),
+    queryKey: ['agencias', empresaId, 'ativas'],
+    queryFn: () => api.get(`/empresas/${empresaId}/agencias?apenas_ativas=true`).then(r => r.data.items ?? r.data),
     enabled: !!empresaId,
   })
 
