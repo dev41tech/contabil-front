@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { api } from '@/lib/api'
-import { formatDate, extractApiError } from '@/lib/utils'
+import { formatCurrency, formatDate, extractApiError } from '@/lib/utils'
 import { toast } from '@/hooks/useToast'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -23,6 +23,7 @@ import { SearchableSelect } from '@/components/ui/searchable-select'
 import { Pagination } from '@/components/ui/pagination'
 import { Zap, Loader2, Link2, BookOpen } from 'lucide-react'
 import { useEmpresas } from '@/hooks/useEmpresas'
+import { useEmpresaDefault } from '@/hooks/useEmpresaDefault'
 
 // ── Cores por resultado ────────────────────────────────────────────────────────
 const RESULTADO_COLORS: Record<string, any> = {
@@ -53,7 +54,7 @@ type CriarRegraForm = z.infer<typeof criarRegraSchema>
 // ── Componente ────────────────────────────────────────────────────────────────
 export default function NeoPage() {
   const qc = useQueryClient()
-  const [selectedEmpresa, setSelectedEmpresa] = useState('')
+  const [selectedEmpresa, setSelectedEmpresa] = useEmpresaDefault()
   const [processResult, setProcessResult] = useState<any>(null)
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 20
@@ -71,6 +72,8 @@ export default function NeoPage() {
   const [agenciaFiltro, setAgenciaFiltro] = useState('todas')
   const [contaFiltro, setContaFiltro] = useState('todas')
   const [mesFiltro, setMesFiltro] = useState('')
+  const [valorMinFiltro, setValorMinFiltro] = useState('')
+  const [valorMaxFiltro, setValorMaxFiltro] = useState('')
 
   useEffect(() => {
     const t = setTimeout(() => { setTermo(termoInput); setPage(1) }, 400)
@@ -79,13 +82,14 @@ export default function NeoPage() {
 
   const filtrosAtivos =
     !!termo || resultadoFiltro !== 'todos' || estrategiaFiltro !== 'todas' ||
-    dcFiltro !== 'todos' || agenciaFiltro !== 'todas' || contaFiltro !== 'todas' || !!mesFiltro
+    dcFiltro !== 'todos' || agenciaFiltro !== 'todas' || contaFiltro !== 'todas' ||
+    !!mesFiltro || !!valorMinFiltro || !!valorMaxFiltro
 
   const limparFiltros = () => {
     setTermoInput(''); setTermo('')
     setResultadoFiltro('todos'); setEstrategiaFiltro('todas')
     setDcFiltro('todos'); setAgenciaFiltro('todas'); setContaFiltro('todas')
-    setMesFiltro(''); setPage(1)
+    setMesFiltro(''); setValorMinFiltro(''); setValorMaxFiltro(''); setPage(1)
   }
 
   // ── Queries ──────────────────────────────────────────────────────────────────
@@ -108,11 +112,13 @@ export default function NeoPage() {
     if (agenciaFiltro !== 'todas') p.set('agencia_id', agenciaFiltro)
     if (contaFiltro !== 'todas') p.set('conta_id', contaFiltro)
     if (mesFiltro) p.set('mes', mesFiltro)
+    if (valorMinFiltro) p.set('valor_min', String(Number(valorMinFiltro)))
+    if (valorMaxFiltro) p.set('valor_max', String(Number(valorMaxFiltro)))
     return p.toString()
   }
 
   const { data: decisoes, isLoading } = useQuery<any>({
-    queryKey: ['neo-decisoes', selectedEmpresa, page, termo, resultadoFiltro, estrategiaFiltro, dcFiltro, agenciaFiltro, contaFiltro, mesFiltro],
+    queryKey: ['neo-decisoes', selectedEmpresa, page, termo, resultadoFiltro, estrategiaFiltro, dcFiltro, agenciaFiltro, contaFiltro, mesFiltro, valorMinFiltro, valorMaxFiltro],
     queryFn: () =>
       api
         .get(`/empresas/${selectedEmpresa}/neo/decisoes?${buildDecisoesParams()}`)
@@ -132,7 +138,10 @@ export default function NeoPage() {
 
   // ── Mutations ────────────────────────────────────────────────────────────────
   const processMutation = useMutation({
-    mutationFn: () => api.post(`/empresas/${selectedEmpresa}/neo/processar`, {}),
+    mutationFn: () => api.post(`/empresas/${selectedEmpresa}/neo/processar`, {
+      agencia_id: agenciaFiltro !== 'todas' ? agenciaFiltro : undefined,
+      mes: mesFiltro || undefined,
+    }),
     onSuccess: (res) => {
       setProcessResult(res.data)
       qc.invalidateQueries({ queryKey: ['neo-decisoes', selectedEmpresa] })
@@ -214,6 +223,14 @@ export default function NeoPage() {
     label: `${c.codigo ? c.codigo + ' — ' : ''}${c.descricao}`,
   }))
 
+  const agenciaProcessamento = agencias.find((ag: any) => ag.id === agenciaFiltro)
+  const agenciaProcessamentoLabel = agenciaFiltro === 'todas'
+    ? ''
+    : agenciaProcessamento?.descricao ?? (agenciaProcessamento
+      ? `${agenciaProcessamento.banco_sigla} ${agenciaProcessamento.agencia}/${agenciaProcessamento.numero}`
+      : 'agência selecionada')
+  const escopoProcessamento = [agenciaProcessamentoLabel, mesFiltro].filter(Boolean).join(' · ')
+
   return (
     <div className="space-y-6">
       <div>
@@ -229,7 +246,13 @@ export default function NeoPage() {
               <label className="text-sm font-medium mb-1 block">Empresa</label>
               <SearchableSelect
                 value={selectedEmpresa}
-                onValueChange={v => { setSelectedEmpresa(v); setProcessResult(null) }}
+                onValueChange={v => {
+                  setSelectedEmpresa(v)
+                  setAgenciaFiltro('todas')
+                  setContaFiltro('todas')
+                  setProcessResult(null)
+                  setPage(1)
+                }}
                 options={empresas.map((e: any) => ({ value: e.id, label: e.razao_social }))}
                 placeholder="Selecione a empresa"
                 searchPlaceholder="Buscar empresa..."
@@ -243,7 +266,7 @@ export default function NeoPage() {
               {processMutation.isPending ? (
                 <><Loader2 className="h-4 w-4 animate-spin mr-2" />Processando...</>
               ) : (
-                <><Zap className="h-4 w-4 mr-2" />Executar NEO</>
+                <><Zap className="h-4 w-4 mr-2" />{escopoProcessamento ? `Processar ${escopoProcessamento}` : 'Executar NEO'}</>
               )}
             </Button>
           </div>
@@ -322,10 +345,11 @@ export default function NeoPage() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todas">Todas</SelectItem>
-                    <SelectItem value="exato">Exato</SelectItem>
-                    <SelectItem value="substring">Substring</SelectItem>
-                    <SelectItem value="prefixo">Prefixo</SelectItem>
-                    <SelectItem value="manual">Manual</SelectItem>
+                    <SelectItem value="exato">Texto exato</SelectItem>
+                    <SelectItem value="substring">Contém o texto</SelectItem>
+                    <SelectItem value="todas_palavras">Contém todas as palavras</SelectItem>
+                    <SelectItem value="contraparte">Por CNPJ do favorecido</SelectItem>
+                    <SelectItem value="manual">Associação manual</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -372,6 +396,34 @@ export default function NeoPage() {
                   onChange={e => { setMesFiltro(e.target.value); setPage(1) }}
                 />
               </div>
+              <div className="min-w-[130px]">
+                <label className="text-sm font-medium mb-1 block">Valor mínimo</label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="R$ 0,00"
+                  value={valorMinFiltro}
+                  onChange={e => {
+                    if (!e.target.value || Number(e.target.value) >= 0) setValorMinFiltro(e.target.value)
+                    setPage(1)
+                  }}
+                />
+              </div>
+              <div className="min-w-[130px]">
+                <label className="text-sm font-medium mb-1 block">Valor máximo</label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="R$ 0,00"
+                  value={valorMaxFiltro}
+                  onChange={e => {
+                    if (!e.target.value || Number(e.target.value) >= 0) setValorMaxFiltro(e.target.value)
+                    setPage(1)
+                  }}
+                />
+              </div>
               {filtrosAtivos && (
                 <Button variant="ghost" size="sm" onClick={limparFiltros}>Limpar filtros</Button>
               )}
@@ -394,17 +446,24 @@ export default function NeoPage() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : items.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">Nenhuma decisão registrada ainda.</p>
+            <div className="flex flex-col items-center gap-3 py-8 text-center">
+              <p className="text-muted-foreground">
+                {filtrosAtivos ? 'Nenhuma decisão encontrada com esses filtros.' : 'Nenhuma decisão registrada ainda.'}
+              </p>
+              {filtrosAtivos && <Button variant="outline" size="sm" onClick={limparFiltros}>Limpar filtros</Button>}
+            </div>
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full min-w-[1100px] text-sm">
                   <thead>
                     <tr className="border-b text-muted-foreground">
                       <th className="text-left py-3 px-2 w-28">Data</th>
                       <th className="text-left py-3 px-2">Transação</th>
-                      <th className="text-left py-3 px-2">Regra</th>
-                      <th className="text-left py-3 px-2 max-w-[160px]">Motivo</th>
+                      <th className="text-right py-3 px-2 w-28">Valor</th>
+                      <th className="text-center py-3 px-2 w-20">D/C</th>
+                      <th className="text-left py-3 px-2">Regra / Conta</th>
+                      <th className="text-left py-3 px-2 w-36">Motivo</th>
                       <th className="text-center py-3 px-2 w-24">Resultado</th>
                       <th className="text-center py-3 px-2 w-36">Ações</th>
                     </tr>
@@ -418,11 +477,26 @@ export default function NeoPage() {
                         <td className="py-2 px-2 max-w-[200px] truncate">
                           {d.transacao_descricao ?? d.transacao_id}
                         </td>
-                        <td className="py-2 px-2 text-muted-foreground">
-                          {d.regra_descricao ?? d.regra_id ?? '—'}
+                        <td className="py-2 px-2 text-right font-mono whitespace-nowrap">
+                          {d.transacao_valor != null ? formatCurrency(d.transacao_valor) : '—'}
+                        </td>
+                        <td className="py-2 px-2 text-center">
+                          <Badge variant="outline">
+                            {d.transacao_dc === 'D' ? 'Débito' : d.transacao_dc === 'C' ? 'Crédito' : '—'}
+                          </Badge>
+                        </td>
+                        <td className="py-2 px-2 max-w-[220px]">
+                          <div className="truncate text-muted-foreground" title={d.regra_descricao ?? ''}>
+                            {d.regra_descricao ?? d.regra_id ?? '—'}
+                          </div>
+                          {(d.conta_codigo || d.conta_descricao) && (
+                            <div className="truncate text-xs" title={[d.conta_codigo, d.conta_descricao].filter(Boolean).join(' — ')}>
+                              {[d.conta_codigo, d.conta_descricao].filter(Boolean).join(' — ')}
+                            </div>
+                          )}
                         </td>
                         <td
-                          className="py-2 px-2 text-xs text-muted-foreground max-w-[160px] truncate"
+                          className="py-2 px-2 text-xs text-muted-foreground max-w-[144px] truncate"
                           title={d.motivo ?? ''}
                         >
                           {d.motivo ?? '—'}

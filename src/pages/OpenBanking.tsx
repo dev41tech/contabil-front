@@ -135,7 +135,7 @@ function MockConnectModal({
         <div className="space-y-4 py-2">
           <div className="rounded-md bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
             <p className="font-medium mb-1">⚠️ Modo demonstração ativo</p>
-            <p>Configure <code className="bg-amber-100 px-1 rounded">PLUGGY_CLIENT_ID</code> e <code className="bg-amber-100 px-1 rounded">PLUGGY_CLIENT_SECRET</code> no <code className="bg-amber-100 px-1 rounded">.env</code> para conectar bancos reais via Open Finance Brasil.</p>
+            <p>A conexão com bancos reais não está disponível neste ambiente. Para habilitá-la, acione o suporte.</p>
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium">Selecione o banco</label>
@@ -490,11 +490,7 @@ export default function OpenBankingPage() {
               <p className="text-sm text-muted-foreground">
                 A integração utiliza o <strong>Pluggy</strong> como agregador financeiro, que conecta
                 a mais de 200 instituições participantes do Open Finance Brasil (regulado pelo Banco Central).
-                Para produção, configure as credenciais Pluggy no <code className="bg-muted px-1 rounded text-xs">.env</code>.
-              </p>
-              <p className="text-xs text-muted-foreground mt-2">
-                <strong>PLUGGY_CLIENT_ID</strong> e <strong>PLUGGY_CLIENT_SECRET</strong> —
-                obtenha em <span className="text-primary">pluggy.ai</span>
+                Para habilitar a integração com bancos reais, acione o suporte.
               </p>
             </div>
           </div>

@@ -82,7 +82,10 @@ export default function ExtratoPage() {
       qc.invalidateQueries({ queryKey: ['extrato'] })
     },
     onError: (e: unknown) => {
-      const msg = extractApiError(e)
+      const apiMessage = extractApiError(e)
+      const msg = apiMessage.toLowerCase().includes('openai')
+        ? 'Não foi possível ler o arquivo automaticamente. Você pode preencher os dados manualmente ou acionar o suporte.'
+        : apiMessage
       setUploadError(msg)
       toast({ title: 'Erro ao importar extrato', description: msg, variant: 'destructive' })
     },
@@ -215,12 +218,6 @@ export default function ExtratoPage() {
               <div className="flex-1">
                 <p className="font-medium text-amber-800">Falha ao processar o arquivo</p>
                 <p className="text-amber-700 mt-0.5">{uploadError}</p>
-                {uploadError.toLowerCase().includes('openai') && (
-                  <p className="text-xs text-amber-600 mt-1">
-                    PDFs do Itaú são baseados em imagem e precisam de OCR via OpenAI Vision (GPT-4o).
-                    Adicione <code className="bg-amber-100 px-1 rounded font-mono">OPENAI_API_KEY=sk-...</code> no arquivo <code className="bg-amber-100 px-1 rounded font-mono">.env</code> do servidor e reinicie.
-                  </p>
-                )}
               </div>
               <button onClick={() => setUploadError(null)} className="text-amber-500 hover:text-amber-700 shrink-0">✕</button>
             </div>
@@ -248,8 +245,8 @@ export default function ExtratoPage() {
               <label className="text-sm font-medium mb-1 block">Até</label>
               <Input type="date" value={dataFim} onChange={e => { setDataFim(e.target.value); setPage(1) }} className="w-40" />
             </div>
-            {(statusFiltro !== 'todos' || dataInicio || dataFim) && (
-              <Button variant="ghost" size="sm" className="self-end" onClick={() => { setStatusFiltro('todos'); setDataInicio(''); setDataFim(''); setPage(1) }}>
+            {(selectedAgencia || statusFiltro !== 'todos' || dataInicio || dataFim) && (
+              <Button variant="ghost" size="sm" className="self-end" onClick={() => { setSelectedAgencia(''); setStatusFiltro('todos'); setDataInicio(''); setDataFim(''); setPage(1) }}>
                 Limpar filtros
               </Button>
             )}
@@ -267,7 +264,11 @@ export default function ExtratoPage() {
           ) : isLoading ? (
             <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
           ) : items.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">Nenhuma transação encontrada. Importe um arquivo OFX ou PDF.</p>
+            <p className="text-muted-foreground text-center py-8">
+              {(selectedAgencia || statusFiltro !== 'todos' || dataInicio || dataFim)
+                ? 'Nenhuma transação encontrada com esses filtros.'
+                : 'Nenhuma transação encontrada. Importe um arquivo OFX ou PDF.'}
+            </p>
           ) : (
             <>
               <div className="overflow-x-auto">
