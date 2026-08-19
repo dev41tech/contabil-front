@@ -62,10 +62,12 @@ export default function NotasPage() {
     return () => clearTimeout(t)
   }, [buscaInputs.numero, buscaInputs.emitente, buscaInputs.cnpj, buscaInputs.chave_acesso])
 
-  const filtrosAtivos = Object.values(busca).some(Boolean) || !!dataDe || !!dataAte
+  const filtrosAtivos = tipoFiltro !== 'todos' || statusFiltro !== 'todos' ||
+    Object.values(busca).some(Boolean) || !!dataDe || !!dataAte
   const limparFiltros = () => {
     setBuscaInputs({ numero: '', emitente: '', cnpj: '', chave_acesso: '' })
     setBusca({ numero: '', emitente: '', cnpj: '', chave_acesso: '' })
+    setTipoFiltro('todos'); setStatusFiltro('todos')
     setDataDe(''); setDataAte(''); setPage(1)
   }
 
@@ -410,7 +412,9 @@ export default function NotasPage() {
           ) : isLoading ? (
             <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
           ) : items.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">Nenhuma nota fiscal encontrada.</p>
+            <p className="text-muted-foreground text-center py-8">
+              {filtrosAtivos ? 'Nenhuma nota fiscal encontrada com esses filtros.' : 'Nenhuma nota fiscal cadastrada.'}
+            </p>
           ) : (
             <>
               <div className="overflow-x-auto">
@@ -560,8 +564,10 @@ export default function NotasPage() {
                     onClick={() => openAssociar && associarMutation.mutate({ notaId: openAssociar, transacaoId: t.id })}
                     disabled={associarMutation.isPending}
                   >
-                    <p className="font-medium text-sm">{t.descricao || t.memo}</p>
-                    <p className="text-xs text-muted-foreground">{formatDate(t.data_transacao)} · {formatCurrency(t.valor)}</p>
+                    <p className="font-medium text-sm">{t.historico || '—'}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatDate(t.data)} · {t.dc === 'D' ? 'Débito' : t.dc === 'C' ? 'Crédito' : '—'} · {formatCurrency(t.valor)}
+                    </p>
                   </button>
                 ))}
               </div>

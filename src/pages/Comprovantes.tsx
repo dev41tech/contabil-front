@@ -374,7 +374,9 @@ export default function ComprovantesPage() {
           ) : isLoading ? (
             <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
           ) : items.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">Nenhum comprovante encontrado.</p>
+            <p className="text-muted-foreground text-center py-8">
+              {statusFiltro !== 'todos' ? 'Nenhum comprovante encontrado com esse filtro.' : 'Nenhum comprovante cadastrado.'}
+            </p>
           ) : (
             <>
               <div className="overflow-x-auto">
@@ -574,6 +576,7 @@ export default function ComprovantesPage() {
                   <tr className="border-b text-muted-foreground">
                     <th className="text-left py-2 px-2">Data</th>
                     <th className="text-left py-2 px-2">Histórico</th>
+                    <th className="text-center py-2 px-2">D/C</th>
                     <th className="text-right py-2 px-2">Valor</th>
                     <th className="py-2 px-2"></th>
                   </tr>
@@ -581,9 +584,12 @@ export default function ComprovantesPage() {
                 <tbody>
                   {transacoesPendentes.map((t: any) => (
                     <tr key={t.id} className="border-b hover:bg-muted/50">
-                      <td className="py-2 px-2 whitespace-nowrap">{formatDate(t.data_transacao)}</td>
-                      <td className="py-2 px-2 max-w-xs truncate">{t.descricao || t.memo || '—'}</td>
-                      <td className={`py-2 px-2 text-right font-mono ${t.valor < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      <td className="py-2 px-2 whitespace-nowrap">{formatDate(t.data)}</td>
+                      <td className="py-2 px-2 max-w-xs truncate">{t.historico || '—'}</td>
+                      <td className="py-2 px-2 text-center">
+                        <Badge variant="outline">{t.dc === 'D' ? 'Débito' : t.dc === 'C' ? 'Crédito' : '—'}</Badge>
+                      </td>
+                      <td className={`py-2 px-2 text-right font-mono ${t.dc === 'D' ? 'text-red-600' : 'text-green-600'}`}>
                         {formatCurrency(t.valor)}
                       </td>
                       <td className="py-2 px-2">
