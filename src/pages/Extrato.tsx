@@ -38,6 +38,9 @@ export default function ExtratoPage() {
   const { data: empresas = [] } = useEmpresas()
 
   const { data: agencias = [] } = useQuery<any[]>({
+    // Lista completa, incluindo contas desativadas: este seletor filtra dado
+    // histórico, e desativar uma conta preserva o histórico dela de propósito.
+    // Restringir a ativas tornaria o extrato de uma conta encerrada inalcançável.
     queryKey: ['agencias', selectedEmpresa],
     queryFn: () => api.get(`/empresas/${selectedEmpresa}/agencias`).then(r => r.data.items ?? r.data),
     enabled: !!selectedEmpresa,

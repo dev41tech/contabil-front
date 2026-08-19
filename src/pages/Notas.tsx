@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEmpresaDefault } from '@/hooks/useEmpresaDefault'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Pagination } from '@/components/ui/pagination'
-import { Plus, Loader2, Link2, XCircle, Upload, FileUp, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Plus, Loader2, Link2, Unlink, XCircle, Upload, FileUp, CheckCircle2, AlertCircle } from 'lucide-react'
 import { useEmpresas } from '@/hooks/useEmpresas'
 
 const STATUS_COLORS: Record<string, any> = {
@@ -137,6 +137,16 @@ export default function NotasPage() {
     onError: (e: unknown) => toast({ title: 'Erro ao associar', description: extractApiError(e), variant: 'destructive' }),
   })
 
+  const desassociarMutation = useMutation({
+    mutationFn: (notaId: string) =>
+      api.delete(`/empresas/${selectedEmpresa}/notas/${notaId}/associar`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['notas', selectedEmpresa] })
+      toast({ title: 'Associação removida.', variant: 'default' })
+    },
+    onError: (e: unknown) => toast({ title: 'Erro ao remover associação', description: extractApiError(e), variant: 'destructive' }),
+  })
+
   const cancelarMutation = useMutation({
     mutationFn: (notaId: string) => api.post(`/empresas/${selectedEmpresa}/notas/${notaId}/cancelar`, {}),
     onSuccess: () => {
@@ -233,6 +243,18 @@ export default function NotasPage() {
 
   const items: any[] = notas?.items ?? []
   const total: number = notas?.total ?? 0
+  const transacaoIds = [...new Set(items.map(n => n.transacao_id).filter(Boolean))] as string[]
+  const transacoesAssociadas = useQueries({
+    queries: transacaoIds.map(id => ({
+      queryKey: ['extrato-transacao', selectedEmpresa, id],
+      queryFn: () => api.get(`/empresas/${selectedEmpresa}/extrato/${id}`).then(r => r.data),
+      enabled: !!selectedEmpresa,
+      staleTime: 60_000,
+    })),
+  })
+  const transacoesPorId = new Map(
+    transacaoIds.map((id, index) => [id, transacoesAssociadas[index]?.data]),
+  )
 
   return (
     <div
@@ -426,6 +448,7 @@ export default function NotasPage() {
                       <th className="text-left py-3 px-2">Emitente</th>
                       <th className="text-left py-3 px-2">Emissão</th>
                       <th className="text-right py-3 px-2">Valor</th>
+                      <th className="text-left py-3 px-2">Transação vinculada</th>
                       <th className="text-center py-3 px-2">Status</th>
                       <th className="text-center py-3 px-2">Ações</th>
                     </tr>
@@ -454,16 +477,43 @@ export default function NotasPage() {
                         </td>
                         <td className="py-2 px-2 whitespace-nowrap">{formatDate(n.data_emissao)}</td>
                         <td className="py-2 px-2 text-right font-mono text-green-600">{formatCurrency(n.valor)}</td>
+                        <td className="py-2 px-2 min-w-[190px]">
+                          {n.transacao_id ? (() => {
+                            const transacao = transacoesPorId.get(n.transacao_id)
+                            return transacao ? (
+                              <div title={`Transação ${n.transacao_id}`}>
+                                <p className="max-w-[220px] truncate text-xs font-medium">{transacao.historico || '—'}</p>
+                                <p className="text-xs text-muted-foreground whitespace-nowrap">
+                                  {formatDate(transacao.data)} · {formatCurrency(transacao.valor)}
+                                </p>
+                              </div>
+                            ) : (
+                              <span className="font-mono text-xs text-muted-foreground" title={n.transacao_id}>
+                                ID {n.transacao_id.slice(0, 8)}…
+                              </span>
+                            )
+                          })() : <span className="text-xs text-muted-foreground">—</span>}
+                        </td>
                         <td className="py-2 px-2 text-center">
                           <Badge variant={STATUS_COLORS[n.status] ?? 'outline'}>{n.status}</Badge>
                         </td>
                         <td className="py-2 px-2 text-center">
                           <div className="flex gap-1 justify-center">
-                            {n.status === 'pendente' && (
+                            {!n.transacao_id && n.status !== 'cancelada' ? (
                               <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setOpenAssociar(n.id)}>
                                 <Link2 className="h-3 w-3 mr-1" /> Associar
                               </Button>
-                            )}
+                            ) : n.transacao_id ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 px-2 text-xs"
+                                onClick={() => desassociarMutation.mutate(n.id)}
+                                disabled={desassociarMutation.isPending}
+                              >
+                                <Unlink className="h-3 w-3 mr-1" /> Remover associação
+                              </Button>
+                            ) : null}
                             {n.status !== 'cancelada' && (
                               <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive hover:text-destructive"
                                 onClick={() => { if (confirm('Cancelar esta nota fiscal?')) cancelarMutation.mutate(n.id) }}>
