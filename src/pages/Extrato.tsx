@@ -64,6 +64,11 @@ export default function ExtratoPage() {
   })
 
   const [uploadError, setUploadError] = useState<string | null>(null)
+  // Linhas que o backend recusou por o valor nao conferir com a linha do
+  // extrato. Estado proprio, e nao toast, porque cada uma e um lancamento
+  // que o contador vai ter que digitar a mao — some da tela e ele perde a
+  // lista.
+  const [rejeicoes, setRejeicoes] = useState<string[]>([])
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -76,10 +81,16 @@ export default function ExtratoPage() {
       setUploadError(null)
       const d = res.data
       const tipo = d.tipo ?? 'Extrato'
+      setRejeicoes(d.motivos_rejeicao ?? [])
+      const partes = [
+        `${d.importadas ?? 0} novas transações`,
+        `${d.duplicadas ?? 0} duplicadas ignoradas`,
+      ]
+      if (d.rejeitadas) partes.push(`${d.rejeitadas} recusadas por valor inconsistente`)
       toast({
-        title: `${tipo} importado com sucesso!`,
-        description: `${d.importadas ?? 0} novas transações, ${d.duplicadas ?? 0} duplicadas ignoradas.`,
-        variant: 'success',
+        title: `${tipo} importado${d.rejeitadas ? ' com ressalvas' : ' com sucesso'}!`,
+        description: `${partes.join(', ')}.`,
+        variant: d.rejeitadas ? 'default' : 'success',
       })
       setPage(1)
       qc.invalidateQueries({ queryKey: ['extrato'] })
@@ -223,6 +234,32 @@ export default function ExtratoPage() {
                 <p className="text-amber-700 mt-0.5">{uploadError}</p>
               </div>
               <button onClick={() => setUploadError(null)} className="text-amber-500 hover:text-amber-700 shrink-0">✕</button>
+            </div>
+          )}
+
+          {/* Linhas recusadas — cada uma precisa de lançamento manual, então o
+              painel é persistente e traz o motivo de cada uma. */}
+          {rejeicoes.length > 0 && (
+            <div className="flex items-start gap-3 rounded-lg border border-orange-300 bg-orange-50 p-3 text-sm">
+              <AlertTriangle className="h-4 w-4 text-orange-600 mt-0.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-orange-900">
+                  {rejeicoes.length === 1
+                    ? '1 linha não foi importada'
+                    : `${rejeicoes.length} linhas não foram importadas`}
+                </p>
+                <p className="text-orange-800 mt-0.5">
+                  O valor lido não confere com a linha do extrato. Ficaram de fora para
+                  não entrar na contabilidade com valor errado — lance manualmente ou
+                  reimporte o arquivo em OFX.
+                </p>
+                <ul className="mt-2 space-y-1">
+                  {rejeicoes.map((motivo, i) => (
+                    <li key={i} className="text-xs text-orange-800 break-words">• {motivo}</li>
+                  ))}
+                </ul>
+              </div>
+              <button onClick={() => setRejeicoes([])} className="text-orange-500 hover:text-orange-700 shrink-0">✕</button>
             </div>
           )}
 
