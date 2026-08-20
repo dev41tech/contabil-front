@@ -6,6 +6,7 @@ import {
   ClipboardCheck,
   CreditCard,
   FileText,
+  FileClock,
   LayoutDashboard,
   LogOut,
   PiggyBank,
@@ -66,6 +67,7 @@ const navGroups = [
       { to: '/configuracoes', icon: Settings, label: 'Configurações', adminOnly: false },
       { to: '/usuarios', icon: Users, label: 'Usuários', adminOnly: true },
       { to: '/permissoes', icon: ShieldCheck, label: 'Permissões', adminOnly: true },
+      { to: '/auditoria', icon: FileClock, label: 'Auditoria', adminOnly: true },
     ],
   },
 ]

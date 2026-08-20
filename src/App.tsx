@@ -17,6 +17,7 @@ import OpenBankingPage from '@/pages/OpenBanking'
 import RelatoriosPage from '@/pages/Relatorios'
 import AplicacoesFinanceirasPage from '@/pages/AplicacoesFinanceiras'
 import ClassificacaoPage from '@/pages/Classificacao'
+import AuditoriaPage from '@/pages/Auditoria'
 import { AppShell } from '@/components/layout/AppShell'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Toaster } from '@/components/ui/toaster'
@@ -54,6 +55,7 @@ function AppRoutes() {
         <Route path="comprovantes" element={<ComprovantesPage />} />
         <Route path="aplicacoes-financeiras" element={<AplicacoesFinanceirasPage />} />
         <Route path="classificacao" element={<ClassificacaoPage />} />
+        <Route path="auditoria" element={<AuditoriaPage />} />
         <Route path="contrapartes" element={<Navigate to="/classificacao" replace />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
