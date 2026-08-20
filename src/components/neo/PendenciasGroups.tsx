@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, CheckCircle2, ChevronDown, Loader2, RefreshCw, Sparkles } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ChevronDown, Keyboard, Loader2, RefreshCw, Search, Sparkles } from 'lucide-react'
 import { api } from '@/lib/api'
 import { extractApiError, formatCurrency, formatDate } from '@/lib/utils'
 import { toast } from '@/hooks/useToast'
@@ -38,6 +38,11 @@ export function PendenciasGroups({ empresaId, agenciaId, mes, agencias, contaOpt
   const [historico, setHistorico] = useState('')
   const [historicoDebounced, setHistoricoDebounced] = useState('')
   const [regraAgenciaId, setRegraAgenciaId] = useState('')
+  const [buscaGrupos, setBuscaGrupos] = useState('')
+  const [grupoFocado, setGrupoFocado] = useState(0)
+  const [ajudaAberta, setAjudaAberta] = useState(false)
+  const buscaRef = useRef<HTMLInputElement>(null)
+  const grupoRefs = useRef<Map<string, HTMLDivElement>>(new Map())
 
   const params = useMemo(() => {
     const p = new URLSearchParams({ tokens: String(granularidade), limite_grupos: '50' })
@@ -142,6 +147,73 @@ export function PendenciasGroups({ empresaId, agenciaId, mes, agencias, contaOpt
     })
   }
 
+  const dados = pendenciasQuery.data
+  const grupos = useMemo(() => dados?.grupos ?? [], [dados?.grupos])
+  const gruposFiltrados = useMemo(() => {
+    const busca = buscaGrupos.trim().toLocaleLowerCase('pt-BR')
+    if (!busca) return grupos
+    return grupos.filter(grupo =>
+      grupo.rotulo.toLocaleLowerCase('pt-BR').includes(busca) ||
+      grupo.amostras.some(amostra => amostra.toLocaleLowerCase('pt-BR').includes(busca))
+    )
+  }, [buscaGrupos, grupos])
+
+  const chaveGrupo = (grupo: NeoGrupoPendencia) => `${grupo.padrao}-${grupo.dc}-${grupo.transacao_ids[0] ?? grupo.rotulo}`
+
+  useEffect(() => {
+    setGrupoFocado(atual => Math.min(atual, Math.max(0, gruposFiltrados.length - 1)))
+  }, [gruposFiltrados.length])
+
+  useEffect(() => {
+    const focarGrupo = (indice: number) => {
+      if (!gruposFiltrados.length) return
+      const normalizado = (indice + gruposFiltrados.length) % gruposFiltrados.length
+      setGrupoFocado(normalizado)
+      requestAnimationFrame(() => grupoRefs.current.get(chaveGrupo(gruposFiltrados[normalizado]))?.focus())
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey || event.altKey) return
+      const alvo = event.target as HTMLElement | null
+      if (alvo?.closest('input, textarea, select, [contenteditable="true"]')) return
+      if (alvo?.closest('button, a, [role="button"]')) return
+      if (document.querySelector('[role="dialog"]')) return
+
+      const tecla = event.key.toLocaleLowerCase('pt-BR')
+      if (tecla === '/') {
+        event.preventDefault()
+        buscaRef.current?.focus()
+        return
+      }
+      if (tecla === '?') {
+        event.preventDefault()
+        setAjudaAberta(true)
+        return
+      }
+      if (!gruposFiltrados.length) return
+
+      if (tecla === 'j' || event.key === 'ArrowDown') {
+        event.preventDefault()
+        focarGrupo(grupoFocado + 1)
+      } else if (tecla === 'k' || event.key === 'ArrowUp') {
+        event.preventDefault()
+        focarGrupo(grupoFocado - 1)
+      } else if (event.key === 'Enter') {
+        event.preventDefault()
+        abrirClassificacao(gruposFiltrados[grupoFocado])
+      } else if (tecla === 'r') {
+        event.preventDefault()
+        abrirRegra(gruposFiltrados[grupoFocado])
+      } else if (tecla === 'e' || event.key === ' ') {
+        event.preventDefault()
+        toggleGrupo(chaveGrupo(gruposFiltrados[grupoFocado]))
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [grupoFocado, gruposFiltrados])
+
   if (!empresaId) return <p className="py-12 text-center text-muted-foreground">Selecione uma empresa para abrir a caixa de classificação.</p>
 
   if (pendenciasQuery.isLoading) {
@@ -158,8 +230,6 @@ export function PendenciasGroups({ empresaId, agenciaId, mes, agencias, contaOpt
     )
   }
 
-  const dados = pendenciasQuery.data
-  const grupos = dados?.grupos ?? []
   const escopoFiltrado = agenciaId !== 'todas' || !!mes
 
   return (
@@ -185,6 +255,22 @@ export function PendenciasGroups({ empresaId, agenciaId, mes, agencias, contaOpt
         </div>
       </div>
 
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            ref={buscaRef}
+            value={buscaGrupos}
+            onChange={event => setBuscaGrupos(event.target.value)}
+            placeholder="Buscar nos grupos e variações…"
+            className="pl-9"
+          />
+        </div>
+        <Button variant="outline" size="sm" onClick={() => setAjudaAberta(true)}>
+          <Keyboard className="h-4 w-4" />Atalhos <kbd className="rounded border bg-muted px-1.5 py-0.5 text-[10px]">?</kbd>
+        </Button>
+      </div>
+
       {dados?.parcial && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           Agrupando as <strong>{numero(dados.total_agrupadas)}</strong> pendências mais antigas de <strong>{numero(dados.total_pendentes)}</strong>. Os grupos abaixo representam apenas essa fatia da fila.
@@ -199,13 +285,25 @@ export function PendenciasGroups({ empresaId, agenciaId, mes, agencias, contaOpt
             <><CheckCircle2 className="h-10 w-10 text-green-600" /><div><p className="font-semibold text-green-800">Competência pronta para conferência</p><p className="text-sm text-muted-foreground">Não há pendências de classificação nesta empresa.</p></div></>
           )}
         </div>
+      ) : gruposFiltrados.length === 0 ? (
+        <div className="rounded-lg border border-dashed py-10 text-center">
+          <p className="font-medium">Nenhum grupo encontrado</p>
+          <p className="text-sm text-muted-foreground">Tente outro termo de busca.</p>
+        </div>
       ) : (
         <div className="space-y-3">
-          {grupos.map((grupo, index) => {
-            const key = `${grupo.padrao}-${grupo.dc}-${index}`
+          {gruposFiltrados.map((grupo, index) => {
+            const key = chaveGrupo(grupo)
             const expandido = expandidos.has(key)
             return (
-              <Card key={key} className="overflow-hidden transition-shadow hover:shadow-sm">
+              <Card
+                key={key}
+                ref={elemento => { if (elemento) grupoRefs.current.set(key, elemento); else grupoRefs.current.delete(key) }}
+                tabIndex={0}
+                aria-label={`Grupo ${grupo.rotulo}, ${numero(grupo.quantidade)} transações`}
+                onFocus={() => setGrupoFocado(index)}
+                className={cn('overflow-hidden outline-none transition-shadow hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2', grupoFocado === index && 'ring-2 ring-primary/60')}
+              >
                 <CardContent className="p-0">
                   <button type="button" onClick={() => toggleGrupo(key)} className="flex w-full items-start gap-3 p-4 text-left md:items-center" aria-expanded={expandido}>
                     <ChevronDown className={cn('mt-1 h-5 w-5 shrink-0 text-muted-foreground transition-transform md:mt-0', expandido && 'rotate-180')} />
@@ -300,6 +398,23 @@ export function PendenciasGroups({ empresaId, agenciaId, mes, agencias, contaOpt
               {criarRegraMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Criar regra e afetar {numero(simulacaoQuery.data?.pendencias_atingidas ?? 0)} pendências
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={ajudaAberta} onOpenChange={setAjudaAberta}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Atalhos da fila de pendências</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 text-sm">
+            <kbd className="rounded border bg-muted px-2 py-1 text-center font-mono">J / ↓</kbd><span>Focar o próximo grupo</span>
+            <kbd className="rounded border bg-muted px-2 py-1 text-center font-mono">K / ↑</kbd><span>Focar o grupo anterior</span>
+            <kbd className="rounded border bg-muted px-2 py-1 text-center font-mono">Enter</kbd><span>Abrir a classificação do grupo</span>
+            <kbd className="rounded border bg-muted px-2 py-1 text-center font-mono">R</kbd><span>Abrir “criar regra e aplicar”</span>
+            <kbd className="rounded border bg-muted px-2 py-1 text-center font-mono">E / Espaço</kbd><span>Expandir ou recolher variações</span>
+            <kbd className="rounded border bg-muted px-2 py-1 text-center font-mono">/</kbd><span>Focar a busca de grupos</span>
+            <kbd className="rounded border bg-muted px-2 py-1 text-center font-mono">?</kbd><span>Abrir esta ajuda</span>
+          </div>
+          <p className="text-xs text-muted-foreground">Os atalhos são pausados enquanto você digita ou quando um diálogo está aberto.</p>
+          <DialogFooter><Button onClick={() => setAjudaAberta(false)}>Entendi</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

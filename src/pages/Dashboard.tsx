@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
 import { useEmpresaDefault } from '@/hooks/useEmpresaDefault'
 import { useEmpresa } from '@/contexts/EmpresaContext'
+import { useCompetencia } from '@/contexts/CompetenciaContext'
 import { useNavigate } from 'react-router-dom'
 import {
   BarChart,
@@ -79,11 +79,6 @@ function mesAbrev(mes: string) {
   return `${months[parseInt(m) - 1]}/${year.slice(2)}`
 }
 
-function competenciaAtual() {
-  const now = new Date()
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-}
-
 function formatCurrency(value: number) {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
@@ -94,14 +89,14 @@ export default function DashboardPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const { setEmpresa } = useEmpresa()
+  const { competencia } = useCompetencia()
   const [statsEmpresa, setStatsEmpresa] = useEmpresaDefault()
-  const [carteiraMes, setCarteiraMes] = useState(competenciaAtual)
 
   const { data: empresas = [], isLoading } = useEmpresas()
 
   const carteiraQuery = useQuery<CarteiraResponse>({
-    queryKey: ['carteira', carteiraMes],
-    queryFn: () => api.get('/carteira', { params: { mes: carteiraMes || undefined } }).then(r => r.data),
+    queryKey: ['carteira', competencia],
+    queryFn: () => api.get('/carteira', { params: { mes: competencia || undefined } }).then(r => r.data),
   })
 
   const { data: stats, isLoading: statsLoading } = useQuery<StatsResponse>({
@@ -128,17 +123,13 @@ export default function DashboardPage() {
       </div>
 
       <Card>
-        <CardHeader className="gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <CardHeader>
           <div>
             <CardTitle className="flex items-center gap-2">
               <CalendarDays className="h-5 w-5 text-primary" />
               Carteira operacional
             </CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">Prioridades de todas as empresas do escritório.</p>
-          </div>
-          <div className="w-full sm:w-48">
-            <label htmlFor="carteira-mes" className="mb-1 block text-xs font-medium text-muted-foreground">Competência</label>
-            <input id="carteira-mes" type="month" value={carteiraMes} onChange={event => setCarteiraMes(event.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" />
           </div>
         </CardHeader>
         <CardContent>

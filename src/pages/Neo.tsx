@@ -9,6 +9,7 @@ import { extractApiError } from '@/lib/utils'
 import { toast } from '@/hooks/useToast'
 import { useEmpresas } from '@/hooks/useEmpresas'
 import { useEmpresaDefault } from '@/hooks/useEmpresaDefault'
+import { useCompetencia } from '@/contexts/CompetenciaContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -36,6 +37,7 @@ const PAGE_SIZE = 20
 export default function NeoPage() {
   const qc = useQueryClient()
   const [selectedEmpresa, setSelectedEmpresa] = useEmpresaDefault()
+  const { competencia: mesFiltro } = useCompetencia()
   const [activeTab, setActiveTab] = useState<NeoTab>('pendencias')
   const [processResult, setProcessResult] = useState<any>(null)
   const [page, setPage] = useState(1)
@@ -49,7 +51,6 @@ export default function NeoPage() {
   const [dcFiltro, setDcFiltro] = useState('todos')
   const [agenciaFiltro, setAgenciaFiltro] = useState('todas')
   const [contaFiltro, setContaFiltro] = useState('todas')
-  const [mesFiltro, setMesFiltro] = useState('')
   const [valorMinFiltro, setValorMinFiltro] = useState('')
   const [valorMaxFiltro, setValorMaxFiltro] = useState('')
 
@@ -57,6 +58,8 @@ export default function NeoPage() {
     const timer = setTimeout(() => { setTermo(termoInput); setPage(1) }, 400)
     return () => clearTimeout(timer)
   }, [termoInput])
+
+  useEffect(() => setPage(1), [mesFiltro])
 
   const { data: empresas = [] } = useEmpresas()
   const { data: agencias = [] } = useQuery<AgenciaNeo[]>({
@@ -210,7 +213,6 @@ export default function NeoPage() {
           <div className="flex flex-wrap items-end gap-4">
             <div className="min-w-[240px] flex-1"><Label className="mb-1 block">Empresa</Label><SearchableSelect value={selectedEmpresa} onValueChange={value => { setSelectedEmpresa(value); setAgenciaFiltro('todas'); setContaFiltro('todas'); setProcessResult(null); setPage(1) }} options={empresas.map((empresa: any) => ({ value: empresa.id, label: empresa.razao_social }))} placeholder="Selecione a empresa" searchPlaceholder="Buscar empresa..." /></div>
             <div className="min-w-[190px]"><Label className="mb-1 block">Agência</Label><Select value={agenciaFiltro} onValueChange={value => { setAgenciaFiltro(value); setPage(1) }}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todas">Todas as agências</SelectItem>{agencias.map(agencia => <SelectItem key={agencia.id} value={agencia.id}>{agenciaLabel(agencia)}</SelectItem>)}</SelectContent></Select></div>
-            <div className="min-w-[150px]"><Label className="mb-1 block">Competência</Label><Input type="month" value={mesFiltro} onChange={event => { setMesFiltro(event.target.value); setPage(1) }} /></div>
             <Button onClick={() => processMutation.mutate()} disabled={!selectedEmpresa || processMutation.isPending} className="bg-yellow-500 text-white hover:bg-yellow-600">
               {processMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin" />Processando...</> : <><Zap className="h-4 w-4" />{escopoProcessamento ? `Processar ${escopoProcessamento}` : 'Executar NEO'}</>}
             </Button>

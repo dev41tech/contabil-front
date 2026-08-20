@@ -22,6 +22,7 @@ import { AppShell } from '@/components/layout/AppShell'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Toaster } from '@/components/ui/toaster'
 import { EmpresaProvider } from '@/contexts/EmpresaContext'
+import { CompetenciaProvider } from '@/contexts/CompetenciaContext'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -69,8 +70,10 @@ export default function App() {
       <BrowserRouter>
         <AuthProvider>
           <EmpresaProvider>
-            <AppRoutes />
-            <Toaster />
+            <CompetenciaProvider>
+              <AppRoutes />
+              <Toaster />
+            </CompetenciaProvider>
           </EmpresaProvider>
         </AuthProvider>
       </BrowserRouter>

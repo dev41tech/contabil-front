@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
-import { Building2, ChevronDown, Search } from 'lucide-react'
+import { Building2, CalendarDays, ChevronDown, Search } from 'lucide-react'
 import { Sidebar } from './Sidebar'
 import { useEmpresa } from '@/contexts/EmpresaContext'
 import { useEmpresas } from '@/hooks/useEmpresas'
+import { useCompetencia } from '@/contexts/CompetenciaContext'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -96,13 +97,33 @@ function EmpresaSelector() {
   )
 }
 
+function CompetenciaSelector() {
+  const { competencia, setCompetencia } = useCompetencia()
+
+  return (
+    <div className="flex h-9 items-center gap-2 rounded-md border border-border bg-card px-3">
+      <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <label htmlFor="competencia-global" className="sr-only">Competência global</label>
+      <input
+        id="competencia-global"
+        type="month"
+        value={competencia}
+        onChange={event => setCompetencia(event.target.value)}
+        className="w-[132px] bg-transparent text-sm font-medium outline-none"
+        title="Competência usada no Dashboard e nas pendências do NEO"
+      />
+    </div>
+  )
+}
+
 export function AppShell() {
   return (
     <div className="flex h-screen bg-background">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Topbar */}
-        <header className="h-12 border-b bg-card flex items-center justify-end px-6 shrink-0">
+        <header className="h-12 border-b bg-card flex items-center justify-end gap-2 px-6 shrink-0">
+          <CompetenciaSelector />
           <EmpresaSelector />
         </header>
         {/* Conteúdo */}
