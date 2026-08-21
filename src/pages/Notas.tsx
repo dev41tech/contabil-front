@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Pagination } from '@/components/ui/pagination'
 import { Plus, Loader2, Link2, Unlink, XCircle, Upload, FileUp, CheckCircle2, AlertCircle } from 'lucide-react'
 import { useEmpresas } from '@/hooks/useEmpresas'
@@ -49,6 +49,7 @@ export default function NotasPage() {
   const PAGE_SIZE = 20
   const [openCreate, setOpenCreate] = useState(false)
   const [openAssociar, setOpenAssociar] = useState<string | null>(null) // nota id
+  const [notaCancelar, setNotaCancelar] = useState<any>(null)
   const [importResult, setImportResult] = useState<{ importadas: number; duplicadas: number; erros: string[] } | null>(null)
 
   // Busca — campos de texto usam debounce para não disparar uma request por tecla
@@ -152,6 +153,7 @@ export default function NotasPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['notas', selectedEmpresa] })
       toast({ title: 'Nota cancelada.', variant: 'default' })
+      setNotaCancelar(null)
     },
     onError: (e: unknown) => toast({ title: 'Erro ao cancelar', description: extractApiError(e), variant: 'destructive' }),
   })
@@ -516,7 +518,7 @@ export default function NotasPage() {
                             ) : null}
                             {n.status !== 'cancelada' && (
                               <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-destructive hover:text-destructive"
-                                onClick={() => { if (confirm('Cancelar esta nota fiscal?')) cancelarMutation.mutate(n.id) }}>
+                                onClick={() => setNotaCancelar(n)}>
                                 <XCircle className="h-3 w-3 mr-1" /> Cancelar
                               </Button>
                             )}
@@ -594,6 +596,33 @@ export default function NotasPage() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!notaCancelar} onOpenChange={open => { if (!open && !cancelarMutation.isPending) setNotaCancelar(null) }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cancelar nota fiscal</DialogTitle>
+            <DialogDescription>
+              Esta ação marca a nota como cancelada e ela deixa de ficar disponível para novas associações.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-md border bg-muted/30 p-3 text-sm">
+            <p><span className="text-muted-foreground">Nota:</span> <strong>{notaCancelar?.numero}{notaCancelar?.serie ? `-${notaCancelar.serie}` : ''}</strong></p>
+            <p><span className="text-muted-foreground">Emitente:</span> <strong>{notaCancelar?.nome_emitente || notaCancelar?.cnpj_emitente || 'Não informado'}</strong></p>
+            <p><span className="text-muted-foreground">Valor:</span> <strong>{notaCancelar ? formatCurrency(notaCancelar.valor) : '—'}</strong></p>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {notaCancelar?.transacao_id
+              ? 'A associação atual com a transação será mantida. Se também quiser desfazer o vínculo, remova a associação separadamente.'
+              : 'A nota não está associada a uma transação.'}
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNotaCancelar(null)} disabled={cancelarMutation.isPending}>Voltar</Button>
+            <Button variant="destructive" onClick={() => notaCancelar && cancelarMutation.mutate(notaCancelar.id)} disabled={cancelarMutation.isPending}>
+              {cancelarMutation.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Cancelando...</> : 'Cancelar nota'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

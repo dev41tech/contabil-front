@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useEmpresaDefault } from '@/hooks/useEmpresaDefault'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -17,7 +16,6 @@ import { SearchableSelect } from '@/components/ui/searchable-select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Pagination } from '@/components/ui/pagination'
 import { Plus, Loader2, Pencil, Trash2, Contact, Ban, RotateCcw } from 'lucide-react'
-import { useEmpresas } from '@/hooks/useEmpresas'
 
 const TIPOS_CONTRAPARTE = [
   { value: 'fornecedor', label: 'Fornecedor' },
@@ -45,9 +43,9 @@ const contraparteEditSchema = z.object({
 })
 type ContraparteEditForm = z.infer<typeof contraparteEditSchema>
 
-export default function ContrapartesPage() {
+export function ContrapartesTab({ empresaId }: { empresaId: string }) {
   const qc = useQueryClient()
-  const [selectedEmpresa, setSelectedEmpresa] = useEmpresaDefault()
+  const selectedEmpresa = empresaId
   const [tipoFiltro, setTipoFiltro] = useState('todos')
   const [apenasAtivas, setApenasAtivas] = useState(false)
   const [page, setPage] = useState(1)
@@ -63,8 +61,6 @@ export default function ContrapartesPage() {
   const [openCreate, setOpenCreate] = useState(false)
   const [editContraparte, setEditContraparte] = useState<any | null>(null)
   const [deleteContraparte, setDeleteContraparte] = useState<any | null>(null)
-
-  const { data: empresas = [] } = useEmpresas()
 
   const { data: planoContas = [] } = useQuery<any[]>({
     queryKey: ['plano-contas', selectedEmpresa],
@@ -172,7 +168,7 @@ export default function ContrapartesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Contrapartes</h1>
+          <h2 className="text-xl font-semibold">Classificação por favorecido/cliente</h2>
           <p className="text-muted-foreground">
             Fornecedores e clientes identificados por CPF/CNPJ, com a conta contábil de cada um
           </p>
@@ -188,15 +184,6 @@ export default function ContrapartesPage() {
       <Card>
         <CardContent className="pt-6">
           <div className="flex gap-4 flex-wrap items-end">
-            <div className="flex-1 min-w-[220px]">
-              <label className="text-sm font-medium mb-1 block">Empresa</label>
-              <Select value={selectedEmpresa} onValueChange={v => { setSelectedEmpresa(v); setPage(1) }}>
-                <SelectTrigger><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
-                <SelectContent>
-                  {empresas.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.razao_social}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
             <div className="flex-1 min-w-[220px]">
               <label className="text-sm font-medium mb-1 block">Buscar</label>
               <Input
@@ -462,3 +449,5 @@ export default function ContrapartesPage() {
     </div>
   )
 }
+
+export default ContrapartesTab

@@ -32,7 +32,7 @@ type ExportTipo =
 
 const EXPORT_LABELS: Record<ExportTipo, string> = {
   lancamentos: 'Lançamentos Contábeis',
-  lancamentos_importacao: 'Lançamentos (Layout de Importação)',
+  lancamentos_importacao: 'Exportar para Domínio',
   nfe_entrada: 'Baixa NF-e Entrada',
   nfe_saida: 'Baixa NF-e Saída',
   nfse_tomado: 'Baixa NFS-e Tomado',
@@ -93,7 +93,12 @@ export default function RegistrosPage() {
       URL.revokeObjectURL(url)
     },
     onSuccess: (_d, vars) =>
-      toast({ title: `${EXPORT_LABELS[vars.tipo]} exportado!`, variant: 'success' }),
+      toast({
+        title: vars.tipo === 'lancamentos_importacao'
+          ? 'Arquivo para o Domínio exportado!'
+          : `${EXPORT_LABELS[vars.tipo]} exportado!`,
+        variant: 'success',
+      }),
     onError: (e: unknown) =>
       toast({ title: 'Erro na exportação', description: extractApiError(e), variant: 'destructive' }),
   })
@@ -143,15 +148,15 @@ export default function RegistrosPage() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64">
                 <DropdownMenuGroup>
-                  <DropdownMenuLabel className="text-xs text-muted-foreground">Importação ERP</DropdownMenuLabel>
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">Domínio</DropdownMenuLabel>
                   <DropdownMenuItem onClick={() => doExport('lancamentos_importacao', 'xlsx')}>
-                    Lançamentos (Layout de Importação) (.xlsx)
+                    Exportar para Domínio (.xlsx)
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => doExport('lancamentos_importacao', 'csv')}>
-                    Lançamentos (Layout de Importação) (.csv)
+                    Exportar para Domínio (.csv)
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => doExport('lancamentos_importacao', 'txt')}>
-                    Lançamentos (Layout de Importação) (.txt)
+                    Exportar para Domínio (.txt)
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
 

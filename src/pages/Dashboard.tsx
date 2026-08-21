@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEmpresaDefault } from '@/hooks/useEmpresaDefault'
+import { useEmpresa } from '@/contexts/EmpresaContext'
+import { useCompetencia } from '@/contexts/CompetenciaContext'
 import { useNavigate } from 'react-router-dom'
 import {
   BarChart,
@@ -18,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   Building2, FileText, Zap, BookOpen, Loader2,
   TrendingUp, CheckCircle2, AlertCircle, Receipt, ClipboardCheck,
+  ArrowRight, CalendarDays, CircleAlert, CircleCheck, Upload,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -52,6 +55,22 @@ interface StatsResponse {
   por_agencia: AgenciaStats[]
 }
 
+interface CarteiraItem {
+  empresa_id: string
+  razao_social: string
+  transacoes_importadas: number
+  pendentes: number
+  classificadas: number
+  erros: number
+  ha_extrato_importado: boolean
+  valor_total_pendente: number
+}
+
+interface CarteiraResponse {
+  mes: string
+  items: CarteiraItem[]
+}
+
 // ── utils ─────────────────────────────────────────────────────────────────────
 
 function mesAbrev(mes: string) {
@@ -60,20 +79,36 @@ function mesAbrev(mes: string) {
   return `${months[parseInt(m) - 1]}/${year.slice(2)}`
 }
 
+function formatCurrency(value: number) {
+  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
 // ── componente principal ──────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const { setEmpresa } = useEmpresa()
+  const { competencia } = useCompetencia()
   const [statsEmpresa, setStatsEmpresa] = useEmpresaDefault()
 
   const { data: empresas = [], isLoading } = useEmpresas()
+
+  const carteiraQuery = useQuery<CarteiraResponse>({
+    queryKey: ['carteira', competencia],
+    queryFn: () => api.get('/carteira', { params: { mes: competencia || undefined } }).then(r => r.data),
+  })
 
   const { data: stats, isLoading: statsLoading } = useQuery<StatsResponse>({
     queryKey: ['stats', statsEmpresa],
     queryFn: () => api.get(`/empresas/${statsEmpresa}/stats?meses=12`).then(r => r.data),
     enabled: !!statsEmpresa,
   })
+
+  const abrirTrabalho = (item: CarteiraItem) => {
+    setEmpresa({ id: item.empresa_id, razao_social: item.razao_social })
+    navigate(item.ha_extrato_importado ? '/neo' : '/extrato')
+  }
 
   if (isLoading) return <div className="text-muted-foreground">Carregando...</div>
 
@@ -86,6 +121,46 @@ export default function DashboardPage() {
           <p className="text-muted-foreground">Bem-vindo, {user?.nome}</p>
         </div>
       </div>
+
+      <Card>
+        <CardHeader>
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <CalendarDays className="h-5 w-5 text-primary" />
+              Carteira operacional
+            </CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">Prioridades de todas as empresas do escritório.</p>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {carteiraQuery.isLoading ? (
+            <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : carteiraQuery.isError ? (
+            <div className="flex items-center justify-center gap-2 py-10 text-sm text-destructive"><AlertCircle className="h-5 w-5" />Não foi possível carregar a carteira desta competência.</div>
+          ) : !carteiraQuery.data?.items.length ? (
+            <p className="py-10 text-center text-sm text-muted-foreground">Nenhuma empresa encontrada nesta competência.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[820px] text-sm">
+                <thead><tr className="border-b text-muted-foreground"><th className="px-3 py-3 text-left">Empresa</th><th className="px-3 py-3 text-left">Situação</th><th className="px-3 py-3 text-right">Importadas</th><th className="px-3 py-3 text-right">Classificadas</th><th className="px-3 py-3 text-right">Pendências</th><th className="px-3 py-3 text-right">Valor pendente</th><th className="w-10" /></tr></thead>
+                <tbody>
+                  {carteiraQuery.data.items.map(item => (
+                    <tr key={item.empresa_id} role="link" tabIndex={0} onClick={() => abrirTrabalho(item)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); abrirTrabalho(item) } }} className="cursor-pointer border-b transition-colors last:border-0 hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                      <td className="px-3 py-3 font-medium">{item.razao_social}</td>
+                      <td className="px-3 py-3"><CarteiraStatus item={item} /></td>
+                      <td className="px-3 py-3 text-right tabular-nums">{item.transacoes_importadas.toLocaleString('pt-BR')}</td>
+                      <td className="px-3 py-3 text-right tabular-nums">{item.classificadas.toLocaleString('pt-BR')}</td>
+                      <td className={`px-3 py-3 text-right tabular-nums ${item.pendentes ? 'font-semibold text-amber-700' : ''}`}>{item.pendentes.toLocaleString('pt-BR')}</td>
+                      <td className={`px-3 py-3 text-right tabular-nums ${item.valor_total_pendente ? 'font-semibold' : 'text-muted-foreground'}`}>{formatCurrency(item.valor_total_pendente)}</td>
+                      <td className="px-2 py-3"><ArrowRight className="h-4 w-4 text-muted-foreground" /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {empresas.length === 0 ? (
         <Card>
@@ -250,6 +325,13 @@ export default function DashboardPage() {
 
     </div>
   )
+}
+
+function CarteiraStatus({ item }: { item: CarteiraItem }) {
+  if (!item.ha_extrato_importado) return <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700"><Upload className="h-3.5 w-3.5" />Sem extrato importado</span>
+  if (item.erros > 0) return <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-800"><CircleAlert className="h-3.5 w-3.5" />{item.erros.toLocaleString('pt-BR')} {item.erros === 1 ? 'erro' : 'erros'}{item.pendentes > 0 ? ` · ${item.pendentes.toLocaleString('pt-BR')} pendentes` : ''}</span>
+  if (item.pendentes > 0) return <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800"><CircleAlert className="h-3.5 w-3.5" />{item.pendentes.toLocaleString('pt-BR')} {item.pendentes === 1 ? 'pendência' : 'pendências'}</span>
+  return <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-800"><CircleCheck className="h-3.5 w-3.5" />Tudo classificado</span>
 }
 
 // ── sub-componentes ───────────────────────────────────────────────────────────
