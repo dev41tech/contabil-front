@@ -1,10 +1,6 @@
-import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useEmpresaDefault } from '@/hooks/useEmpresaDefault'
 import { useNavigate } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import {
   BarChart,
   Bar,
@@ -17,30 +13,13 @@ import {
 } from 'recharts'
 import { api } from '@/lib/api'
 import { useEmpresas } from '@/hooks/useEmpresas'
-import { extractApiError } from '@/lib/utils'
-import { toast } from '@/hooks/useToast'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import {
-  Building2, FileText, Zap, BookOpen, Plus, Loader2,
+  Building2, FileText, Zap, BookOpen, Loader2,
   TrendingUp, CheckCircle2, AlertCircle, Receipt, ClipboardCheck,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-
-// ── schemas ──────────────────────────────────────────────────────────────────
-
-const empresaSchema = z.object({
-  razao_social: z.string().min(2, 'Mínimo 2 caracteres'),
-  cnpj: z.string().min(14, 'CNPJ inválido'),
-  regime_tributario: z.enum(['simples_nacional', 'lucro_presumido', 'lucro_real'], {
-    errorMap: () => ({ message: 'Selecione um regime' }),
-  }),
-})
-type EmpresaForm = z.infer<typeof empresaSchema>
 
 interface ResumoStats {
   total_transacoes: number
@@ -86,8 +65,6 @@ function mesAbrev(mes: string) {
 export default function DashboardPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const qc = useQueryClient()
-  const [open, setOpen] = useState(false)
   const [statsEmpresa, setStatsEmpresa] = useEmpresaDefault()
 
   const { data: empresas = [], isLoading } = useEmpresas()
@@ -96,23 +73,6 @@ export default function DashboardPage() {
     queryKey: ['stats', statsEmpresa],
     queryFn: () => api.get(`/empresas/${statsEmpresa}/stats?meses=12`).then(r => r.data),
     enabled: !!statsEmpresa,
-  })
-
-  const { register, handleSubmit, setValue, reset, formState: { errors, isSubmitting } } = useForm<EmpresaForm>({
-    resolver: zodResolver(empresaSchema),
-  })
-
-  const createMutation = useMutation({
-    mutationFn: (data: EmpresaForm) => api.post('/empresas', data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['empresas'] })
-      toast({ title: 'Empresa criada!', variant: 'success' })
-      setOpen(false)
-      reset()
-    },
-    onError: (e: unknown) => {
-      toast({ title: 'Erro ao criar empresa', description: extractApiError(e), variant: 'destructive' })
-    },
   })
 
   if (isLoading) return <div className="text-muted-foreground">Carregando...</div>
@@ -125,9 +85,6 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">Bem-vindo, {user?.nome}</p>
         </div>
-        <Button onClick={() => setOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" /> Nova Empresa
-        </Button>
       </div>
 
       {empresas.length === 0 ? (
@@ -135,9 +92,6 @@ export default function DashboardPage() {
           <CardContent className="py-12 text-center">
             <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <p className="text-muted-foreground mb-4">Nenhuma empresa cadastrada ainda.</p>
-            <Button onClick={() => setOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" /> Cadastrar Empresa
-            </Button>
           </CardContent>
         </Card>
       ) : (
@@ -293,46 +247,7 @@ export default function DashboardPage() {
         </>
       )}
 
-      {/* Modal Nova Empresa */}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Nova Empresa</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit(d => createMutation.mutate(d))} className="space-y-4">
-            <div className="space-y-1">
-              <Label>Razão Social</Label>
-              <Input placeholder="ACME COMERCIO LTDA" {...register('razao_social')} />
-              {errors.razao_social && <p className="text-xs text-destructive">{errors.razao_social.message}</p>}
-            </div>
-            <div className="space-y-1">
-              <Label>CNPJ</Label>
-              <Input placeholder="12.345.678/0001-90" {...register('cnpj')} />
-              {errors.cnpj && <p className="text-xs text-destructive">{errors.cnpj.message}</p>}
-            </div>
-            <div className="space-y-1">
-              <Label>Regime Tributário</Label>
-              <Select onValueChange={v => setValue('regime_tributario', v as any)}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="simples_nacional">Simples Nacional</SelectItem>
-                  <SelectItem value="lucro_presumido">Lucro Presumido</SelectItem>
-                  <SelectItem value="lucro_real">Lucro Real</SelectItem>
-                </SelectContent>
-              </Select>
-              {errors.regime_tributario && <p className="text-xs text-destructive">{errors.regime_tributario.message}</p>}
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-              <Button type="submit" disabled={isSubmitting || createMutation.isPending}>
-                {createMutation.isPending
-                  ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Salvando...</>
-                  : 'Criar Empresa'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+
     </div>
   )
 }

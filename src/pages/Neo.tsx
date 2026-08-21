@@ -18,6 +18,7 @@ import { SearchableSelect } from '@/components/ui/searchable-select'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DecisionTable } from '@/components/neo/DecisionTable'
+import { RegraForm, type RegraFormData } from '@/components/regras/RegraForm'
 import { PendenciasGroups } from '@/components/neo/PendenciasGroups'
 import type { AgenciaNeo, NeoPendenciasAgrupadas } from '@/components/neo/types'
 import { agenciaLabel } from '@/components/neo/types'
@@ -27,17 +28,7 @@ const associarManualSchema = z.object({
   descricao: z.string().min(2, 'Mínimo 2 caracteres').max(500),
 })
 
-const criarRegraSchema = z.object({
-  conta_id: z.string().uuid('Selecione uma conta'),
-  descricao: z.string().min(2, 'Mínimo 2 caracteres').max(500),
-  historico: z.string().min(2, 'Mínimo 2 caracteres').max(500),
-  dc: z.enum(['D', 'C']),
-  tipo: z.enum(['automatica', 'manual']),
-  manter_historico: z.boolean(),
-})
-
 type AssociarManualForm = z.infer<typeof associarManualSchema>
-type CriarRegraForm = z.infer<typeof criarRegraSchema>
 type NeoTab = 'pendencias' | 'classificadas' | 'erros'
 
 const PAGE_SIZE = 20
@@ -176,7 +167,7 @@ export default function NeoPage() {
   })
 
   const criarRegraMutation = useMutation({
-    mutationFn: (body: CriarRegraForm & { agencia_id?: string }) => api.post(`/empresas/${selectedEmpresa}/regras`, body),
+    mutationFn: (body: RegraFormData) => api.post(`/empresas/${selectedEmpresa}/regras`, body),
     onSuccess: () => {
       toast({ title: 'Regra criada com sucesso!', variant: 'success' })
       setCriarRegraDecisao(null)
@@ -185,7 +176,6 @@ export default function NeoPage() {
   })
 
   const associarForm = useForm<AssociarManualForm>({ resolver: zodResolver(associarManualSchema), defaultValues: { conta_id: '', descricao: '' } })
-  const regraForm = useForm<CriarRegraForm>({ resolver: zodResolver(criarRegraSchema), defaultValues: { conta_id: '', descricao: '', historico: '', dc: 'D', tipo: 'automatica', manter_historico: false } })
 
   function openAssociar(decisao: any) {
     associarForm.reset({ conta_id: '', descricao: decisao.transacao_descricao ?? '' })
@@ -193,7 +183,6 @@ export default function NeoPage() {
   }
 
   function openCriarRegra(decisao: any) {
-    regraForm.reset({ conta_id: '', descricao: decisao.transacao_descricao ?? '', historico: decisao.transacao_descricao ?? '', dc: decisao.transacao_dc ?? 'D', tipo: 'automatica', manter_historico: false })
     setCriarRegraDecisao(decisao)
   }
 
@@ -281,7 +270,25 @@ export default function NeoPage() {
       </Dialog>
 
       <Dialog open={!!criarRegraDecisao} onOpenChange={open => { if (!open) setCriarRegraDecisao(null) }}>
-        <DialogContent className="max-w-lg"><DialogHeader><DialogTitle>Criar regra de categorização</DialogTitle></DialogHeader><form onSubmit={regraForm.handleSubmit(data => criarRegraMutation.mutate({ ...data, agencia_id: criarRegraDecisao?.agencia_id }))} className="space-y-4"><div className="space-y-1"><Label>Conta contábil</Label><SearchableSelect value={regraForm.watch('conta_id')} onValueChange={value => regraForm.setValue('conta_id', value, { shouldValidate: true })} options={contaOptions} placeholder="Selecione a conta..." searchPlaceholder="Buscar conta..." /></div><div className="space-y-1"><Label>Histórico (padrão de match)</Label><Input {...regraForm.register('historico')} /><p className="text-xs text-muted-foreground">Texto do extrato que vai ativar esta regra (sem diferenciar maiúsculas e minúsculas).</p></div><div className="space-y-1"><Label>Descrição</Label><Input {...regraForm.register('descricao')} /></div><div className="grid grid-cols-2 gap-4"><div><Label>D/C</Label><Select value={regraForm.watch('dc')} onValueChange={value => regraForm.setValue('dc', value as 'D' | 'C')}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="D">D — Débito</SelectItem><SelectItem value="C">C — Crédito</SelectItem></SelectContent></Select></div><div><Label>Tipo</Label><Select value={regraForm.watch('tipo')} onValueChange={value => regraForm.setValue('tipo', value as 'automatica' | 'manual')}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="automatica">Automática</SelectItem><SelectItem value="manual">Manual</SelectItem></SelectContent></Select></div></div><DialogFooter><Button type="button" variant="outline" onClick={() => setCriarRegraDecisao(null)}>Cancelar</Button><Button type="submit" disabled={criarRegraMutation.isPending}>{criarRegraMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <BookOpen className="h-4 w-4" />}Criar regra</Button></DialogFooter></form></DialogContent>
+        <DialogContent className="max-w-lg overflow-visible">
+          <DialogHeader><DialogTitle>Criar regra de categorização</DialogTitle></DialogHeader>
+          {criarRegraDecisao && (
+            <RegraForm
+              contas={contaOptions}
+              agencia={{ mode: 'fixed', id: criarRegraDecisao.agencia_id ?? '' }}
+              initialValues={{
+                descricao: criarRegraDecisao.transacao_descricao ?? '',
+                historico: criarRegraDecisao.transacao_descricao ?? '',
+                dc: criarRegraDecisao.transacao_dc === 'C' ? 'C' : 'D',
+              }}
+              editableFields={['descricao', 'historico', 'conta_id', 'dc']}
+              isSubmitting={criarRegraMutation.isPending}
+              onSubmit={data => criarRegraMutation.mutate(data)}
+              onCancel={() => setCriarRegraDecisao(null)}
+              submitLabel="Criar regra"
+            />
+          )}
+        </DialogContent>
       </Dialog>
     </div>
   )
@@ -314,3 +321,4 @@ function DecisionFilters(props: DecisionFiltersProps) {
     </div>
   )
 }
+
