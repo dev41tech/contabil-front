@@ -16,11 +16,13 @@ import CartoesPage from '@/pages/Cartoes'
 import OpenBankingPage from '@/pages/OpenBanking'
 import RelatoriosPage from '@/pages/Relatorios'
 import AplicacoesFinanceirasPage from '@/pages/AplicacoesFinanceiras'
-import ContrapartesPage from '@/pages/Contrapartes'
+import ClassificacaoPage from '@/pages/Classificacao'
+import AuditoriaPage from '@/pages/Auditoria'
 import { AppShell } from '@/components/layout/AppShell'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Toaster } from '@/components/ui/toaster'
 import { EmpresaProvider } from '@/contexts/EmpresaContext'
+import { CompetenciaProvider } from '@/contexts/CompetenciaContext'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -53,7 +55,9 @@ function AppRoutes() {
         <Route path="relatorios" element={<RelatoriosPage />} />
         <Route path="comprovantes" element={<ComprovantesPage />} />
         <Route path="aplicacoes-financeiras" element={<AplicacoesFinanceirasPage />} />
-        <Route path="contrapartes" element={<ContrapartesPage />} />
+        <Route path="classificacao" element={<ClassificacaoPage />} />
+        <Route path="auditoria" element={<AuditoriaPage />} />
+        <Route path="contrapartes" element={<Navigate to="/classificacao" replace />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
@@ -66,8 +70,10 @@ export default function App() {
       <BrowserRouter>
         <AuthProvider>
           <EmpresaProvider>
-            <AppRoutes />
-            <Toaster />
+            <CompetenciaProvider>
+              <AppRoutes />
+              <Toaster />
+            </CompetenciaProvider>
           </EmpresaProvider>
         </AuthProvider>
       </BrowserRouter>

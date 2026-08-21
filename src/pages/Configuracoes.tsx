@@ -1,10 +1,9 @@
-import { BookOpen, Building2, Users, Zap } from 'lucide-react'
+import { BookOpen, Building2, Users } from 'lucide-react'
 import { useEmpresaDefault } from '@/hooks/useEmpresaDefault'
 import { useEmpresas } from '@/hooks/useEmpresas'
 import { AgenciasTab } from '@/components/configuracoes/AgenciasTab'
 import { EmpresasTab } from '@/components/configuracoes/EmpresasTab'
 import { PlanoContasTab } from '@/components/configuracoes/PlanoContasTab'
-import { RegrasTab } from '@/components/configuracoes/RegrasTab'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -35,11 +34,8 @@ export default function ConfiguracoesPage() {
         </CardContent>
       </Card>
 
-      <Tabs key={selectedEmpresa || 'sem-empresa'} defaultValue={selectedEmpresa ? 'regras' : 'empresas'}>
-        <TabsList className="grid w-full grid-cols-4 max-w-2xl">
-          <TabsTrigger value="regras" className="gap-1.5">
-            <Zap className="h-4 w-4" /> Regras NEO
-          </TabsTrigger>
+      <Tabs key={selectedEmpresa || 'sem-empresa'} defaultValue={selectedEmpresa ? 'plano' : 'empresas'}>
+        <TabsList className="grid w-full grid-cols-3 max-w-xl">
           <TabsTrigger value="plano" className="gap-1.5">
             <BookOpen className="h-4 w-4" /> Plano de Contas
           </TabsTrigger>
@@ -50,22 +46,6 @@ export default function ConfiguracoesPage() {
             <Users className="h-4 w-4" /> Empresas
           </TabsTrigger>
         </TabsList>
-
-        <TabsContent value="regras" className="mt-4">
-          {selectedEmpresa ? (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Zap className="h-5 w-5 text-blue-500" /> Regras de Categorização
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  O NEO usa essas regras para classificar automaticamente as transações do extrato.
-                </p>
-              </CardHeader>
-              <CardContent><RegrasTab empresaId={selectedEmpresa} /></CardContent>
-            </Card>
-          ) : <EmptySelection />}
-        </TabsContent>
 
         <TabsContent value="plano" className="mt-4">
           {selectedEmpresa ? (
