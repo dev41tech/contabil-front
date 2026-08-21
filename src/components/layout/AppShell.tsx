@@ -5,6 +5,7 @@ import { Sidebar } from './Sidebar'
 import { useEmpresa } from '@/contexts/EmpresaContext'
 import { useEmpresas } from '@/hooks/useEmpresas'
 import { useCompetencia } from '@/contexts/CompetenciaContext'
+import { JobsIndicator } from '@/components/jobs/JobsIndicator'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -123,6 +124,7 @@ export function AppShell() {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Topbar */}
         <header className="h-12 border-b bg-card flex items-center justify-end gap-2 px-6 shrink-0">
+          <JobsIndicator />
           <CompetenciaSelector />
           <EmpresaSelector />
         </header>

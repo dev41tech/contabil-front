@@ -9,7 +9,9 @@ import { extractApiError } from '@/lib/utils'
 import { toast } from '@/hooks/useToast'
 import { useEmpresas } from '@/hooks/useEmpresas'
 import { useEmpresaDefault } from '@/hooks/useEmpresaDefault'
+import { useJob, isJobFinished, isJobRunning, type Job } from '@/hooks/useJob'
 import { useCompetencia } from '@/contexts/CompetenciaContext'
+import { JobPollingError, JobProgress } from '@/components/jobs/JobProgress'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -40,6 +42,7 @@ export default function NeoPage() {
   const { competencia: mesFiltro } = useCompetencia()
   const [activeTab, setActiveTab] = useState<NeoTab>('pendencias')
   const [processResult, setProcessResult] = useState<any>(null)
+  const [processJobId, setProcessJobId] = useState<string | null>(null)
   const [page, setPage] = useState(1)
   const [mostrarIndividuais, setMostrarIndividuais] = useState(false)
   const [associarDecisao, setAssociarDecisao] = useState<any>(null)
@@ -147,14 +150,26 @@ export default function NeoPage() {
       mes: mesFiltro || undefined,
     }),
     onSuccess: ({ data }) => {
-      setProcessResult(data)
-      qc.invalidateQueries({ queryKey: ['neo-pendencias-agrupadas', selectedEmpresa] })
-      qc.invalidateQueries({ queryKey: ['neo-decisoes', selectedEmpresa] })
-      qc.invalidateQueries({ queryKey: ['neo-resumo', selectedEmpresa] })
-      qc.invalidateQueries({ queryKey: ['extrato', selectedEmpresa] })
+      setProcessResult(null)
+      setProcessJobId(data.id)
+      qc.setQueryData(['job', selectedEmpresa, data.id], data as Job)
+      qc.invalidateQueries({ queryKey: ['jobs', selectedEmpresa] })
     },
     onError: (error: unknown) => toast({ title: 'Erro ao processar NEO', description: extractApiError(error), variant: 'destructive' }),
   })
+
+  const processJobQuery = useJob<any>(selectedEmpresa, processJobId)
+  const processJob = processJobQuery.data
+
+  useEffect(() => {
+    if (!processJob || !isJobFinished(processJob.status)) return
+    if (processJob.status !== 'falhou') setProcessResult(processJob.resultado)
+    qc.invalidateQueries({ queryKey: ['neo-pendencias-agrupadas', selectedEmpresa] })
+    qc.invalidateQueries({ queryKey: ['neo-decisoes', selectedEmpresa] })
+    qc.invalidateQueries({ queryKey: ['neo-resumo', selectedEmpresa] })
+    qc.invalidateQueries({ queryKey: ['extrato', selectedEmpresa] })
+    qc.invalidateQueries({ queryKey: ['jobs', selectedEmpresa] })
+  }, [processJob?.status, processJobId, qc, selectedEmpresa])
 
   const associarManualMutation = useMutation({
     mutationFn: ({ decisaoId, body }: { decisaoId: string; body: AssociarManualForm }) => api.post(`/empresas/${selectedEmpresa}/neo/decisoes/${decisaoId}/associar-manual`, body),
@@ -200,6 +215,7 @@ export default function NeoPage() {
   const escopoProcessamento = [agenciaFiltro !== 'todas' && agenciaSelecionada && agenciaLabel(agenciaSelecionada), mesFiltro].filter(Boolean).join(' · ')
   const items: any[] = decisoesQuery.data?.items ?? []
   const total = decisoesQuery.data?.total ?? 0
+  const processWithAlerts = processJob?.status === 'concluido_com_alertas'
 
   return (
     <div className="space-y-6">
@@ -211,14 +227,26 @@ export default function NeoPage() {
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-wrap items-end gap-4">
-            <div className="min-w-[240px] flex-1"><Label className="mb-1 block">Empresa</Label><SearchableSelect value={selectedEmpresa} onValueChange={value => { setSelectedEmpresa(value); setAgenciaFiltro('todas'); setContaFiltro('todas'); setProcessResult(null); setPage(1) }} options={empresas.map((empresa: any) => ({ value: empresa.id, label: empresa.razao_social }))} placeholder="Selecione a empresa" searchPlaceholder="Buscar empresa..." /></div>
+            <div className="min-w-[240px] flex-1"><Label className="mb-1 block">Empresa</Label><SearchableSelect value={selectedEmpresa} onValueChange={value => { setSelectedEmpresa(value); setAgenciaFiltro('todas'); setContaFiltro('todas'); setProcessResult(null); setProcessJobId(null); setPage(1) }} options={empresas.map((empresa: any) => ({ value: empresa.id, label: empresa.razao_social }))} placeholder="Selecione a empresa" searchPlaceholder="Buscar empresa..." /></div>
             <div className="min-w-[190px]"><Label className="mb-1 block">Agência</Label><Select value={agenciaFiltro} onValueChange={value => { setAgenciaFiltro(value); setPage(1) }}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todas">Todas as agências</SelectItem>{agencias.map(agencia => <SelectItem key={agencia.id} value={agencia.id}>{agenciaLabel(agencia)}</SelectItem>)}</SelectContent></Select></div>
-            <Button onClick={() => processMutation.mutate()} disabled={!selectedEmpresa || processMutation.isPending} className="bg-yellow-500 text-white hover:bg-yellow-600">
-              {processMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin" />Processando...</> : <><Zap className="h-4 w-4" />{escopoProcessamento ? `Processar ${escopoProcessamento}` : 'Executar NEO'}</>}
+            <Button onClick={() => processMutation.mutate()} disabled={!selectedEmpresa || processMutation.isPending || isJobRunning(processJob?.status)} className="bg-yellow-500 text-white hover:bg-yellow-600">
+              {processMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin" />Iniciando...</> : <><Zap className="h-4 w-4" />{escopoProcessamento ? `Processar ${escopoProcessamento}` : 'Executar NEO'}</>}
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      {processJob && !processJobQuery.pollingTimedOut && <JobProgress job={processJob} />}
+      {isJobRunning(processJob?.status) && (processJobQuery.isError || processJobQuery.pollingTimedOut) && <JobPollingError timedOut={processJobQuery.pollingTimedOut} onRetry={processJobQuery.restartPolling} />}
+      {processJob?.status === 'falhou' && (
+        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-900">
+          <p className="font-medium">O processamento NEO falhou.</p>
+          <p className="mt-1">{processJob.erro || 'O servidor não informou o motivo da falha.'}</p>
+          <Button className="mt-3" variant="destructive" size="sm" onClick={() => processMutation.mutate()} disabled={processMutation.isPending}>
+            Tentar novamente
+          </Button>
+        </div>
+      )}
 
       {selectedEmpresa && (
         <div className="flex flex-col justify-between gap-2 rounded-lg border bg-card px-4 py-3 md:flex-row md:items-center">
@@ -228,13 +256,13 @@ export default function NeoPage() {
       )}
 
       {processResult && (
-        <Card className="border-green-200 bg-green-50">
-          <CardHeader><CardTitle className="text-lg text-green-800">Resultado do processamento</CardTitle></CardHeader>
+        <Card className={processWithAlerts ? 'border-amber-300 bg-amber-50' : 'border-green-200 bg-green-50'}>
+          <CardHeader><CardTitle className={processWithAlerts ? 'text-lg text-amber-900' : 'text-lg text-green-800'}>{processWithAlerts ? 'Processamento concluído com alertas' : 'Resultado do processamento'}</CardTitle></CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">{[
               ['Associadas', processResult.associadas], ['Sem regra', processResult.sem_regra], ['Erros', processResult.erros], ['Pendentes', processResult.total_pendentes],
-            ].map(([label, value]) => <div key={label} className="text-center"><p className="text-2xl font-bold text-green-700">{value ?? 0}</p><p className="text-sm text-green-600">{label}</p></div>)}</div>
-            {(processResult.comprovantes_associados > 0 || processResult.notas_associadas > 0) && <div className="mt-4 grid grid-cols-2 gap-4 border-t border-green-200 pt-4">{processResult.comprovantes_associados > 0 && <div className="text-center"><p className="text-xl font-bold text-green-700">{processResult.comprovantes_associados}</p><p className="text-xs text-green-600">Comprovantes vinculados</p></div>}{processResult.notas_associadas > 0 && <div className="text-center"><p className="text-xl font-bold text-green-700">{processResult.notas_associadas}</p><p className="text-xs text-green-600">Notas fiscais vinculadas</p></div>}</div>}
+            ].map(([label, value]) => <div key={label} className="text-center"><p className={`text-2xl font-bold ${processWithAlerts ? 'text-amber-800' : 'text-green-700'}`}>{value ?? 0}</p><p className={`text-sm ${processWithAlerts ? 'text-amber-700' : 'text-green-600'}`}>{label}</p></div>)}</div>
+            {(processResult.comprovantes_associados > 0 || processResult.notas_associadas > 0) && <div className={`mt-4 grid grid-cols-2 gap-4 border-t pt-4 ${processWithAlerts ? 'border-amber-200' : 'border-green-200'}`}>{processResult.comprovantes_associados > 0 && <div className="text-center"><p className={`text-xl font-bold ${processWithAlerts ? 'text-amber-800' : 'text-green-700'}`}>{processResult.comprovantes_associados}</p><p className={`text-xs ${processWithAlerts ? 'text-amber-700' : 'text-green-600'}`}>Comprovantes vinculados</p></div>}{processResult.notas_associadas > 0 && <div className="text-center"><p className={`text-xl font-bold ${processWithAlerts ? 'text-amber-800' : 'text-green-700'}`}>{processResult.notas_associadas}</p><p className={`text-xs ${processWithAlerts ? 'text-amber-700' : 'text-green-600'}`}>Notas fiscais vinculadas</p></div>}</div>}
           </CardContent>
         </Card>
       )}

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { useEmpresaDefault } from '@/hooks/useEmpresaDefault'
@@ -14,6 +14,8 @@ import { SearchableSelect } from '@/components/ui/searchable-select'
 import { Pagination } from '@/components/ui/pagination'
 import { Upload, Loader2, RefreshCw, AlertTriangle, Download } from 'lucide-react'
 import { useEmpresas } from '@/hooks/useEmpresas'
+import { useJob, isJobFinished, isJobRunning, type Job } from '@/hooks/useJob'
+import { JobPollingError, JobProgress } from '@/components/jobs/JobProgress'
 
 const STATUS_COLORS: Record<string, any> = {
   pendente: 'warning',
@@ -33,6 +35,7 @@ export default function ExtratoPage() {
   const [dataInicio, setDataInicio] = useState('')
   const [dataFim, setDataFim] = useState('')
   const [page, setPage] = useState(1)
+  const [uploadJobId, setUploadJobId] = useState<string | null>(null)
   const PAGE_SIZE = 20
 
   const { data: empresas = [] } = useEmpresas()
@@ -79,21 +82,10 @@ export default function ExtratoPage() {
     },
     onSuccess: (res) => {
       setUploadError(null)
-      const d = res.data
-      const tipo = d.tipo ?? 'Extrato'
-      setRejeicoes(d.motivos_rejeicao ?? [])
-      const partes = [
-        `${d.importadas ?? 0} novas transações`,
-        `${d.duplicadas ?? 0} duplicadas ignoradas`,
-      ]
-      if (d.rejeitadas) partes.push(`${d.rejeitadas} recusadas por valor inconsistente`)
-      toast({
-        title: `${tipo} importado${d.rejeitadas ? ' com ressalvas' : ' com sucesso'}!`,
-        description: `${partes.join(', ')}.`,
-        variant: d.rejeitadas ? 'default' : 'success',
-      })
-      setPage(1)
-      qc.invalidateQueries({ queryKey: ['extrato'] })
+      setRejeicoes([])
+      setUploadJobId(res.data.id)
+      qc.setQueryData(['job', selectedEmpresa, res.data.id], res.data as Job)
+      qc.invalidateQueries({ queryKey: ['jobs', selectedEmpresa] })
     },
     onError: (e: unknown) => {
       const apiMessage = extractApiError(e)
@@ -104,6 +96,31 @@ export default function ExtratoPage() {
       toast({ title: 'Erro ao importar extrato', description: msg, variant: 'destructive' })
     },
   })
+
+  const uploadJobQuery = useJob<any>(selectedEmpresa, uploadJobId)
+  const uploadJob = uploadJobQuery.data
+
+  useEffect(() => {
+    if (!uploadJob || !isJobFinished(uploadJob.status)) return
+    qc.invalidateQueries({ queryKey: ['jobs', selectedEmpresa] })
+    if (uploadJob.status === 'falhou' || !uploadJob.resultado) return
+
+    const d = uploadJob.resultado
+    const tipo = d.tipo ?? 'Extrato'
+    setRejeicoes(d.motivos_rejeicao ?? [])
+    const partes = [
+      `${d.importadas ?? 0} novas transações`,
+      `${d.duplicadas ?? 0} duplicadas ignoradas`,
+    ]
+    if (d.rejeitadas) partes.push(`${d.rejeitadas} recusadas por valor inconsistente`)
+    toast({
+      title: `${tipo} importado${uploadJob.status === 'concluido_com_alertas' ? ' com ressalvas' : ' com sucesso'}!`,
+      description: `${partes.join(', ')}.`,
+      variant: uploadJob.status === 'concluido_com_alertas' ? 'default' : 'success',
+    })
+    setPage(1)
+    qc.invalidateQueries({ queryKey: ['extrato'] })
+  }, [uploadJob?.status, uploadJobId, qc, selectedEmpresa])
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -183,7 +200,7 @@ export default function ExtratoPage() {
               <label className="text-sm font-medium mb-1 block">Empresa</label>
               <SearchableSelect
                 value={selectedEmpresa}
-                onValueChange={v => { setSelectedEmpresa(v); setSelectedAgencia(''); setPage(1) }}
+                onValueChange={v => { setSelectedEmpresa(v); setSelectedAgencia(''); setUploadJobId(null); setRejeicoes([]); setPage(1) }}
                 options={empresas.map((e: any) => ({ value: e.id, label: e.razao_social }))}
                 placeholder="Selecione a empresa"
                 searchPlaceholder="Buscar empresa..."
@@ -209,7 +226,7 @@ export default function ExtratoPage() {
             <div className="flex flex-col items-start gap-1">
               <Button
                 onClick={() => fileRef.current?.click()}
-                disabled={!selectedEmpresa || !selectedAgencia || uploadMutation.isPending}
+                disabled={!selectedEmpresa || !selectedAgencia || uploadMutation.isPending || isJobRunning(uploadJob?.status)}
               >
                 {uploadMutation.isPending
                   ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Importando...</>
@@ -234,6 +251,21 @@ export default function ExtratoPage() {
                 <p className="text-amber-700 mt-0.5">{uploadError}</p>
               </div>
               <button onClick={() => setUploadError(null)} className="text-amber-500 hover:text-amber-700 shrink-0">✕</button>
+            </div>
+          )}
+
+          {uploadJob && !uploadJobQuery.pollingTimedOut && <JobProgress job={uploadJob} />}
+          {isJobRunning(uploadJob?.status) && (uploadJobQuery.isError || uploadJobQuery.pollingTimedOut) && <JobPollingError timedOut={uploadJobQuery.pollingTimedOut} onRetry={uploadJobQuery.restartPolling} />}
+          {uploadJob?.status === 'falhou' && (
+            <div className="flex items-start gap-3 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-900">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div className="flex-1">
+                <p className="font-medium">A importação falhou.</p>
+                <p className="mt-0.5">{uploadJob.erro || 'O servidor não informou o motivo da falha.'}</p>
+                <Button type="button" variant="destructive" size="sm" className="mt-3" onClick={() => fileRef.current?.click()}>
+                  Escolher arquivo e tentar novamente
+                </Button>
+              </div>
             </div>
           )}
 
