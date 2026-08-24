@@ -34,9 +34,40 @@ export default function ExtratoPage() {
   const [statusFiltro, setStatusFiltro] = useState('todos')
   const [dataInicio, setDataInicio] = useState('')
   const [dataFim, setDataFim] = useState('')
+  const [dcFiltro, setDcFiltro] = useState('todos')
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
   const [uploadJobId, setUploadJobId] = useState<string | null>(null)
-  const PAGE_SIZE = 20
+
+  // Campos de texto e número usam debounce para não disparar uma request por
+  // tecla — mesmo padrão de Notas.tsx.
+  const [buscaInputs, setBuscaInputs] = useState({ historico: '', valorMin: '', valorMax: '' })
+  const [busca, setBusca] = useState({ historico: '', valorMin: '', valorMax: '' })
+
+  useEffect(() => {
+    const t = setTimeout(() => { setBusca(buscaInputs); setPage(1) }, 400)
+    return () => clearTimeout(t)
+  }, [buscaInputs.historico, buscaInputs.valorMin, buscaInputs.valorMax])
+
+  const filtrosAtivos =
+    !!selectedAgencia || statusFiltro !== 'todos' || dcFiltro !== 'todos' ||
+    !!dataInicio || !!dataFim || Object.values(busca).some(Boolean)
+
+  // Filtros que a exportação NÃO conhece. Com algum deles ativo, o arquivo sai
+  // mais largo que a lista — o botão avisa em vez de entregar surpresa.
+  const filtrosRestritosAtivos =
+    dcFiltro !== 'todos' || Object.values(busca).some(Boolean)
+
+  const limparFiltros = () => {
+    setSelectedAgencia('')
+    setStatusFiltro('todos')
+    setDcFiltro('todos')
+    setDataInicio('')
+    setDataFim('')
+    setBuscaInputs({ historico: '', valorMin: '', valorMax: '' })
+    setBusca({ historico: '', valorMin: '', valorMax: '' })
+    setPage(1)
+  }
 
   const { data: empresas = [] } = useEmpresas()
 
@@ -52,16 +83,20 @@ export default function ExtratoPage() {
   const buildParams = () => {
     const params = new URLSearchParams()
     params.set('page', String(page))
-    params.set('page_size', String(PAGE_SIZE))
+    params.set('page_size', String(pageSize))
     if (selectedAgencia) params.set('agencia_id', selectedAgencia)
     if (statusFiltro !== 'todos') params.set('status', statusFiltro)
+    if (dcFiltro !== 'todos') params.set('dc', dcFiltro)
     if (dataInicio) params.set('data_de', dataInicio)
     if (dataFim) params.set('data_ate', dataFim)
+    if (busca.historico) params.set('historico', busca.historico)
+    if (busca.valorMin) params.set('valor_min', busca.valorMin)
+    if (busca.valorMax) params.set('valor_max', busca.valorMax)
     return params.toString()
   }
 
   const { data: extrato, isLoading, refetch } = useQuery<any>({
-    queryKey: ['extrato', selectedEmpresa, selectedAgencia, statusFiltro, dataInicio, dataFim, page],
+    queryKey: ['extrato', selectedEmpresa, selectedAgencia, statusFiltro, dcFiltro, dataInicio, dataFim, busca, page, pageSize],
     queryFn: () => api.get(`/empresas/${selectedEmpresa}/extrato?${buildParams()}`).then(r => r.data),
     enabled: !!selectedEmpresa,
   })
@@ -128,9 +163,13 @@ export default function ExtratoPage() {
     e.target.value = ''
   }
 
-  // Exporta as MESMAS linhas que a tela está mostrando — mesmos filtros de
-  // agência, status e período. A paginação não entra: o relatório traz o
-  // período inteiro, não só a página aberta.
+  // Exporta por agência, status e período. A paginação não entra: o relatório
+  // traz o período inteiro, não só a página aberta.
+  //
+  // ATENÇÃO: histórico, D/C e faixa de valor NÃO chegam aqui — o endpoint de
+  // exportação não aceita esses campos. Com eles ativos na tela, o arquivo sai
+  // com MAIS linhas do que a lista mostra. O aviso ao lado do botão existe por
+  // isso; a correção de verdade é acrescentar os campos ao ExportJobCreate.
   const exportMutation = useMutation({
     mutationFn: async () => {
       const { data } = await api.post(
@@ -179,7 +218,13 @@ export default function ExtratoPage() {
             size="sm"
             onClick={() => exportMutation.mutate()}
             disabled={!selectedEmpresa || total === 0 || exportMutation.isPending}
-            title={total === 0 ? 'Nenhuma transação para exportar' : 'Exporta as transações com os filtros atuais'}
+            title={
+              total === 0
+                ? 'Nenhuma transação para exportar'
+                : filtrosRestritosAtivos
+                  ? 'A exportação usa apenas agência, status e período — histórico, D/C e faixa de valor não entram, então o arquivo virá com mais linhas do que a lista.'
+                  : 'Exporta as transações com os filtros atuais'
+            }
           >
             {exportMutation.isPending
               ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -317,8 +362,59 @@ export default function ExtratoPage() {
               <label className="text-sm font-medium mb-1 block">Até</label>
               <Input type="date" value={dataFim} onChange={e => { setDataFim(e.target.value); setPage(1) }} className="w-40" />
             </div>
-            {(selectedAgencia || statusFiltro !== 'todos' || dataInicio || dataFim) && (
-              <Button variant="ghost" size="sm" className="self-end" onClick={() => { setSelectedAgencia(''); setStatusFiltro('todos'); setDataInicio(''); setDataFim(''); setPage(1) }}>
+            <div className="min-w-[120px]">
+              <label className="text-sm font-medium mb-1 block">D/C</label>
+              <Select value={dcFiltro} onValueChange={v => { setDcFiltro(v); setPage(1) }}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="D">Débito</SelectItem>
+                  <SelectItem value="C">Crédito</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="min-w-[200px] flex-1">
+              <label className="text-sm font-medium mb-1 block">Histórico do banco</label>
+              <Input
+                placeholder="Ex.: TARIFA, PIX, fornecedor…"
+                value={buscaInputs.historico}
+                onChange={e => setBuscaInputs(s => ({ ...s, historico: e.target.value }))}
+              />
+            </div>
+            {/* O valor gravado é sempre positivo — o sinal mora em D/C. A faixa,
+                portanto, é sobre o módulo do lançamento, e o rótulo diz isso. */}
+            <div>
+              <label className="text-sm font-medium mb-1 block">Valor de</label>
+              <Input
+                type="number" min="0" step="0.01" placeholder="0,00"
+                value={buscaInputs.valorMin}
+                onChange={e => setBuscaInputs(s => ({ ...s, valorMin: e.target.value }))}
+                className="w-32"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">até</label>
+              <Input
+                type="number" min="0" step="0.01" placeholder="0,00"
+                value={buscaInputs.valorMax}
+                onChange={e => setBuscaInputs(s => ({ ...s, valorMax: e.target.value }))}
+                className="w-32"
+              />
+            </div>
+            <div className="min-w-[110px]">
+              <label className="text-sm font-medium mb-1 block">Por página</label>
+              <Select value={String(pageSize)} onValueChange={v => { setPageSize(Number(v)); setPage(1) }}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {/* O backend aceita de 1 a 200; 200 é o teto de lá. */}
+                  {[20, 50, 100, 200].map(n => (
+                    <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {filtrosAtivos && (
+              <Button variant="ghost" size="sm" className="self-end" onClick={limparFiltros}>
                 Limpar filtros
               </Button>
             )}
@@ -337,7 +433,7 @@ export default function ExtratoPage() {
             <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
           ) : items.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">
-              {(selectedAgencia || statusFiltro !== 'todos' || dataInicio || dataFim)
+              {filtrosAtivos
                 ? 'Nenhuma transação encontrada com esses filtros.'
                 : 'Nenhuma transação encontrada. Importe um arquivo OFX ou PDF.'}
             </p>
@@ -395,7 +491,7 @@ export default function ExtratoPage() {
                   </tbody>
                 </table>
               </div>
-              <Pagination page={page} pageSize={PAGE_SIZE} total={total} onPageChange={setPage} />
+              <Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} />
             </>
           )}
         </CardContent>
