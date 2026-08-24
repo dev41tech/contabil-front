@@ -53,11 +53,6 @@ export default function ExtratoPage() {
     !!selectedAgencia || statusFiltro !== 'todos' || dcFiltro !== 'todos' ||
     !!dataInicio || !!dataFim || Object.values(busca).some(Boolean)
 
-  // Filtros que a exportação NÃO conhece. Com algum deles ativo, o arquivo sai
-  // mais largo que a lista — o botão avisa em vez de entregar surpresa.
-  const filtrosRestritosAtivos =
-    dcFiltro !== 'todos' || Object.values(busca).some(Boolean)
-
   const limparFiltros = () => {
     setSelectedAgencia('')
     setStatusFiltro('todos')
@@ -163,13 +158,9 @@ export default function ExtratoPage() {
     e.target.value = ''
   }
 
-  // Exporta por agência, status e período. A paginação não entra: o relatório
-  // traz o período inteiro, não só a página aberta.
-  //
-  // ATENÇÃO: histórico, D/C e faixa de valor NÃO chegam aqui — o endpoint de
-  // exportação não aceita esses campos. Com eles ativos na tela, o arquivo sai
-  // com MAIS linhas do que a lista mostra. O aviso ao lado do botão existe por
-  // isso; a correção de verdade é acrescentar os campos ao ExportJobCreate.
+  // Exporta as MESMAS linhas que a tela mostra — todos os filtros vão junto.
+  // A paginação não entra: o relatório traz o período inteiro, não só a página
+  // aberta.
   const exportMutation = useMutation({
     mutationFn: async () => {
       const { data } = await api.post(
@@ -179,8 +170,12 @@ export default function ExtratoPage() {
           tipo: 'extrato',
           agencia_id: selectedAgencia || null,
           status: statusFiltro !== 'todos' ? statusFiltro : null,
+          dc: dcFiltro !== 'todos' ? dcFiltro : null,
           data_de: dataInicio || null,
           data_ate: dataFim || null,
+          historico: busca.historico || null,
+          valor_min: busca.valorMin || null,
+          valor_max: busca.valorMax || null,
         },
         { responseType: 'blob' },
       )
@@ -218,13 +213,7 @@ export default function ExtratoPage() {
             size="sm"
             onClick={() => exportMutation.mutate()}
             disabled={!selectedEmpresa || total === 0 || exportMutation.isPending}
-            title={
-              total === 0
-                ? 'Nenhuma transação para exportar'
-                : filtrosRestritosAtivos
-                  ? 'A exportação usa apenas agência, status e período — histórico, D/C e faixa de valor não entram, então o arquivo virá com mais linhas do que a lista.'
-                  : 'Exporta as transações com os filtros atuais'
-            }
+            title={total === 0 ? 'Nenhuma transação para exportar' : 'Exporta as transações com os filtros atuais'}
           >
             {exportMutation.isPending
               ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
