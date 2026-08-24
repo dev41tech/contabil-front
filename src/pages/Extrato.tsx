@@ -351,6 +351,7 @@ export default function ExtratoPage() {
                       <th className="text-left py-3 px-2">Histórico</th>
                       <th className="text-center py-3 px-2 w-8">D/C</th>
                       <th className="text-right py-3 px-2 w-32">Valor</th>
+                      <th className="text-right py-3 px-2 w-32">Saldo</th>
                       <th className="text-center py-3 px-2 w-28">Status</th>
                     </tr>
                   </thead>
@@ -370,6 +371,21 @@ export default function ExtratoPage() {
                         </td>
                         <td className={`py-2 px-2 text-right font-mono text-sm ${t.dc === 'D' ? 'text-red-600' : 'text-emerald-600'}`}>
                           {t.dc === 'D' ? '-' : '+'}{formatCurrency(t.valor)}
+                        </td>
+                        {/* Saldo da conta após o lançamento, como impresso no extrato.
+                            É dado de conferência, não movimento — por isso discreto.
+                            Nulo quando a origem não informa (OFX não traz saldo). */}
+                        <td
+                          className={`py-2 px-2 text-right font-mono text-sm ${
+                            t.saldo_apos == null
+                              ? 'text-muted-foreground'
+                              : t.saldo_apos < 0
+                                ? 'text-red-600'
+                                : 'text-muted-foreground'
+                          }`}
+                          title={t.saldo_apos == null ? 'O arquivo importado não informa saldo' : undefined}
+                        >
+                          {t.saldo_apos == null ? '—' : formatCurrency(t.saldo_apos)}
                         </td>
                         <td className="py-2 px-2 text-center">
                           <Badge variant={STATUS_COLORS[t.status] ?? 'outline'}>{t.status}</Badge>
