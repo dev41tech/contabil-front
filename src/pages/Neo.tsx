@@ -47,6 +47,8 @@ export default function NeoPage() {
   const [mostrarIndividuais, setMostrarIndividuais] = useState(false)
   const [associarDecisao, setAssociarDecisao] = useState<any>(null)
   const [criarRegraDecisao, setCriarRegraDecisao] = useState<any>(null)
+  const [desfazerDecisao, setDesfazerDecisao] = useState<any>(null)
+  const [motivoDesfazer, setMotivoDesfazer] = useState('')
 
   const [termoInput, setTermoInput] = useState('')
   const [termo, setTermo] = useState('')
@@ -198,6 +200,23 @@ export default function NeoPage() {
     onError: (error: unknown) => toast({ title: 'Erro ao associar', description: extractApiError(error), variant: 'destructive' }),
   })
 
+  const desfazerMutation = useMutation({
+    mutationFn: ({ lancamentoId, motivo }: { lancamentoId: string; motivo: string }) =>
+      api.post(`/empresas/${selectedEmpresa}/neo/lancamentos/${lancamentoId}/cancelar`, { motivo }),
+    onSuccess: () => {
+      toast({ title: 'Lançamento desfeito', description: 'A transação voltou para a fila de classificação.', variant: 'success' })
+      setDesfazerDecisao(null)
+      setMotivoDesfazer('')
+      // O razão e o extrato mudam junto: a transação volta a pendente e as
+      // partidas somem.
+      qc.invalidateQueries({ queryKey: ['neo-pendencias-agrupadas', selectedEmpresa] })
+      qc.invalidateQueries({ queryKey: ['neo-decisoes', selectedEmpresa] })
+      qc.invalidateQueries({ queryKey: ['neo-resumo', selectedEmpresa] })
+      qc.invalidateQueries({ queryKey: ['extrato', selectedEmpresa] })
+    },
+    onError: (error: unknown) => toast({ title: 'Não foi possível desfazer', description: extractApiError(error), variant: 'destructive' }),
+  })
+
   const criarRegraMutation = useMutation({
     mutationFn: (body: RegraFormData) => api.post(`/empresas/${selectedEmpresa}/regras`, body),
     onSuccess: () => {
@@ -296,7 +315,7 @@ export default function NeoPage() {
                 <div><p className="font-medium">Classificação individual</p><p className="text-sm text-muted-foreground">Associe uma transação isolada ou crie uma regra a partir dela.</p></div>
                 <ChevronDown className={`h-5 w-5 transition-transform ${mostrarIndividuais ? 'rotate-180' : ''}`} />
               </button>
-              {mostrarIndividuais && <CardContent className="border-t pt-4"><DecisionFilters termoInput={termoInput} setTermoInput={setTermoInput} estrategiaFiltro={estrategiaFiltro} setEstrategiaFiltro={setEstrategiaFiltro} dcFiltro={dcFiltro} setDcFiltro={setDcFiltro} contaFiltro={contaFiltro} setContaFiltro={setContaFiltro} contaOptions={contaOptions} dataDeFiltro={dataDeFiltro} setDataDeFiltro={setDataDeFiltro} dataAteFiltro={dataAteFiltro} setDataAteFiltro={setDataAteFiltro} motivoInput={motivoInput} setMotivoInput={setMotivoInput} valorMinFiltro={valorMinFiltro} setValorMinFiltro={setValorMinFiltro} valorMaxFiltro={valorMaxFiltro} setValorMaxFiltro={setValorMaxFiltro} filtrosAtivos={filtrosAtivos} limparFiltros={limparFiltrosTabela} setPage={setPage} /><DecisionTable items={items} total={total} page={page} pageSize={PAGE_SIZE} isLoading={decisoesQuery.isLoading} isError={decisoesQuery.isError} emptyMessage={filtrosAtivos ? 'Nenhuma pendência individual encontrada com esses filtros.' : 'Nenhuma pendência individual.'} onPageChange={setPage} onRetry={() => decisoesQuery.refetch()} onAssociar={openAssociar} onCriarRegra={openCriarRegra} /></CardContent>}
+              {mostrarIndividuais && <CardContent className="border-t pt-4"><DecisionFilters termoInput={termoInput} setTermoInput={setTermoInput} estrategiaFiltro={estrategiaFiltro} setEstrategiaFiltro={setEstrategiaFiltro} dcFiltro={dcFiltro} setDcFiltro={setDcFiltro} contaFiltro={contaFiltro} setContaFiltro={setContaFiltro} contaOptions={contaOptions} dataDeFiltro={dataDeFiltro} setDataDeFiltro={setDataDeFiltro} dataAteFiltro={dataAteFiltro} setDataAteFiltro={setDataAteFiltro} motivoInput={motivoInput} setMotivoInput={setMotivoInput} valorMinFiltro={valorMinFiltro} setValorMinFiltro={setValorMinFiltro} valorMaxFiltro={valorMaxFiltro} setValorMaxFiltro={setValorMaxFiltro} filtrosAtivos={filtrosAtivos} limparFiltros={limparFiltrosTabela} setPage={setPage} /><DecisionTable items={items} total={total} page={page} pageSize={PAGE_SIZE} isLoading={decisoesQuery.isLoading} isError={decisoesQuery.isError} emptyMessage={filtrosAtivos ? 'Nenhuma pendência individual encontrada com esses filtros.' : 'Nenhuma pendência individual.'} onPageChange={setPage} onRetry={() => decisoesQuery.refetch()} onAssociar={openAssociar} onCriarRegra={openCriarRegra} onDesfazer={setDesfazerDecisao} /></CardContent>}
             </Card>
           )}
         </TabsContent>
@@ -304,10 +323,47 @@ export default function NeoPage() {
         {(['classificadas', 'erros'] as NeoTab[]).map(tab => (
           <TabsContent key={tab} value={tab} className="mt-4 space-y-4">
             <Card><CardContent className="pt-6"><DecisionFilters termoInput={termoInput} setTermoInput={setTermoInput} estrategiaFiltro={estrategiaFiltro} setEstrategiaFiltro={setEstrategiaFiltro} dcFiltro={dcFiltro} setDcFiltro={setDcFiltro} contaFiltro={contaFiltro} setContaFiltro={setContaFiltro} contaOptions={contaOptions} dataDeFiltro={dataDeFiltro} setDataDeFiltro={setDataDeFiltro} dataAteFiltro={dataAteFiltro} setDataAteFiltro={setDataAteFiltro} motivoInput={motivoInput} setMotivoInput={setMotivoInput} valorMinFiltro={valorMinFiltro} setValorMinFiltro={setValorMinFiltro} valorMaxFiltro={valorMaxFiltro} setValorMaxFiltro={setValorMaxFiltro} filtrosAtivos={filtrosAtivos} limparFiltros={limparFiltrosTabela} setPage={setPage} /></CardContent></Card>
-            <Card><CardHeader><CardTitle>{tab === 'classificadas' ? 'Transações classificadas' : 'Erros de processamento'}</CardTitle></CardHeader><CardContent><DecisionTable items={items} total={total} page={page} pageSize={PAGE_SIZE} isLoading={decisoesQuery.isLoading} isError={decisoesQuery.isError} emptyMessage={filtrosAtivos ? 'Nenhuma decisão encontrada com esses filtros.' : tab === 'classificadas' ? 'Nenhuma transação classificada neste escopo.' : 'Nenhum erro neste escopo.'} onPageChange={setPage} onRetry={() => decisoesQuery.refetch()} onAssociar={openAssociar} onCriarRegra={openCriarRegra} /></CardContent></Card>
+            <Card><CardHeader><CardTitle>{tab === 'classificadas' ? 'Transações classificadas' : 'Erros de processamento'}</CardTitle></CardHeader><CardContent><DecisionTable items={items} total={total} page={page} pageSize={PAGE_SIZE} isLoading={decisoesQuery.isLoading} isError={decisoesQuery.isError} emptyMessage={filtrosAtivos ? 'Nenhuma decisão encontrada com esses filtros.' : tab === 'classificadas' ? 'Nenhuma transação classificada neste escopo.' : 'Nenhum erro neste escopo.'} onPageChange={setPage} onRetry={() => decisoesQuery.refetch()} onAssociar={openAssociar} onCriarRegra={openCriarRegra} onDesfazer={setDesfazerDecisao} /></CardContent></Card>
           </TabsContent>
         ))}
       </Tabs>
+
+      <Dialog open={!!desfazerDecisao} onOpenChange={open => { if (!open) { setDesfazerDecisao(null); setMotivoDesfazer('') } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Desfazer lançamento</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Transação: <span className="font-medium text-foreground">{desfazerDecisao?.transacao_descricao}</span>
+            </p>
+            <p className="text-sm text-muted-foreground">
+              As duas partidas contábeis serão desfeitas e a transação volta para a fila
+              de classificação. Notas e comprovantes vinculados ficam livres, não são
+              excluídos.
+            </p>
+            <div className="space-y-1">
+              <Label>Motivo</Label>
+              {/* Obrigatório: a trilha de auditoria guarda quem desfez e por quê,
+                  e sem o motivo ela vira uma lista de carimbos. */}
+              <Input
+                autoFocus
+                placeholder="Ex.: lançado na conta errada"
+                value={motivoDesfazer}
+                onChange={event => setMotivoDesfazer(event.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => { setDesfazerDecisao(null); setMotivoDesfazer('') }}>Voltar</Button>
+            <Button
+              type="button"
+              disabled={motivoDesfazer.trim().length < 3 || desfazerMutation.isPending}
+              onClick={() => desfazerMutation.mutate({ lancamentoId: desfazerDecisao.lancamento_id, motivo: motivoDesfazer.trim() })}
+            >
+              {desfazerMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Desfazer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!associarDecisao} onOpenChange={open => { if (!open) setAssociarDecisao(null) }}>
         <DialogContent className="max-w-md"><DialogHeader><DialogTitle>Associar manualmente</DialogTitle></DialogHeader><form onSubmit={associarForm.handleSubmit(data => associarManualMutation.mutate({ decisaoId: associarDecisao.id, body: data }))} className="space-y-4"><p className="text-sm text-muted-foreground">Transação: <span className="font-medium text-foreground">{associarDecisao?.transacao_descricao}</span></p><div className="space-y-1"><Label>Conta contábil</Label><SearchableSelect value={associarForm.watch('conta_id')} onValueChange={value => associarForm.setValue('conta_id', value, { shouldValidate: true })} options={contaOptions} placeholder="Selecione a conta..." searchPlaceholder="Buscar conta..." />{associarForm.formState.errors.conta_id && <p className="text-xs text-destructive">{associarForm.formState.errors.conta_id.message}</p>}</div><div className="space-y-1"><Label>Descrição</Label><Input {...associarForm.register('descricao')} />{associarForm.formState.errors.descricao && <p className="text-xs text-destructive">{associarForm.formState.errors.descricao.message}</p>}</div><DialogFooter><Button type="button" variant="outline" onClick={() => setAssociarDecisao(null)}>Cancelar</Button><Button type="submit" disabled={associarManualMutation.isPending}>{associarManualMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Associar</Button></DialogFooter></form></DialogContent>

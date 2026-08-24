@@ -1,4 +1,4 @@
-import { Loader2, Link2, BookOpen } from 'lucide-react'
+import { Loader2, Link2, BookOpen, Undo2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Pagination } from '@/components/ui/pagination'
@@ -23,6 +23,7 @@ interface DecisionTableProps {
   onRetry: () => void
   onAssociar: (decisao: any) => void
   onCriarRegra: (decisao: any) => void
+  onDesfazer: (decisao: any) => void
 }
 
 export function DecisionTable({
@@ -37,6 +38,7 @@ export function DecisionTable({
   onRetry,
   onAssociar,
   onCriarRegra,
+  onDesfazer,
 }: DecisionTableProps) {
   if (isLoading) {
     return <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
@@ -113,6 +115,14 @@ export function DecisionTable({
                         <BookOpen className="h-3 w-3" />Regra
                       </Button>
                     </div>
+                  )}
+                  {/* Só aparece quando existe lançamento vigente. Uma decisão
+                      classificada cujo lançamento já foi desfeito continua no
+                      log, e oferecer "Desfazer" ali levaria a um 404. */}
+                  {d.resultado === 'associada' && d.lancamento_id && (
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => onDesfazer(d)}>
+                      <Undo2 className="h-3 w-3" />Desfazer
+                    </Button>
                   )}
                 </td>
               </tr>
