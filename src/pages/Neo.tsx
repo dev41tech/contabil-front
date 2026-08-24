@@ -54,6 +54,10 @@ export default function NeoPage() {
   const [dcFiltro, setDcFiltro] = useState('todos')
   const [agenciaFiltro, setAgenciaFiltro] = useState('todas')
   const [contaFiltro, setContaFiltro] = useState('todas')
+  const [dataDeFiltro, setDataDeFiltro] = useState('')
+  const [dataAteFiltro, setDataAteFiltro] = useState('')
+  const [motivoInput, setMotivoInput] = useState('')
+  const [motivo, setMotivo] = useState('')
   const [valorMinFiltro, setValorMinFiltro] = useState('')
   const [valorMaxFiltro, setValorMaxFiltro] = useState('')
 
@@ -61,6 +65,11 @@ export default function NeoPage() {
     const timer = setTimeout(() => { setTermo(termoInput); setPage(1) }, 400)
     return () => clearTimeout(timer)
   }, [termoInput])
+
+  useEffect(() => {
+    const timer = setTimeout(() => { setMotivo(motivoInput); setPage(1) }, 400)
+    return () => clearTimeout(timer)
+  }, [motivoInput])
 
   useEffect(() => setPage(1), [mesFiltro])
 
@@ -132,6 +141,11 @@ export default function NeoPage() {
     if (agenciaFiltro !== 'todas') params.set('agencia_id', agenciaFiltro)
     if (contaFiltro !== 'todas') params.set('conta_id', contaFiltro)
     if (mesFiltro) params.set('mes', mesFiltro)
+    // Data e competência se acumulam no backend: a competência é global e o
+    // intervalo é um recorte dentro dela.
+    if (dataDeFiltro) params.set('data_de', dataDeFiltro)
+    if (dataAteFiltro) params.set('data_ate', dataAteFiltro)
+    if (motivo) params.set('motivo', motivo)
     if (valorMinFiltro) params.set('valor_min', String(Number(valorMinFiltro)))
     if (valorMaxFiltro) params.set('valor_max', String(Number(valorMaxFiltro)))
     return params.toString()
@@ -139,7 +153,7 @@ export default function NeoPage() {
 
   const deveCarregarTabela = !!selectedEmpresa && (activeTab !== 'pendencias' || mostrarIndividuais)
   const decisoesQuery = useQuery<any>({
-    queryKey: ['neo-decisoes', selectedEmpresa, resultadoTabela, page, termo, estrategiaFiltro, dcFiltro, agenciaFiltro, contaFiltro, mesFiltro, valorMinFiltro, valorMaxFiltro],
+    queryKey: ['neo-decisoes', selectedEmpresa, resultadoTabela, page, termo, estrategiaFiltro, dcFiltro, agenciaFiltro, contaFiltro, mesFiltro, dataDeFiltro, dataAteFiltro, motivo, valorMinFiltro, valorMaxFiltro],
     queryFn: () => api.get(`/empresas/${selectedEmpresa}/neo/decisoes?${buildDecisoesParams()}`).then(r => r.data),
     enabled: deveCarregarTabela,
   })
@@ -204,9 +218,9 @@ export default function NeoPage() {
     setCriarRegraDecisao(decisao)
   }
 
-  const filtrosAtivos = !!termo || estrategiaFiltro !== 'todas' || dcFiltro !== 'todos' || contaFiltro !== 'todas' || !!valorMinFiltro || !!valorMaxFiltro
+  const filtrosAtivos = !!termo || estrategiaFiltro !== 'todas' || dcFiltro !== 'todos' || contaFiltro !== 'todas' || !!valorMinFiltro || !!valorMaxFiltro || !!dataDeFiltro || !!dataAteFiltro || !!motivo
   function limparFiltrosTabela() {
-    setTermoInput(''); setTermo(''); setEstrategiaFiltro('todas'); setDcFiltro('todos'); setContaFiltro('todas'); setValorMinFiltro(''); setValorMaxFiltro(''); setPage(1)
+    setTermoInput(''); setTermo(''); setMotivoInput(''); setMotivo(''); setEstrategiaFiltro('todas'); setDcFiltro('todos'); setContaFiltro('todas'); setDataDeFiltro(''); setDataAteFiltro(''); setValorMinFiltro(''); setValorMaxFiltro(''); setPage(1)
   }
 
   const empresaSelecionada = empresas.find((empresa: any) => empresa.id === selectedEmpresa)
@@ -282,14 +296,14 @@ export default function NeoPage() {
                 <div><p className="font-medium">Classificação individual</p><p className="text-sm text-muted-foreground">Associe uma transação isolada ou crie uma regra a partir dela.</p></div>
                 <ChevronDown className={`h-5 w-5 transition-transform ${mostrarIndividuais ? 'rotate-180' : ''}`} />
               </button>
-              {mostrarIndividuais && <CardContent className="border-t pt-4"><DecisionFilters termoInput={termoInput} setTermoInput={setTermoInput} estrategiaFiltro={estrategiaFiltro} setEstrategiaFiltro={setEstrategiaFiltro} dcFiltro={dcFiltro} setDcFiltro={setDcFiltro} contaFiltro={contaFiltro} setContaFiltro={setContaFiltro} contaOptions={contaOptions} valorMinFiltro={valorMinFiltro} setValorMinFiltro={setValorMinFiltro} valorMaxFiltro={valorMaxFiltro} setValorMaxFiltro={setValorMaxFiltro} filtrosAtivos={filtrosAtivos} limparFiltros={limparFiltrosTabela} setPage={setPage} /><DecisionTable items={items} total={total} page={page} pageSize={PAGE_SIZE} isLoading={decisoesQuery.isLoading} isError={decisoesQuery.isError} emptyMessage={filtrosAtivos ? 'Nenhuma pendência individual encontrada com esses filtros.' : 'Nenhuma pendência individual.'} onPageChange={setPage} onRetry={() => decisoesQuery.refetch()} onAssociar={openAssociar} onCriarRegra={openCriarRegra} /></CardContent>}
+              {mostrarIndividuais && <CardContent className="border-t pt-4"><DecisionFilters termoInput={termoInput} setTermoInput={setTermoInput} estrategiaFiltro={estrategiaFiltro} setEstrategiaFiltro={setEstrategiaFiltro} dcFiltro={dcFiltro} setDcFiltro={setDcFiltro} contaFiltro={contaFiltro} setContaFiltro={setContaFiltro} contaOptions={contaOptions} dataDeFiltro={dataDeFiltro} setDataDeFiltro={setDataDeFiltro} dataAteFiltro={dataAteFiltro} setDataAteFiltro={setDataAteFiltro} motivoInput={motivoInput} setMotivoInput={setMotivoInput} valorMinFiltro={valorMinFiltro} setValorMinFiltro={setValorMinFiltro} valorMaxFiltro={valorMaxFiltro} setValorMaxFiltro={setValorMaxFiltro} filtrosAtivos={filtrosAtivos} limparFiltros={limparFiltrosTabela} setPage={setPage} /><DecisionTable items={items} total={total} page={page} pageSize={PAGE_SIZE} isLoading={decisoesQuery.isLoading} isError={decisoesQuery.isError} emptyMessage={filtrosAtivos ? 'Nenhuma pendência individual encontrada com esses filtros.' : 'Nenhuma pendência individual.'} onPageChange={setPage} onRetry={() => decisoesQuery.refetch()} onAssociar={openAssociar} onCriarRegra={openCriarRegra} /></CardContent>}
             </Card>
           )}
         </TabsContent>
 
         {(['classificadas', 'erros'] as NeoTab[]).map(tab => (
           <TabsContent key={tab} value={tab} className="mt-4 space-y-4">
-            <Card><CardContent className="pt-6"><DecisionFilters termoInput={termoInput} setTermoInput={setTermoInput} estrategiaFiltro={estrategiaFiltro} setEstrategiaFiltro={setEstrategiaFiltro} dcFiltro={dcFiltro} setDcFiltro={setDcFiltro} contaFiltro={contaFiltro} setContaFiltro={setContaFiltro} contaOptions={contaOptions} valorMinFiltro={valorMinFiltro} setValorMinFiltro={setValorMinFiltro} valorMaxFiltro={valorMaxFiltro} setValorMaxFiltro={setValorMaxFiltro} filtrosAtivos={filtrosAtivos} limparFiltros={limparFiltrosTabela} setPage={setPage} /></CardContent></Card>
+            <Card><CardContent className="pt-6"><DecisionFilters termoInput={termoInput} setTermoInput={setTermoInput} estrategiaFiltro={estrategiaFiltro} setEstrategiaFiltro={setEstrategiaFiltro} dcFiltro={dcFiltro} setDcFiltro={setDcFiltro} contaFiltro={contaFiltro} setContaFiltro={setContaFiltro} contaOptions={contaOptions} dataDeFiltro={dataDeFiltro} setDataDeFiltro={setDataDeFiltro} dataAteFiltro={dataAteFiltro} setDataAteFiltro={setDataAteFiltro} motivoInput={motivoInput} setMotivoInput={setMotivoInput} valorMinFiltro={valorMinFiltro} setValorMinFiltro={setValorMinFiltro} valorMaxFiltro={valorMaxFiltro} setValorMaxFiltro={setValorMaxFiltro} filtrosAtivos={filtrosAtivos} limparFiltros={limparFiltrosTabela} setPage={setPage} /></CardContent></Card>
             <Card><CardHeader><CardTitle>{tab === 'classificadas' ? 'Transações classificadas' : 'Erros de processamento'}</CardTitle></CardHeader><CardContent><DecisionTable items={items} total={total} page={page} pageSize={PAGE_SIZE} isLoading={decisoesQuery.isLoading} isError={decisoesQuery.isError} emptyMessage={filtrosAtivos ? 'Nenhuma decisão encontrada com esses filtros.' : tab === 'classificadas' ? 'Nenhuma transação classificada neste escopo.' : 'Nenhum erro neste escopo.'} onPageChange={setPage} onRetry={() => decisoesQuery.refetch()} onAssociar={openAssociar} onCriarRegra={openCriarRegra} /></CardContent></Card>
           </TabsContent>
         ))}
@@ -330,6 +344,9 @@ interface DecisionFiltersProps {
   dcFiltro: string; setDcFiltro: (value: string) => void
   contaFiltro: string; setContaFiltro: (value: string) => void
   contaOptions: Array<{ value: string; label: string }>
+  dataDeFiltro: string; setDataDeFiltro: (value: string) => void
+  dataAteFiltro: string; setDataAteFiltro: (value: string) => void
+  motivoInput: string; setMotivoInput: (value: string) => void
   valorMinFiltro: string; setValorMinFiltro: (value: string) => void
   valorMaxFiltro: string; setValorMaxFiltro: (value: string) => void
   filtrosAtivos: boolean; limparFiltros: () => void; setPage: (page: number) => void
@@ -344,6 +361,9 @@ function DecisionFilters(props: DecisionFiltersProps) {
         <div className="min-w-[160px]"><Label className="mb-1 block">Estratégia</Label><Select value={props.estrategiaFiltro} onValueChange={update(props.setEstrategiaFiltro)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todas">Todas</SelectItem><SelectItem value="exato">Texto exato</SelectItem><SelectItem value="substring">Contém o texto</SelectItem><SelectItem value="todas_palavras">Contém todas as palavras</SelectItem><SelectItem value="contraparte">Por CNPJ do favorecido</SelectItem><SelectItem value="manual">Associação manual</SelectItem></SelectContent></Select></div>
         <div className="min-w-[120px]"><Label className="mb-1 block">D/C</Label><Select value={props.dcFiltro} onValueChange={update(props.setDcFiltro)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Todos</SelectItem><SelectItem value="D">Débito</SelectItem><SelectItem value="C">Crédito</SelectItem></SelectContent></Select></div>
         <div className="min-w-[240px] flex-1"><Label className="mb-1 block">Conta contábil</Label><SearchableSelect value={props.contaFiltro} onValueChange={update(props.setContaFiltro)} options={[{ value: 'todas', label: 'Todas' }, ...props.contaOptions]} searchPlaceholder="Buscar conta..." /></div>
+        <div className="w-[150px]"><Label className="mb-1 block">De</Label><Input type="date" value={props.dataDeFiltro} onChange={event => update(props.setDataDeFiltro)(event.target.value)} /></div>
+        <div className="w-[150px]"><Label className="mb-1 block">Até</Label><Input type="date" value={props.dataAteFiltro} onChange={event => update(props.setDataAteFiltro)(event.target.value)} /></div>
+        <div className="min-w-[180px] flex-1"><Label className="mb-1 block">Motivo</Label><Input placeholder="Por que parou na fila" value={props.motivoInput} onChange={event => props.setMotivoInput(event.target.value)} /></div>
         <div className="w-[140px]"><Label className="mb-1 block">Valor mínimo</Label><Input type="number" min="0" step="0.01" value={props.valorMinFiltro} onChange={event => { if (!event.target.value || Number(event.target.value) >= 0) update(props.setValorMinFiltro)(event.target.value) }} /></div>
         <div className="w-[140px]"><Label className="mb-1 block">Valor máximo</Label><Input type="number" min="0" step="0.01" value={props.valorMaxFiltro} onChange={event => { if (!event.target.value || Number(event.target.value) >= 0) update(props.setValorMaxFiltro)(event.target.value) }} /></div>
         {props.filtrosAtivos && <Button variant="ghost" size="sm" onClick={props.limparFiltros}>Limpar filtros</Button>}
