@@ -75,7 +75,17 @@ export function DecisionTable({
           <tbody>
             {items.map(d => (
               <tr key={d.id} className="border-b transition-colors hover:bg-muted/50">
-                <td className="whitespace-nowrap px-2 py-2 text-xs text-muted-foreground">{formatDate(d.processado_em)}</td>
+                {/* Data do LANÇAMENTO, não a do processamento. A coluna mostrava
+                    `processado_em`, então todos os itens de um mesmo processamento
+                    saíam com a mesma data — inútil para achar um lançamento. O
+                    `title` guarda quando o motor decidiu, que ainda serve para
+                    suporte. */}
+                <td
+                  className="whitespace-nowrap px-2 py-2 text-xs text-muted-foreground"
+                  title={d.processado_em ? `Classificado em ${formatDate(d.processado_em)}` : undefined}
+                >
+                  {d.transacao_data ? formatDate(d.transacao_data) : '—'}
+                </td>
                 <td className="max-w-[200px] truncate px-2 py-2">{d.transacao_descricao ?? d.transacao_id}</td>
                 <td className="whitespace-nowrap px-2 py-2 text-right font-mono">
                   {d.transacao_valor != null ? formatCurrency(d.transacao_valor) : '—'}
