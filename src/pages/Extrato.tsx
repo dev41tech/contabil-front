@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import { Pagination } from '@/components/ui/pagination'
+import { ImportacoesCard } from '@/components/extrato/ImportacoesCard'
 import { Upload, Loader2, RefreshCw, AlertTriangle, Download } from 'lucide-react'
 import { useEmpresas } from '@/hooks/useEmpresas'
 import { useJob, isJobFinished, isJobRunning, type Job } from '@/hooks/useJob'
@@ -410,6 +411,10 @@ export default function ExtratoPage() {
           </div>
         </CardContent>
       </Card>
+
+      {selectedEmpresa && (
+        <ImportacoesCard empresaId={selectedEmpresa} agenciaId={selectedAgencia || undefined} />
+      )}
 
       <Card>
         <CardHeader>
