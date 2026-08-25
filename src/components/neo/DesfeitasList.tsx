@@ -1,4 +1,4 @@
-import { Loader2, FileX2, Undo2, Link2, CheckCircle2 } from 'lucide-react'
+import { Loader2, FileX2, Undo2, Link2, CheckCircle2, RotateCcw } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Pagination } from '@/components/ui/pagination'
@@ -20,6 +20,7 @@ interface Desfeita {
   lote_cancelado: boolean
   transacao_status: string | null
   decisao_atual_id: string | null
+  aguardando_decisao_manual: boolean
 }
 
 interface DesfeitasListProps {
@@ -30,6 +31,8 @@ interface DesfeitasListProps {
   isLoading: boolean
   onPageChange: (page: number) => void
   onAssociar: (decisao: { id: string; transacao_descricao: string | null }) => void
+  onLiberar: (transacaoId: string) => void
+  liberandoId: string | null
 }
 
 /**
@@ -60,9 +63,13 @@ function agrupar(items: Desfeita[]) {
 function Linha({
   item,
   onAssociar,
+  onLiberar,
+  liberandoId,
 }: {
   item: Desfeita
   onAssociar: DesfeitasListProps['onAssociar']
+  onLiberar: DesfeitasListProps['onLiberar']
+  liberandoId: string | null
 }) {
   // Desfazer só faz sentido para reclassificar, e caçar a transação entre
   // centenas de pendências seria atrito à toa. O botão some assim que ela
@@ -82,21 +89,40 @@ function Linha({
       <span className={`w-28 shrink-0 text-right font-mono tabular-nums ${item.dc === 'D' ? 'text-red-600' : 'text-emerald-600'}`}>
         {item.dc === 'D' ? '-' : '+'}{formatCurrency(item.valor)}
       </span>
-      <span className="w-36 shrink-0 text-right">
+      <span className="flex shrink-0 items-center justify-end gap-1">
         {podeReclassificar ? (
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 px-2 text-xs"
-            onClick={() =>
-              onAssociar({
-                id: item.decisao_atual_id as string,
-                transacao_descricao: item.transacao_descricao,
-              })
-            }
-          >
-            <Link2 className="h-3 w-3" />Classificar
-          </Button>
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() =>
+                onAssociar({
+                  id: item.decisao_atual_id as string,
+                  transacao_descricao: item.transacao_descricao,
+                })
+              }
+            >
+              <Link2 className="h-3 w-3" />Classificar
+            </Button>
+            {/* Saída para quem desfez por engano. Sem ela, a transação
+                esperaria decisão manual para sempre — o motor não a toca mais. */}
+            {item.aguardando_decisao_manual && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                disabled={liberandoId === item.transacao_id}
+                title="Devolve esta transação ao motor: as regras voltam a valer para ela"
+                onClick={() => onLiberar(item.transacao_id)}
+              >
+                {liberandoId === item.transacao_id
+                  ? <Loader2 className="h-3 w-3 animate-spin" />
+                  : <RotateCcw className="h-3 w-3" />}
+                Liberar
+              </Button>
+            )}
+          </>
         ) : (
           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
             <CheckCircle2 className="h-3.5 w-3.5" />Já reclassificada
@@ -115,6 +141,8 @@ export function DesfeitasList({
   isLoading,
   onPageChange,
   onAssociar,
+  onLiberar,
+  liberandoId,
 }: DesfeitasListProps) {
   if (isLoading) {
     return (
@@ -174,7 +202,13 @@ export function DesfeitasList({
             )}
             <div className="px-3">
               {grupo.itens.map(item => (
-                <Linha key={item.lancamento_id} item={item} onAssociar={onAssociar} />
+                <Linha
+                  key={item.lancamento_id}
+                  item={item}
+                  onAssociar={onAssociar}
+                  onLiberar={onLiberar}
+                  liberandoId={liberandoId}
+                />
               ))}
             </div>
           </div>

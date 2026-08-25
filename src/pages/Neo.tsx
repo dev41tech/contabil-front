@@ -231,6 +231,22 @@ export default function NeoPage() {
     onError: (error: unknown) => toast({ title: 'Não foi possível desfazer', description: extractApiError(error), variant: 'destructive' }),
   })
 
+  const liberarMutation = useMutation({
+    mutationFn: (transacaoId: string) =>
+      api.post(`/empresas/${selectedEmpresa}/neo/transacoes/${transacaoId}/liberar-automatico`),
+    onSuccess: () => {
+      toast({
+        title: 'Transação liberada',
+        description: 'As regras voltam a valer para ela na próxima execução do NEO.',
+        variant: 'success',
+      })
+      qc.invalidateQueries({ queryKey: ['neo-desfeitas', selectedEmpresa] })
+      qc.invalidateQueries({ queryKey: ['neo-pendencias-agrupadas', selectedEmpresa] })
+    },
+    onError: (error: unknown) =>
+      toast({ title: 'Não foi possível liberar', description: extractApiError(error), variant: 'destructive' }),
+  })
+
   const criarRegraMutation = useMutation({
     mutationFn: (body: RegraFormData) => api.post(`/empresas/${selectedEmpresa}/regras`, body),
     onSuccess: () => {
@@ -349,6 +365,8 @@ export default function NeoPage() {
                 isLoading={desfeitasQuery.isLoading}
                 onPageChange={setPage}
                 onAssociar={openAssociar}
+                onLiberar={id => liberarMutation.mutate(id)}
+                liberandoId={liberarMutation.isPending ? (liberarMutation.variables as string) : null}
               />
             </CardContent>
           </Card>
