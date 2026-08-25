@@ -28,6 +28,8 @@ export interface NeoSimulacaoRegra {
 export interface SelectOption {
   value: string
   label: string
+  /** Segunda linha da opção — nas contas, a classificação. Ver `lib/contas`. */
+  sublabel?: string
 }
 
 export interface AgenciaNeo {

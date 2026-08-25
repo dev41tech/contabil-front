@@ -25,7 +25,7 @@ import { DecisionTable } from '@/components/neo/DecisionTable'
 import { DesfeitasList } from '@/components/neo/DesfeitasList'
 import { RegraForm, type RegraFormData } from '@/components/regras/RegraForm'
 import { PendenciasGroups } from '@/components/neo/PendenciasGroups'
-import type { AgenciaNeo, NeoPendenciasAgrupadas } from '@/components/neo/types'
+import type { AgenciaNeo, NeoPendenciasAgrupadas, SelectOption } from '@/components/neo/types'
 import { agenciaLabel } from '@/components/neo/types'
 
 const associarManualSchema = z.object({
@@ -454,7 +454,7 @@ interface DecisionFiltersProps {
   estrategiaFiltro: string; setEstrategiaFiltro: (value: string) => void
   dcFiltro: string; setDcFiltro: (value: string) => void
   contaFiltro: string; setContaFiltro: (value: string) => void
-  contaOptions: Array<{ value: string; label: string }>
+  contaOptions: SelectOption[]
   dataDeFiltro: string; setDataDeFiltro: (value: string) => void
   dataAteFiltro: string; setDataAteFiltro: (value: string) => void
   motivoInput: string; setMotivoInput: (value: string) => void
