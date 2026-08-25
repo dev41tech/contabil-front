@@ -204,6 +204,10 @@ export default function NeoPage() {
       setAssociarDecisao(null)
       qc.invalidateQueries({ queryKey: ['neo-pendencias-agrupadas', selectedEmpresa] })
       qc.invalidateQueries({ queryKey: ['neo-decisoes', selectedEmpresa] })
+      // A aba Desfeitas também muda: a linha reclassificada troca o botão
+      // "Classificar" por "Já reclassificada". Sem isto o botão continuaria
+      // ali, e o segundo clique responderia 409.
+      qc.invalidateQueries({ queryKey: ['neo-desfeitas', selectedEmpresa] })
       qc.invalidateQueries({ queryKey: ['neo-resumo', selectedEmpresa] })
       qc.invalidateQueries({ queryKey: ['extrato', selectedEmpresa] })
     },
@@ -344,6 +348,7 @@ export default function NeoPage() {
                 pageSize={PAGE_SIZE}
                 isLoading={desfeitasQuery.isLoading}
                 onPageChange={setPage}
+                onAssociar={openAssociar}
               />
             </CardContent>
           </Card>
