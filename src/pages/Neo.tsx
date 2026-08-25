@@ -21,6 +21,7 @@ import { SearchableSelect } from '@/components/ui/searchable-select'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DecisionTable } from '@/components/neo/DecisionTable'
+import { DesfeitasList } from '@/components/neo/DesfeitasList'
 import { RegraForm, type RegraFormData } from '@/components/regras/RegraForm'
 import { PendenciasGroups } from '@/components/neo/PendenciasGroups'
 import type { AgenciaNeo, NeoPendenciasAgrupadas } from '@/components/neo/types'
@@ -32,7 +33,7 @@ const associarManualSchema = z.object({
 })
 
 type AssociarManualForm = z.infer<typeof associarManualSchema>
-type NeoTab = 'pendencias' | 'classificadas' | 'erros'
+type NeoTab = 'pendencias' | 'classificadas' | 'erros' | 'desfeitas'
 
 const PAGE_SIZE = 20
 
@@ -124,6 +125,15 @@ export default function NeoPage() {
       enabled: !!selectedEmpresa,
     })
   }
+
+  const desfeitasQuery = useQuery<any>({
+    queryKey: ['neo-desfeitas', selectedEmpresa, page],
+    queryFn: () =>
+      api
+        .get(`/empresas/${selectedEmpresa}/neo/desfeitas?page=${page}&page_size=${PAGE_SIZE}`)
+        .then(r => r.data),
+    enabled: !!selectedEmpresa && activeTab === 'desfeitas',
+  })
 
   const resumoClassificadas = useResumoDecisoes('associada')
   const resumoErros = useResumoDecisoes('erro')
@@ -305,6 +315,7 @@ export default function NeoPage() {
           <TabsTrigger value="pendencias">Pendências <span className="ml-1 text-xs">{resumoPendencias.data?.total_pendentes ?? 0}</span></TabsTrigger>
           <TabsTrigger value="classificadas">Classificadas <span className="ml-1 text-xs">{resumoClassificadas.data ?? 0}</span></TabsTrigger>
           <TabsTrigger value="erros">Erros <span className="ml-1 text-xs">{resumoErros.data ?? 0}</span></TabsTrigger>
+          <TabsTrigger value="desfeitas">Desfeitas <span className="ml-1 text-xs">{desfeitasQuery.data?.total ?? 0}</span></TabsTrigger>
         </TabsList>
 
         <TabsContent value="pendencias" className="mt-4 space-y-4">
@@ -318,6 +329,24 @@ export default function NeoPage() {
               {mostrarIndividuais && <CardContent className="border-t pt-4"><DecisionFilters termoInput={termoInput} setTermoInput={setTermoInput} estrategiaFiltro={estrategiaFiltro} setEstrategiaFiltro={setEstrategiaFiltro} dcFiltro={dcFiltro} setDcFiltro={setDcFiltro} contaFiltro={contaFiltro} setContaFiltro={setContaFiltro} contaOptions={contaOptions} dataDeFiltro={dataDeFiltro} setDataDeFiltro={setDataDeFiltro} dataAteFiltro={dataAteFiltro} setDataAteFiltro={setDataAteFiltro} motivoInput={motivoInput} setMotivoInput={setMotivoInput} valorMinFiltro={valorMinFiltro} setValorMinFiltro={setValorMinFiltro} valorMaxFiltro={valorMaxFiltro} setValorMaxFiltro={setValorMaxFiltro} filtrosAtivos={filtrosAtivos} limparFiltros={limparFiltrosTabela} setPage={setPage} /><DecisionTable items={items} total={total} page={page} pageSize={PAGE_SIZE} isLoading={decisoesQuery.isLoading} isError={decisoesQuery.isError} emptyMessage={filtrosAtivos ? 'Nenhuma pendência individual encontrada com esses filtros.' : 'Nenhuma pendência individual.'} onPageChange={setPage} onRetry={() => decisoesQuery.refetch()} onAssociar={openAssociar} onCriarRegra={openCriarRegra} onDesfazer={setDesfazerDecisao} /></CardContent>}
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="desfeitas" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Classificações desfeitas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DesfeitasList
+                items={desfeitasQuery.data?.items ?? []}
+                total={desfeitasQuery.data?.total ?? 0}
+                page={page}
+                pageSize={PAGE_SIZE}
+                isLoading={desfeitasQuery.isLoading}
+                onPageChange={setPage}
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {(['classificadas', 'erros'] as NeoTab[]).map(tab => (
