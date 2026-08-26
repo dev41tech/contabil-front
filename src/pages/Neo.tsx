@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { BookOpen, ChevronDown, Loader2, Zap } from 'lucide-react'
+import { Loader2, Zap } from 'lucide-react'
 import { api } from '@/lib/api'
 import { extractApiError } from '@/lib/utils'
 import { opcaoConta } from '@/lib/contas'
@@ -21,11 +21,10 @@ import { Label } from '@/components/ui/label'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { DecisionTable } from '@/components/neo/DecisionTable'
+import { ClassificacaoTable, type LinhaClassificacao } from '@/components/neo/ClassificacaoTable'
 import { DesfeitasList } from '@/components/neo/DesfeitasList'
 import { RegraForm, type RegraFormData } from '@/components/regras/RegraForm'
-import { PendenciasGroups } from '@/components/neo/PendenciasGroups'
-import type { AgenciaNeo, NeoPendenciasAgrupadas, SelectOption } from '@/components/neo/types'
+import type { AgenciaNeo, SelectOption } from '@/components/neo/types'
 import { agenciaLabel } from '@/components/neo/types'
 
 const associarManualSchema = z.object({
@@ -46,11 +45,12 @@ export default function NeoPage() {
   const [processResult, setProcessResult] = useState<any>(null)
   const [processJobId, setProcessJobId] = useState<string | null>(null)
   const [page, setPage] = useState(1)
-  const [mostrarIndividuais, setMostrarIndividuais] = useState(false)
-  const [associarDecisao, setAssociarDecisao] = useState<any>(null)
+  const [associarLinha, setAssociarLinha] = useState<LinhaClassificacao | null>(null)
+  const [alterarLinha, setAlterarLinha] = useState<LinhaClassificacao | null>(null)
   const [criarRegraDecisao, setCriarRegraDecisao] = useState<any>(null)
   const [desfazerDecisao, setDesfazerDecisao] = useState<any>(null)
   const [motivoDesfazer, setMotivoDesfazer] = useState('')
+  const [motivoAlterar, setMotivoAlterar] = useState('Reclassificação')
 
   const [termoInput, setTermoInput] = useState('')
   const [termo, setTermo] = useState('')
@@ -104,13 +104,15 @@ export default function NeoPage() {
     return params
   }, [agenciaFiltro, mesFiltro])
 
-  const resumoPendencias = useQuery<NeoPendenciasAgrupadas>({
+  // Conta a fila inteira do escopo, independente dos filtros da tabela: o
+  // número na aba responde "quanto falta", não "quanto casa com o filtro".
+  const resumoPendencias = useQuery<number>({
     queryKey: ['neo-resumo', selectedEmpresa, 'pendentes', agenciaFiltro, mesFiltro],
     queryFn: () => {
       const params = new URLSearchParams(scopeParams)
-      params.set('tokens', '3')
-      params.set('limite_grupos', '1')
-      return api.get(`/empresas/${selectedEmpresa}/neo/pendencias/agrupadas?${params}`).then(r => r.data)
+      params.set('page', '1')
+      params.set('page_size', '1')
+      return api.get(`/empresas/${selectedEmpresa}/neo/pendencias?${params}`).then(r => r.data.total ?? 0)
     },
     enabled: !!selectedEmpresa,
   })
@@ -141,9 +143,7 @@ export default function NeoPage() {
   const resumoClassificadas = useResumoDecisoes('associada')
   const resumoErros = useResumoDecisoes('erro')
 
-  const resultadoTabela = mostrarIndividuais && activeTab === 'pendencias'
-    ? 'sem_regra'
-    : activeTab === 'classificadas' ? 'associada' : 'erro'
+  const resultadoTabela = activeTab === 'classificadas' ? 'associada' : 'erro'
 
   const buildDecisoesParams = () => {
     const params = new URLSearchParams()
@@ -166,11 +166,36 @@ export default function NeoPage() {
     return params.toString()
   }
 
-  const deveCarregarTabela = !!selectedEmpresa && (activeTab !== 'pendencias' || mostrarIndividuais)
+  const deveCarregarTabela =
+    !!selectedEmpresa && (activeTab === 'classificadas' || activeTab === 'erros')
   const decisoesQuery = useQuery<any>({
     queryKey: ['neo-decisoes', selectedEmpresa, resultadoTabela, page, termo, estrategiaFiltro, dcFiltro, agenciaFiltro, contaFiltro, mesFiltro, dataDeFiltro, dataAteFiltro, motivo, valorMinFiltro, valorMaxFiltro],
     queryFn: () => api.get(`/empresas/${selectedEmpresa}/neo/decisoes?${buildDecisoesParams()}`).then(r => r.data),
     enabled: deveCarregarTabela,
+  })
+
+  const buildPendenciasParams = () => {
+    const params = new URLSearchParams()
+    params.set('page', String(page))
+    params.set('page_size', String(PAGE_SIZE))
+    if (termo) params.set('termo', termo)
+    if (dcFiltro !== 'todos') params.set('dc', dcFiltro)
+    if (agenciaFiltro !== 'todas') params.set('agencia_id', agenciaFiltro)
+    if (mesFiltro) params.set('mes', mesFiltro)
+    if (dataDeFiltro) params.set('data_de', dataDeFiltro)
+    if (dataAteFiltro) params.set('data_ate', dataAteFiltro)
+    if (valorMinFiltro) params.set('valor_min', String(Number(valorMinFiltro)))
+    if (valorMaxFiltro) params.set('valor_max', String(Number(valorMaxFiltro)))
+    return params.toString()
+  }
+
+  // A fila sai de `/neo/pendencias`, que parte da TRANSAÇÃO. A consulta de
+  // decisões esconderia a transação recém-importada que o motor ainda não
+  // olhou — justo a que mais precisa aparecer depois de um upload.
+  const pendenciasQuery = useQuery<any>({
+    queryKey: ['neo-pendencias', selectedEmpresa, page, termo, dcFiltro, agenciaFiltro, mesFiltro, dataDeFiltro, dataAteFiltro, valorMinFiltro, valorMaxFiltro],
+    queryFn: () => api.get(`/empresas/${selectedEmpresa}/neo/pendencias?${buildPendenciasParams()}`).then(r => r.data),
+    enabled: !!selectedEmpresa && activeTab === 'pendencias',
   })
 
   const processMutation = useMutation({
@@ -193,19 +218,36 @@ export default function NeoPage() {
   useEffect(() => {
     if (!processJob || !isJobFinished(processJob.status)) return
     if (processJob.status !== 'falhou') setProcessResult(processJob.resultado)
-    qc.invalidateQueries({ queryKey: ['neo-pendencias-agrupadas', selectedEmpresa] })
+    qc.invalidateQueries({ queryKey: ['neo-pendencias', selectedEmpresa] })
     qc.invalidateQueries({ queryKey: ['neo-decisoes', selectedEmpresa] })
     qc.invalidateQueries({ queryKey: ['neo-resumo', selectedEmpresa] })
     qc.invalidateQueries({ queryKey: ['extrato', selectedEmpresa] })
     qc.invalidateQueries({ queryKey: ['jobs', selectedEmpresa] })
   }, [processJob?.status, processJobId, qc, selectedEmpresa])
 
+  // Classifica pela TRANSAÇÃO, não pela decisão: linha recém-importada não tem
+  // decisão para associar, e o endpoint de lote já encerra a decisão aberta
+  // quando existe. Um caminho só para os dois casos.
   const associarManualMutation = useMutation({
-    mutationFn: ({ decisaoId, body }: { decisaoId: string; body: AssociarManualForm }) => api.post(`/empresas/${selectedEmpresa}/neo/decisoes/${decisaoId}/associar-manual`, body),
+    mutationFn: ({ transacaoId, body }: { transacaoId: string; body: AssociarManualForm }) =>
+      api.post(`/empresas/${selectedEmpresa}/neo/pendencias/classificar-lote`, {
+        transacao_ids: [transacaoId],
+        conta_id: body.conta_id,
+        descricao: body.descricao,
+      }).then(r => {
+        const bloqueio = r.data?.bloqueios?.[0]
+        // O backend recusa transação com valor não confiável e explica por quê.
+        // Tratar como sucesso deixaria a tela dizendo "associada" sem lançamento.
+        if (bloqueio) throw new Error(bloqueio.motivo)
+        if (!r.data?.classificadas) {
+          throw new Error('A transação saiu da fila enquanto a tela estava aberta. Atualize e tente de novo.')
+        }
+        return r.data
+      }),
     onSuccess: () => {
       toast({ title: 'Transação associada com sucesso!', variant: 'success' })
-      setAssociarDecisao(null)
-      qc.invalidateQueries({ queryKey: ['neo-pendencias-agrupadas', selectedEmpresa] })
+      setAssociarLinha(null)
+      qc.invalidateQueries({ queryKey: ['neo-pendencias', selectedEmpresa] })
       qc.invalidateQueries({ queryKey: ['neo-decisoes', selectedEmpresa] })
       // A aba Desfeitas também muda: a linha reclassificada troca o botão
       // "Classificar" por "Já reclassificada". Sem isto o botão continuaria
@@ -214,7 +256,38 @@ export default function NeoPage() {
       qc.invalidateQueries({ queryKey: ['neo-resumo', selectedEmpresa] })
       qc.invalidateQueries({ queryKey: ['extrato', selectedEmpresa] })
     },
-    onError: (error: unknown) => toast({ title: 'Erro ao associar', description: extractApiError(error), variant: 'destructive' }),
+    onError: (error: unknown) => toast({ title: 'Não foi possível associar', description: extractApiError(error), variant: 'destructive' }),
+  })
+
+  // Alterar = desfazer o lançamento e criar outro na conta escolhida. Não há
+  // "editar lançamento" no backend, e é assim que tem de ser: partida
+  // contábil não se muda no lugar, se cancela e se relança — a trilha de
+  // auditoria guarda os dois passos.
+  const alterarMutation = useMutation({
+    mutationFn: async ({ linha, body, motivo }: { linha: LinhaClassificacao; body: AssociarManualForm; motivo: string }) => {
+      await api.post(`/empresas/${selectedEmpresa}/neo/lancamentos/${linha.lancamentoId}/cancelar`, { motivo })
+      const { data } = await api.post(`/empresas/${selectedEmpresa}/neo/pendencias/classificar-lote`, {
+        transacao_ids: [linha.transacaoId],
+        conta_id: body.conta_id,
+        descricao: body.descricao,
+      })
+      const bloqueio = data?.bloqueios?.[0]
+      if (bloqueio) throw new Error(`Lançamento desfeito, mas a nova conta não foi aplicada: ${bloqueio.motivo}`)
+      if (!data?.classificadas) {
+        throw new Error('Lançamento desfeito, mas a nova conta não foi aplicada. A transação está na fila de pendências.')
+      }
+      return data
+    },
+    onSuccess: () => {
+      toast({ title: 'Classificação alterada', description: 'O lançamento anterior foi desfeito e um novo foi criado.', variant: 'success' })
+      setAlterarLinha(null)
+      qc.invalidateQueries({ queryKey: ['neo-pendencias', selectedEmpresa] })
+      qc.invalidateQueries({ queryKey: ['neo-decisoes', selectedEmpresa] })
+      qc.invalidateQueries({ queryKey: ['neo-desfeitas', selectedEmpresa] })
+      qc.invalidateQueries({ queryKey: ['neo-resumo', selectedEmpresa] })
+      qc.invalidateQueries({ queryKey: ['extrato', selectedEmpresa] })
+    },
+    onError: (error: unknown) => toast({ title: 'Não foi possível alterar', description: extractApiError(error), variant: 'destructive' }),
   })
 
   const desfazerMutation = useMutation({
@@ -226,7 +299,7 @@ export default function NeoPage() {
       setMotivoDesfazer('')
       // O razão e o extrato mudam junto: a transação volta a pendente e as
       // partidas somem.
-      qc.invalidateQueries({ queryKey: ['neo-pendencias-agrupadas', selectedEmpresa] })
+      qc.invalidateQueries({ queryKey: ['neo-pendencias', selectedEmpresa] })
       qc.invalidateQueries({ queryKey: ['neo-decisoes', selectedEmpresa] })
       qc.invalidateQueries({ queryKey: ['neo-resumo', selectedEmpresa] })
       qc.invalidateQueries({ queryKey: ['extrato', selectedEmpresa] })
@@ -244,7 +317,7 @@ export default function NeoPage() {
         variant: 'success',
       })
       qc.invalidateQueries({ queryKey: ['neo-desfeitas', selectedEmpresa] })
-      qc.invalidateQueries({ queryKey: ['neo-pendencias-agrupadas', selectedEmpresa] })
+      qc.invalidateQueries({ queryKey: ['neo-pendencias', selectedEmpresa] })
     },
     onError: (error: unknown) =>
       toast({ title: 'Não foi possível liberar', description: extractApiError(error), variant: 'destructive' }),
@@ -261,13 +334,37 @@ export default function NeoPage() {
 
   const associarForm = useForm<AssociarManualForm>({ resolver: zodResolver(associarManualSchema), defaultValues: { conta_id: '', descricao: '' } })
 
-  function openAssociar(decisao: any) {
-    associarForm.reset({ conta_id: '', descricao: decisao.transacao_descricao ?? '' })
-    setAssociarDecisao(decisao)
+  function openAssociar(linha: LinhaClassificacao) {
+    associarForm.reset({ conta_id: '', descricao: linha.historico ?? '' })
+    setAssociarLinha(linha)
   }
 
-  function openCriarRegra(decisao: any) {
-    setCriarRegraDecisao(decisao)
+  function openAlterar(linha: LinhaClassificacao) {
+    associarForm.reset({ conta_id: '', descricao: linha.historico ?? '' })
+    setMotivoAlterar('Reclassificação')
+    setAlterarLinha(linha)
+  }
+
+  function openCriarRegra(linha: LinhaClassificacao) {
+    setCriarRegraDecisao({
+      agencia_id: linha.agenciaId,
+      transacao_descricao: linha.historico,
+      transacao_dc: linha.dc,
+    })
+  }
+
+  // A aba Desfeitas trabalha com o item dela, não com a linha da tabela.
+  function openAssociarDesfeita(item: any) {
+    associarForm.reset({ conta_id: '', descricao: item.transacao_descricao ?? '' })
+    setAssociarLinha({
+      key: item.lancamento_id,
+      transacaoId: item.transacao_id,
+      historico: item.transacao_descricao ?? '',
+      status: 'pendente',
+      data: item.transacao_data,
+      valor: item.valor,
+      dc: item.dc,
+    })
   }
 
   const filtrosAtivos = !!termo || estrategiaFiltro !== 'todas' || dcFiltro !== 'todos' || contaFiltro !== 'todas' || !!valorMinFiltro || !!valorMaxFiltro || !!dataDeFiltro || !!dataAteFiltro || !!motivo
@@ -275,11 +372,45 @@ export default function NeoPage() {
     setTermoInput(''); setTermo(''); setMotivoInput(''); setMotivo(''); setEstrategiaFiltro('todas'); setDcFiltro('todos'); setContaFiltro('todas'); setDataDeFiltro(''); setDataAteFiltro(''); setValorMinFiltro(''); setValorMaxFiltro(''); setPage(1)
   }
 
+  // O motor sempre escreve "Nenhuma regra encontrada para '...' (dc=X)"; o que
+  // interessa na tela é o que vem DEPOIS disso — o aviso de valor não
+  // confiável, a contraparte ambígua. Repetir a frase genérica em toda linha
+  // seria ruído que esconde o aviso de verdade.
+  const avisoDaFila = (motivo?: string | null): string | null => {
+    if (!motivo) return null
+    const resto = motivo.replace(/^Nenhuma regra encontrada para [\s\S]*?\(dc=[DC]\)\.?\s*/i, '').trim()
+    return resto || null
+  }
+
+  const linhasPendencias: LinhaClassificacao[] = (pendenciasQuery.data?.items ?? []).map((p: any) => ({
+    key: p.transacao_id,
+    transacaoId: p.transacao_id,
+    data: p.data,
+    historico: p.historico,
+    valor: p.valor,
+    dc: p.dc,
+    status: 'pendente',
+    detalhe: avisoDaFila(p.motivo),
+    agenciaId: p.agencia_id,
+  }))
+
+  const linhasDecisoes: LinhaClassificacao[] = (decisoesQuery.data?.items ?? []).map((d: any) => ({
+    key: d.id,
+    transacaoId: d.transacao_id,
+    data: d.transacao_data,
+    historico: d.transacao_descricao ?? d.transacao_id,
+    valor: d.transacao_valor,
+    dc: d.transacao_dc,
+    status: d.resultado === 'associada' ? 'associada' : d.resultado === 'erro' ? 'erro' : 'pendente',
+    detalhe: [d.conta_codigo, d.conta_descricao].filter(Boolean).join(' — ') || d.motivo || null,
+    agenciaId: d.agencia_id,
+    lancamentoId: d.lancamento_id,
+  }))
+
   const empresaSelecionada = empresas.find((empresa: any) => empresa.id === selectedEmpresa)
   const agenciaSelecionada = agencias.find(agencia => agencia.id === agenciaFiltro)
   const escopo = [empresaSelecionada?.razao_social, agenciaFiltro === 'todas' ? 'Todas as agências' : agenciaSelecionada && agenciaLabel(agenciaSelecionada), mesFiltro || 'Todas as competências'].filter(Boolean)
   const escopoProcessamento = [agenciaFiltro !== 'todas' && agenciaSelecionada && agenciaLabel(agenciaSelecionada), mesFiltro].filter(Boolean).join(' · ')
-  const items: any[] = decisoesQuery.data?.items ?? []
   const total = decisoesQuery.data?.total ?? 0
   const processWithAlerts = processJob?.status === 'concluido_com_alertas'
 
@@ -316,7 +447,7 @@ export default function NeoPage() {
 
       {selectedEmpresa && (
         <div className="flex flex-col justify-between gap-2 rounded-lg border bg-card px-4 py-3 md:flex-row md:items-center">
-          <p className="text-sm"><strong>{(resumoClassificadas.data ?? 0).toLocaleString('pt-BR')}</strong> classificadas <span className="text-muted-foreground">·</span> <strong>{(resumoPendencias.data?.total_pendentes ?? 0).toLocaleString('pt-BR')}</strong> pendentes <span className="text-muted-foreground">·</span> <strong>{(resumoErros.data ?? 0).toLocaleString('pt-BR')}</strong> erros</p>
+          <p className="text-sm"><strong>{(resumoClassificadas.data ?? 0).toLocaleString('pt-BR')}</strong> classificadas <span className="text-muted-foreground">·</span> <strong>{(resumoPendencias.data ?? 0).toLocaleString('pt-BR')}</strong> pendentes <span className="text-muted-foreground">·</span> <strong>{(resumoErros.data ?? 0).toLocaleString('pt-BR')}</strong> erros</p>
           <p className="truncate text-xs text-muted-foreground" title={escopo.join(' · ')}>{escopo.join(' · ')}</p>
         </div>
       )}
@@ -333,25 +464,38 @@ export default function NeoPage() {
         </Card>
       )}
 
-      <Tabs value={activeTab} onValueChange={value => { setActiveTab(value as NeoTab); setMostrarIndividuais(false); setPage(1) }}>
+      <Tabs value={activeTab} onValueChange={value => { setActiveTab(value as NeoTab); setPage(1) }}>
         <TabsList className="grid h-auto w-full grid-cols-3 md:w-[520px]">
-          <TabsTrigger value="pendencias">Pendências <span className="ml-1 text-xs">{resumoPendencias.data?.total_pendentes ?? 0}</span></TabsTrigger>
+          <TabsTrigger value="pendencias">Pendências <span className="ml-1 text-xs">{resumoPendencias.data ?? 0}</span></TabsTrigger>
           <TabsTrigger value="classificadas">Classificadas <span className="ml-1 text-xs">{resumoClassificadas.data ?? 0}</span></TabsTrigger>
           <TabsTrigger value="erros">Erros <span className="ml-1 text-xs">{resumoErros.data ?? 0}</span></TabsTrigger>
           <TabsTrigger value="desfeitas">Desfeitas <span className="ml-1 text-xs">{desfeitasQuery.data?.total ?? 0}</span></TabsTrigger>
         </TabsList>
 
-        <TabsContent value="pendencias" className="mt-4 space-y-4">
-          <PendenciasGroups empresaId={selectedEmpresa} agenciaId={agenciaFiltro} mes={mesFiltro} agencias={agencias} contaOptions={contaOptions} />
-          {selectedEmpresa && (
-            <Card>
-              <button type="button" className="flex w-full items-center justify-between p-4 text-left" onClick={() => { setMostrarIndividuais(value => !value); setPage(1) }}>
-                <div><p className="font-medium">Classificação individual</p><p className="text-sm text-muted-foreground">Associe uma transação isolada ou crie uma regra a partir dela.</p></div>
-                <ChevronDown className={`h-5 w-5 transition-transform ${mostrarIndividuais ? 'rotate-180' : ''}`} />
-              </button>
-              {mostrarIndividuais && <CardContent className="border-t pt-4"><DecisionFilters termoInput={termoInput} setTermoInput={setTermoInput} estrategiaFiltro={estrategiaFiltro} setEstrategiaFiltro={setEstrategiaFiltro} dcFiltro={dcFiltro} setDcFiltro={setDcFiltro} contaFiltro={contaFiltro} setContaFiltro={setContaFiltro} contaOptions={contaOptions} dataDeFiltro={dataDeFiltro} setDataDeFiltro={setDataDeFiltro} dataAteFiltro={dataAteFiltro} setDataAteFiltro={setDataAteFiltro} motivoInput={motivoInput} setMotivoInput={setMotivoInput} valorMinFiltro={valorMinFiltro} setValorMinFiltro={setValorMinFiltro} valorMaxFiltro={valorMaxFiltro} setValorMaxFiltro={setValorMaxFiltro} filtrosAtivos={filtrosAtivos} limparFiltros={limparFiltrosTabela} setPage={setPage} /><DecisionTable items={items} total={total} page={page} pageSize={PAGE_SIZE} isLoading={decisoesQuery.isLoading} isError={decisoesQuery.isError} emptyMessage={filtrosAtivos ? 'Nenhuma pendência individual encontrada com esses filtros.' : 'Nenhuma pendência individual.'} onPageChange={setPage} onRetry={() => decisoesQuery.refetch()} onAssociar={openAssociar} onCriarRegra={openCriarRegra} onDesfazer={setDesfazerDecisao} /></CardContent>}
-            </Card>
-          )}
+        <TabsContent value="pendencias" className="mt-4">
+          <Card>
+            <CardHeader><CardTitle>Fila de classificação</CardTitle></CardHeader>
+            <CardContent>
+              {/* Sem Estratégia, Conta e Motivo: pendência não tem estratégia
+                  nem conta, e o motivo já aparece embaixo do histórico. */}
+              <DecisionFilters termoInput={termoInput} setTermoInput={setTermoInput} estrategiaFiltro={estrategiaFiltro} setEstrategiaFiltro={setEstrategiaFiltro} dcFiltro={dcFiltro} setDcFiltro={setDcFiltro} contaFiltro={contaFiltro} setContaFiltro={setContaFiltro} contaOptions={contaOptions} dataDeFiltro={dataDeFiltro} setDataDeFiltro={setDataDeFiltro} dataAteFiltro={dataAteFiltro} setDataAteFiltro={setDataAteFiltro} motivoInput={motivoInput} setMotivoInput={setMotivoInput} valorMinFiltro={valorMinFiltro} setValorMinFiltro={setValorMinFiltro} valorMaxFiltro={valorMaxFiltro} setValorMaxFiltro={setValorMaxFiltro} filtrosAtivos={filtrosAtivos} limparFiltros={limparFiltrosTabela} setPage={setPage} apenasFiltrosDeTransacao />
+              <ClassificacaoTable
+                items={linhasPendencias}
+                total={pendenciasQuery.data?.total ?? 0}
+                page={page}
+                pageSize={PAGE_SIZE}
+                isLoading={pendenciasQuery.isLoading}
+                isError={pendenciasQuery.isError}
+                emptyMessage={filtrosAtivos ? 'Nenhuma pendência com esses filtros.' : 'Nenhuma transação pendente neste escopo.'}
+                onPageChange={setPage}
+                onRetry={() => pendenciasQuery.refetch()}
+                onAssociar={openAssociar}
+                onAlterar={openAlterar}
+                onCriarRegra={openCriarRegra}
+                onDesfazer={setDesfazerDecisao}
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="desfeitas" className="mt-4">
@@ -367,7 +511,7 @@ export default function NeoPage() {
                 pageSize={PAGE_SIZE}
                 isLoading={desfeitasQuery.isLoading}
                 onPageChange={setPage}
-                onAssociar={openAssociar}
+                onAssociar={openAssociarDesfeita}
                 onLiberar={id => liberarMutation.mutate(id)}
                 liberandoId={liberarMutation.isPending ? (liberarMutation.variables as string) : null}
               />
@@ -378,7 +522,7 @@ export default function NeoPage() {
         {(['classificadas', 'erros'] as NeoTab[]).map(tab => (
           <TabsContent key={tab} value={tab} className="mt-4 space-y-4">
             <Card><CardContent className="pt-6"><DecisionFilters termoInput={termoInput} setTermoInput={setTermoInput} estrategiaFiltro={estrategiaFiltro} setEstrategiaFiltro={setEstrategiaFiltro} dcFiltro={dcFiltro} setDcFiltro={setDcFiltro} contaFiltro={contaFiltro} setContaFiltro={setContaFiltro} contaOptions={contaOptions} dataDeFiltro={dataDeFiltro} setDataDeFiltro={setDataDeFiltro} dataAteFiltro={dataAteFiltro} setDataAteFiltro={setDataAteFiltro} motivoInput={motivoInput} setMotivoInput={setMotivoInput} valorMinFiltro={valorMinFiltro} setValorMinFiltro={setValorMinFiltro} valorMaxFiltro={valorMaxFiltro} setValorMaxFiltro={setValorMaxFiltro} filtrosAtivos={filtrosAtivos} limparFiltros={limparFiltrosTabela} setPage={setPage} /></CardContent></Card>
-            <Card><CardHeader><CardTitle>{tab === 'classificadas' ? 'Transações classificadas' : 'Erros de processamento'}</CardTitle></CardHeader><CardContent><DecisionTable items={items} total={total} page={page} pageSize={PAGE_SIZE} isLoading={decisoesQuery.isLoading} isError={decisoesQuery.isError} emptyMessage={filtrosAtivos ? 'Nenhuma decisão encontrada com esses filtros.' : tab === 'classificadas' ? 'Nenhuma transação classificada neste escopo.' : 'Nenhum erro neste escopo.'} onPageChange={setPage} onRetry={() => decisoesQuery.refetch()} onAssociar={openAssociar} onCriarRegra={openCriarRegra} onDesfazer={setDesfazerDecisao} /></CardContent></Card>
+            <Card><CardHeader><CardTitle>{tab === 'classificadas' ? 'Transações classificadas' : 'Erros de processamento'}</CardTitle></CardHeader><CardContent><ClassificacaoTable items={linhasDecisoes} total={total} page={page} pageSize={PAGE_SIZE} isLoading={decisoesQuery.isLoading} isError={decisoesQuery.isError} emptyMessage={filtrosAtivos ? 'Nenhuma decisão encontrada com esses filtros.' : tab === 'classificadas' ? 'Nenhuma transação classificada neste escopo.' : 'Nenhum erro neste escopo.'} onPageChange={setPage} onRetry={() => decisoesQuery.refetch()} onAssociar={openAssociar} onAlterar={openAlterar} onCriarRegra={openCriarRegra} onDesfazer={setDesfazerDecisao} /></CardContent></Card>
           </TabsContent>
         ))}
       </Tabs>
@@ -388,7 +532,7 @@ export default function NeoPage() {
           <DialogHeader><DialogTitle>Desfazer lançamento</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Transação: <span className="font-medium text-foreground">{desfazerDecisao?.transacao_descricao}</span>
+              Transação: <span className="font-medium text-foreground">{desfazerDecisao?.historico}</span>
             </p>
             <p className="text-sm text-muted-foreground">
               As duas partidas contábeis serão desfeitas e a transação volta para a fila
@@ -412,7 +556,7 @@ export default function NeoPage() {
             <Button
               type="button"
               disabled={motivoDesfazer.trim().length < 3 || desfazerMutation.isPending}
-              onClick={() => desfazerMutation.mutate({ lancamentoId: desfazerDecisao.lancamento_id, motivo: motivoDesfazer.trim() })}
+              onClick={() => desfazerMutation.mutate({ lancamentoId: desfazerDecisao.lancamentoId, motivo: motivoDesfazer.trim() })}
             >
               {desfazerMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Desfazer
             </Button>
@@ -420,8 +564,58 @@ export default function NeoPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!associarDecisao} onOpenChange={open => { if (!open) setAssociarDecisao(null) }}>
-        <DialogContent className="max-w-md"><DialogHeader><DialogTitle>Associar manualmente</DialogTitle></DialogHeader><form onSubmit={associarForm.handleSubmit(data => associarManualMutation.mutate({ decisaoId: associarDecisao.id, body: data }))} className="space-y-4"><p className="text-sm text-muted-foreground">Transação: <span className="font-medium text-foreground">{associarDecisao?.transacao_descricao}</span></p><div className="space-y-1"><Label>Conta contábil</Label><SearchableSelect value={associarForm.watch('conta_id')} onValueChange={value => associarForm.setValue('conta_id', value, { shouldValidate: true })} options={contaOptions} placeholder="Selecione a conta..." searchPlaceholder="Buscar conta..." />{associarForm.formState.errors.conta_id && <p className="text-xs text-destructive">{associarForm.formState.errors.conta_id.message}</p>}</div><div className="space-y-1"><Label>Descrição</Label><Input {...associarForm.register('descricao')} />{associarForm.formState.errors.descricao && <p className="text-xs text-destructive">{associarForm.formState.errors.descricao.message}</p>}</div><DialogFooter><Button type="button" variant="outline" onClick={() => setAssociarDecisao(null)}>Cancelar</Button><Button type="submit" disabled={associarManualMutation.isPending}>{associarManualMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Associar</Button></DialogFooter></form></DialogContent>
+      <Dialog open={!!associarLinha} onOpenChange={open => { if (!open) setAssociarLinha(null) }}>
+        <DialogContent className="max-w-md"><DialogHeader><DialogTitle>Associar manualmente</DialogTitle></DialogHeader><form onSubmit={associarForm.handleSubmit(data => associarManualMutation.mutate({ transacaoId: associarLinha!.transacaoId, body: data }))} className="space-y-4">
+            <p className="text-sm text-muted-foreground">Transação: <span className="font-medium text-foreground">{associarLinha?.historico}</span></p>
+            <div className="space-y-1">
+              <Label>Conta contábil</Label>
+              <SearchableSelect value={associarForm.watch('conta_id')} onValueChange={value => associarForm.setValue('conta_id', value, { shouldValidate: true })} options={contaOptions} placeholder="Selecione a conta..." searchPlaceholder="Buscar conta..." />
+              {associarForm.formState.errors.conta_id && <p className="text-xs text-destructive">{associarForm.formState.errors.conta_id.message}</p>}
+            </div>
+            <div className="space-y-1">
+              <Label>Descrição</Label>
+              <Input {...associarForm.register('descricao')} />
+              {associarForm.formState.errors.descricao && <p className="text-xs text-destructive">{associarForm.formState.errors.descricao.message}</p>}
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setAssociarLinha(null)}>Cancelar</Button>
+              <Button type="submit" disabled={associarManualMutation.isPending}>{associarManualMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Associar</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!alterarLinha} onOpenChange={open => { if (!open) setAlterarLinha(null) }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Alterar classificação</DialogTitle></DialogHeader>
+          <form onSubmit={associarForm.handleSubmit(data => alterarMutation.mutate({ linha: alterarLinha!, body: data, motivo: motivoAlterar.trim() || 'Reclassificação' }))} className="space-y-4">
+            <p className="text-sm text-muted-foreground">Transação: <span className="font-medium text-foreground">{alterarLinha?.historico}</span></p>
+            {/* Dizer o que vai acontecer de verdade: não existe "editar
+                lançamento". O par de partidas é cancelado e outro é criado, e
+                os dois passos ficam na trilha de auditoria. */}
+            <p className="text-sm text-muted-foreground">
+              O lançamento atual — <span className="font-medium text-foreground">{alterarLinha?.detalhe ?? 'conta atual'}</span> — será desfeito e um novo será criado na conta escolhida.
+            </p>
+            <div className="space-y-1">
+              <Label>Nova conta contábil</Label>
+              <SearchableSelect value={associarForm.watch('conta_id')} onValueChange={value => associarForm.setValue('conta_id', value, { shouldValidate: true })} options={contaOptions} placeholder="Selecione a conta..." searchPlaceholder="Buscar conta..." />
+              {associarForm.formState.errors.conta_id && <p className="text-xs text-destructive">{associarForm.formState.errors.conta_id.message}</p>}
+            </div>
+            <div className="space-y-1">
+              <Label>Descrição</Label>
+              <Input {...associarForm.register('descricao')} />
+              {associarForm.formState.errors.descricao && <p className="text-xs text-destructive">{associarForm.formState.errors.descricao.message}</p>}
+            </div>
+            <div className="space-y-1">
+              <Label>Motivo</Label>
+              <Input value={motivoAlterar} onChange={event => setMotivoAlterar(event.target.value)} placeholder="Ex.: conta errada na classificação anterior" />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setAlterarLinha(null)}>Cancelar</Button>
+              <Button type="submit" disabled={alterarMutation.isPending}>{alterarMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Alterar</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
       </Dialog>
 
       <Dialog open={!!criarRegraDecisao} onOpenChange={open => { if (!open) setCriarRegraDecisao(null) }}>
@@ -461,20 +655,23 @@ interface DecisionFiltersProps {
   valorMinFiltro: string; setValorMinFiltro: (value: string) => void
   valorMaxFiltro: string; setValorMaxFiltro: (value: string) => void
   filtrosAtivos: boolean; limparFiltros: () => void; setPage: (page: number) => void
+  /** Fila de pendências: sem estratégia, conta e motivo — nenhum deles existe
+   *  antes de a transação ser classificada. */
+  apenasFiltrosDeTransacao?: boolean
 }
 
 function DecisionFilters(props: DecisionFiltersProps) {
   const update = (setter: (value: string) => void) => (value: string) => { setter(value); props.setPage(1) }
   return (
     <div className="mb-5 space-y-4">
-      <div><Label className="mb-1 block">Buscar</Label><Input placeholder="Histórico do extrato ou descrição da regra" value={props.termoInput} onChange={event => props.setTermoInput(event.target.value)} /></div>
+      <div><Label className="mb-1 block">Buscar</Label><Input placeholder={props.apenasFiltrosDeTransacao ? 'Histórico do extrato' : 'Histórico do extrato ou descrição da regra'} value={props.termoInput} onChange={event => props.setTermoInput(event.target.value)} /></div>
       <div className="flex flex-wrap items-end gap-4">
-        <div className="min-w-[160px]"><Label className="mb-1 block">Estratégia</Label><Select value={props.estrategiaFiltro} onValueChange={update(props.setEstrategiaFiltro)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todas">Todas</SelectItem><SelectItem value="exato">Texto exato</SelectItem><SelectItem value="substring">Contém o texto</SelectItem><SelectItem value="todas_palavras">Contém todas as palavras</SelectItem><SelectItem value="contraparte">Por CNPJ do favorecido</SelectItem><SelectItem value="manual">Associação manual</SelectItem></SelectContent></Select></div>
+        {!props.apenasFiltrosDeTransacao && <div className="min-w-[160px]"><Label className="mb-1 block">Estratégia</Label><Select value={props.estrategiaFiltro} onValueChange={update(props.setEstrategiaFiltro)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todas">Todas</SelectItem><SelectItem value="exato">Texto exato</SelectItem><SelectItem value="substring">Contém o texto</SelectItem><SelectItem value="todas_palavras">Contém todas as palavras</SelectItem><SelectItem value="contraparte">Por CNPJ do favorecido</SelectItem><SelectItem value="manual">Associação manual</SelectItem></SelectContent></Select></div>}
         <div className="min-w-[120px]"><Label className="mb-1 block">D/C</Label><Select value={props.dcFiltro} onValueChange={update(props.setDcFiltro)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Todos</SelectItem><SelectItem value="D">Débito</SelectItem><SelectItem value="C">Crédito</SelectItem></SelectContent></Select></div>
-        <div className="min-w-[240px] flex-1"><Label className="mb-1 block">Conta contábil</Label><SearchableSelect value={props.contaFiltro} onValueChange={update(props.setContaFiltro)} options={[{ value: 'todas', label: 'Todas' }, ...props.contaOptions]} searchPlaceholder="Buscar conta..." /></div>
+        {!props.apenasFiltrosDeTransacao && <div className="min-w-[240px] flex-1"><Label className="mb-1 block">Conta contábil</Label><SearchableSelect value={props.contaFiltro} onValueChange={update(props.setContaFiltro)} options={[{ value: 'todas', label: 'Todas' }, ...props.contaOptions]} searchPlaceholder="Buscar conta..." /></div>}
         <div className="w-[150px]"><Label className="mb-1 block">De</Label><Input type="date" value={props.dataDeFiltro} onChange={event => update(props.setDataDeFiltro)(event.target.value)} /></div>
         <div className="w-[150px]"><Label className="mb-1 block">Até</Label><Input type="date" value={props.dataAteFiltro} onChange={event => update(props.setDataAteFiltro)(event.target.value)} /></div>
-        <div className="min-w-[180px] flex-1"><Label className="mb-1 block">Motivo</Label><Input placeholder="Por que parou na fila" value={props.motivoInput} onChange={event => props.setMotivoInput(event.target.value)} /></div>
+        {!props.apenasFiltrosDeTransacao && <div className="min-w-[180px] flex-1"><Label className="mb-1 block">Motivo</Label><Input placeholder="Por que parou na fila" value={props.motivoInput} onChange={event => props.setMotivoInput(event.target.value)} /></div>}
         <div className="w-[140px]"><Label className="mb-1 block">Valor mínimo</Label><Input type="number" min="0" step="0.01" value={props.valorMinFiltro} onChange={event => { if (!event.target.value || Number(event.target.value) >= 0) update(props.setValorMinFiltro)(event.target.value) }} /></div>
         <div className="w-[140px]"><Label className="mb-1 block">Valor máximo</Label><Input type="number" min="0" step="0.01" value={props.valorMaxFiltro} onChange={event => { if (!event.target.value || Number(event.target.value) >= 0) update(props.setValorMaxFiltro)(event.target.value) }} /></div>
         {props.filtrosAtivos && <Button variant="ghost" size="sm" onClick={props.limparFiltros}>Limpar filtros</Button>}
