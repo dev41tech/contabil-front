@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { BookOpen, Building2, ChevronLeft, ChevronRight, Loader2, Plus, Search, ToggleLeft, ToggleRight, TrendingDown, TrendingUp, Zap } from 'lucide-react'
+import { opcaoConta } from '@/lib/contas'
 
 const TIPO_LABEL: Record<string, string> = {
   ativo: 'Ativo', passivo: 'Passivo', patrimonio_liquido: 'PL',
@@ -89,11 +90,8 @@ export function RegrasTab({ empresaId }: { empresaId: string }) {
     )
   }, [allRegras, search])
 
-  const contaOptions = useMemo(() =>
-    contas.map((conta: any) => ({
-      value: conta.id,
-      label: `${conta.codigo} — ${conta.descricao}`,
-    })),
+  const contaOptions = useMemo(
+    () => contas.map((conta: any) => opcaoConta(conta)),
     [contas],
   )
   const agenciaOptions = useMemo(() =>

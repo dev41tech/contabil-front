@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Building2, Loader2, Pencil, Plus, ToggleLeft } from 'lucide-react'
+import { opcaoConta } from '@/lib/contas'
 
 const agenciaSchema = z.object({
   banco_sigla: z.string().min(2, 'Informe o banco'),
@@ -41,11 +42,9 @@ export function AgenciasTab({ empresaId }: { empresaId: string }) {
   })
   const contaOptions = useMemo<ComboOption[]>(() => [
     { value: '', label: 'Sem vínculo com o Plano de Contas' },
-    ...contas.map((c: any) => ({
-      value: c.id,
-      label: `${c.codigo} — ${c.descricao}`,
-      sublabel: c.tipo_sa === 'A' ? 'Analítica' : c.tipo_sa === 'S' ? 'Sintética' : undefined,
-    })),
+    ...contas.map((c: any) =>
+      opcaoConta(c, c.tipo_sa === 'A' ? 'Analítica' : c.tipo_sa === 'S' ? 'Sintética' : undefined),
+    ),
   ], [contas])
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<AgenciaForm>({

@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { BookOpen, ChevronDown, Loader2, Zap } from 'lucide-react'
 import { api } from '@/lib/api'
 import { extractApiError } from '@/lib/utils'
+import { opcaoConta } from '@/lib/contas'
 import { toast } from '@/hooks/useToast'
 import { useEmpresas } from '@/hooks/useEmpresas'
 import { useEmpresaDefault } from '@/hooks/useEmpresaDefault'
@@ -24,7 +25,7 @@ import { DecisionTable } from '@/components/neo/DecisionTable'
 import { DesfeitasList } from '@/components/neo/DesfeitasList'
 import { RegraForm, type RegraFormData } from '@/components/regras/RegraForm'
 import { PendenciasGroups } from '@/components/neo/PendenciasGroups'
-import type { AgenciaNeo, NeoPendenciasAgrupadas } from '@/components/neo/types'
+import type { AgenciaNeo, NeoPendenciasAgrupadas, SelectOption } from '@/components/neo/types'
 import { agenciaLabel } from '@/components/neo/types'
 
 const associarManualSchema = z.object({
@@ -89,10 +90,12 @@ export default function NeoPage() {
     enabled: !!selectedEmpresa,
   })
 
-  const contaOptions = useMemo(() => planoConta.map((conta: any) => ({
-    value: conta.id,
-    label: `${conta.codigo ? `${conta.codigo} — ` : ''}${conta.descricao}`,
-  })), [planoConta])
+  // Rótulo pelo NÚMERO da conta, com a classificação embaixo — igual à tela de
+  // Plano de Contas, que é de onde o contador conhece a conta (`lib/contas`).
+  const contaOptions = useMemo(
+    () => planoConta.map((conta: any) => opcaoConta(conta)),
+    [planoConta],
+  )
 
   const scopeParams = useMemo(() => {
     const params = new URLSearchParams()
@@ -451,7 +454,7 @@ interface DecisionFiltersProps {
   estrategiaFiltro: string; setEstrategiaFiltro: (value: string) => void
   dcFiltro: string; setDcFiltro: (value: string) => void
   contaFiltro: string; setContaFiltro: (value: string) => void
-  contaOptions: Array<{ value: string; label: string }>
+  contaOptions: SelectOption[]
   dataDeFiltro: string; setDataDeFiltro: (value: string) => void
   dataAteFiltro: string; setDataAteFiltro: (value: string) => void
   motivoInput: string; setMotivoInput: (value: string) => void

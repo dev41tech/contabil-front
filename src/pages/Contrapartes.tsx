@@ -16,6 +16,7 @@ import { SearchableSelect } from '@/components/ui/searchable-select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Pagination } from '@/components/ui/pagination'
 import { Plus, Loader2, Pencil, Trash2, Contact, Ban, RotateCcw } from 'lucide-react'
+import { opcaoConta } from '@/lib/contas'
 
 const TIPOS_CONTRAPARTE = [
   { value: 'fornecedor', label: 'Fornecedor' },
@@ -67,10 +68,7 @@ export function ContrapartesTab({ empresaId }: { empresaId: string }) {
     queryFn: () => api.get(`/empresas/${selectedEmpresa}/plano-contas`).then(r => r.data.items ?? r.data),
     enabled: !!selectedEmpresa,
   })
-  const contaOptions = planoContas.map((c: any) => ({
-    value: c.id,
-    label: `${c.codigo ? c.codigo + ' — ' : ''}${c.descricao}`,
-  }))
+  const contaOptions = planoContas.map((c: any) => opcaoConta(c))
 
   const buildParams = () => {
     const p = new URLSearchParams()

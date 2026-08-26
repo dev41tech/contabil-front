@@ -11,6 +11,12 @@ import { cn } from '@/lib/utils'
 export interface SearchableSelectOption {
   value: string
   label: string
+  /**
+   * Segunda linha, em texto menor — e que TAMBÉM entra na busca. É o que
+   * permite ao rótulo mostrar um identificador (o número da conta) sem tirar
+   * o outro (a classificação) do alcance de quem digita.
+   */
+  sublabel?: string
 }
 
 interface SearchableSelectProps {
@@ -43,10 +49,12 @@ export function SearchableSelect({
 
   const selectedLabel = options.find(o => o.value === value)?.label
 
-  const filtered = React.useMemo(
-    () => options.filter(o => o.label.toLowerCase().includes(search.toLowerCase())),
-    [options, search],
-  )
+  const filtered = React.useMemo(() => {
+    const q = search.toLowerCase()
+    return options.filter(
+      o => o.label.toLowerCase().includes(q) || (o.sublabel ?? '').toLowerCase().includes(q),
+    )
+  }, [options, search])
 
   // Fecha ao clicar fora
   React.useEffect(() => {
@@ -181,7 +189,14 @@ export function SearchableSelect({
                   <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
                     {option.value === value && <Check className="h-4 w-4" />}
                   </span>
-                  {option.label}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate">{option.label}</span>
+                    {option.sublabel && (
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {option.sublabel}
+                      </span>
+                    )}
+                  </span>
                 </div>
               ))
             )}
