@@ -23,7 +23,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ClassificacaoTable, type LinhaClassificacao } from '@/components/neo/ClassificacaoTable'
 import { DesfeitasList } from '@/components/neo/DesfeitasList'
-import { RegraForm, type RegraFormData } from '@/components/regras/RegraForm'
 import type { AgenciaNeo, SelectOption } from '@/components/neo/types'
 import { agenciaLabel } from '@/components/neo/types'
 
@@ -47,9 +46,6 @@ export default function NeoPage() {
   const [page, setPage] = useState(1)
   const [associarLinha, setAssociarLinha] = useState<LinhaClassificacao | null>(null)
   const [alterarLinha, setAlterarLinha] = useState<LinhaClassificacao | null>(null)
-  const [criarRegraDecisao, setCriarRegraDecisao] = useState<any>(null)
-  const [desfazerDecisao, setDesfazerDecisao] = useState<any>(null)
-  const [motivoDesfazer, setMotivoDesfazer] = useState('')
   const [motivoAlterar, setMotivoAlterar] = useState('Reclassificação')
 
   const [termoInput, setTermoInput] = useState('')
@@ -290,23 +286,6 @@ export default function NeoPage() {
     onError: (error: unknown) => toast({ title: 'Não foi possível alterar', description: extractApiError(error), variant: 'destructive' }),
   })
 
-  const desfazerMutation = useMutation({
-    mutationFn: ({ lancamentoId, motivo }: { lancamentoId: string; motivo: string }) =>
-      api.post(`/empresas/${selectedEmpresa}/neo/lancamentos/${lancamentoId}/cancelar`, { motivo }),
-    onSuccess: () => {
-      toast({ title: 'Lançamento desfeito', description: 'A transação voltou para a fila de classificação.', variant: 'success' })
-      setDesfazerDecisao(null)
-      setMotivoDesfazer('')
-      // O razão e o extrato mudam junto: a transação volta a pendente e as
-      // partidas somem.
-      qc.invalidateQueries({ queryKey: ['neo-pendencias', selectedEmpresa] })
-      qc.invalidateQueries({ queryKey: ['neo-decisoes', selectedEmpresa] })
-      qc.invalidateQueries({ queryKey: ['neo-resumo', selectedEmpresa] })
-      qc.invalidateQueries({ queryKey: ['extrato', selectedEmpresa] })
-    },
-    onError: (error: unknown) => toast({ title: 'Não foi possível desfazer', description: extractApiError(error), variant: 'destructive' }),
-  })
-
   const liberarMutation = useMutation({
     mutationFn: (transacaoId: string) =>
       api.post(`/empresas/${selectedEmpresa}/neo/transacoes/${transacaoId}/liberar-automatico`),
@@ -323,15 +302,6 @@ export default function NeoPage() {
       toast({ title: 'Não foi possível liberar', description: extractApiError(error), variant: 'destructive' }),
   })
 
-  const criarRegraMutation = useMutation({
-    mutationFn: (body: RegraFormData) => api.post(`/empresas/${selectedEmpresa}/regras`, body),
-    onSuccess: () => {
-      toast({ title: 'Regra criada com sucesso!', variant: 'success' })
-      setCriarRegraDecisao(null)
-    },
-    onError: (error: unknown) => toast({ title: 'Erro ao criar regra', description: extractApiError(error), variant: 'destructive' }),
-  })
-
   const associarForm = useForm<AssociarManualForm>({ resolver: zodResolver(associarManualSchema), defaultValues: { conta_id: '', descricao: '' } })
 
   function openAssociar(linha: LinhaClassificacao) {
@@ -343,14 +313,6 @@ export default function NeoPage() {
     associarForm.reset({ conta_id: '', descricao: linha.historico ?? '' })
     setMotivoAlterar('Reclassificação')
     setAlterarLinha(linha)
-  }
-
-  function openCriarRegra(linha: LinhaClassificacao) {
-    setCriarRegraDecisao({
-      agencia_id: linha.agenciaId,
-      transacao_descricao: linha.historico,
-      transacao_dc: linha.dc,
-    })
   }
 
   // A aba Desfeitas trabalha com o item dela, não com a linha da tabela.
@@ -398,7 +360,10 @@ export default function NeoPage() {
     key: d.id,
     transacaoId: d.transacao_id,
     data: d.transacao_data,
-    historico: d.transacao_descricao ?? d.transacao_id,
+    // Na classificada, o que a tela mostra é o histórico contábil — é ele que
+    // o Alterar edita. A linha do banco fica no tooltip, como evidência.
+    historico: d.lancamento_historico ?? d.transacao_descricao ?? d.transacao_id,
+    historicoOriginal: d.transacao_descricao,
     valor: d.transacao_valor,
     dc: d.transacao_dc,
     status: d.resultado === 'associada' ? 'associada' : d.resultado === 'erro' ? 'erro' : 'pendente',
@@ -491,8 +456,6 @@ export default function NeoPage() {
                 onRetry={() => pendenciasQuery.refetch()}
                 onAssociar={openAssociar}
                 onAlterar={openAlterar}
-                onCriarRegra={openCriarRegra}
-                onDesfazer={setDesfazerDecisao}
               />
             </CardContent>
           </Card>
@@ -522,47 +485,10 @@ export default function NeoPage() {
         {(['classificadas', 'erros'] as NeoTab[]).map(tab => (
           <TabsContent key={tab} value={tab} className="mt-4 space-y-4">
             <Card><CardContent className="pt-6"><DecisionFilters termoInput={termoInput} setTermoInput={setTermoInput} estrategiaFiltro={estrategiaFiltro} setEstrategiaFiltro={setEstrategiaFiltro} dcFiltro={dcFiltro} setDcFiltro={setDcFiltro} contaFiltro={contaFiltro} setContaFiltro={setContaFiltro} contaOptions={contaOptions} dataDeFiltro={dataDeFiltro} setDataDeFiltro={setDataDeFiltro} dataAteFiltro={dataAteFiltro} setDataAteFiltro={setDataAteFiltro} motivoInput={motivoInput} setMotivoInput={setMotivoInput} valorMinFiltro={valorMinFiltro} setValorMinFiltro={setValorMinFiltro} valorMaxFiltro={valorMaxFiltro} setValorMaxFiltro={setValorMaxFiltro} filtrosAtivos={filtrosAtivos} limparFiltros={limparFiltrosTabela} setPage={setPage} /></CardContent></Card>
-            <Card><CardHeader><CardTitle>{tab === 'classificadas' ? 'Transações classificadas' : 'Erros de processamento'}</CardTitle></CardHeader><CardContent><ClassificacaoTable items={linhasDecisoes} total={total} page={page} pageSize={PAGE_SIZE} isLoading={decisoesQuery.isLoading} isError={decisoesQuery.isError} emptyMessage={filtrosAtivos ? 'Nenhuma decisão encontrada com esses filtros.' : tab === 'classificadas' ? 'Nenhuma transação classificada neste escopo.' : 'Nenhum erro neste escopo.'} onPageChange={setPage} onRetry={() => decisoesQuery.refetch()} onAssociar={openAssociar} onAlterar={openAlterar} onCriarRegra={openCriarRegra} onDesfazer={setDesfazerDecisao} /></CardContent></Card>
+            <Card><CardHeader><CardTitle>{tab === 'classificadas' ? 'Transações classificadas' : 'Erros de processamento'}</CardTitle></CardHeader><CardContent><ClassificacaoTable items={linhasDecisoes} total={total} page={page} pageSize={PAGE_SIZE} isLoading={decisoesQuery.isLoading} isError={decisoesQuery.isError} emptyMessage={filtrosAtivos ? 'Nenhuma decisão encontrada com esses filtros.' : tab === 'classificadas' ? 'Nenhuma transação classificada neste escopo.' : 'Nenhum erro neste escopo.'} onPageChange={setPage} onRetry={() => decisoesQuery.refetch()} onAssociar={openAssociar} onAlterar={openAlterar} /></CardContent></Card>
           </TabsContent>
         ))}
       </Tabs>
-
-      <Dialog open={!!desfazerDecisao} onOpenChange={open => { if (!open) { setDesfazerDecisao(null); setMotivoDesfazer('') } }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Desfazer lançamento</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Transação: <span className="font-medium text-foreground">{desfazerDecisao?.historico}</span>
-            </p>
-            <p className="text-sm text-muted-foreground">
-              As duas partidas contábeis serão desfeitas e a transação volta para a fila
-              de classificação. Notas e comprovantes vinculados ficam livres, não são
-              excluídos.
-            </p>
-            <div className="space-y-1">
-              <Label>Motivo</Label>
-              {/* Obrigatório: a trilha de auditoria guarda quem desfez e por quê,
-                  e sem o motivo ela vira uma lista de carimbos. */}
-              <Input
-                autoFocus
-                placeholder="Ex.: lançado na conta errada"
-                value={motivoDesfazer}
-                onChange={event => setMotivoDesfazer(event.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => { setDesfazerDecisao(null); setMotivoDesfazer('') }}>Voltar</Button>
-            <Button
-              type="button"
-              disabled={motivoDesfazer.trim().length < 3 || desfazerMutation.isPending}
-              onClick={() => desfazerMutation.mutate({ lancamentoId: desfazerDecisao.lancamentoId, motivo: motivoDesfazer.trim() })}
-            >
-              {desfazerMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Desfazer
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={!!associarLinha} onOpenChange={open => { if (!open) setAssociarLinha(null) }}>
         <DialogContent className="max-w-md"><DialogHeader><DialogTitle>Associar manualmente</DialogTitle></DialogHeader><form onSubmit={associarForm.handleSubmit(data => associarManualMutation.mutate({ transacaoId: associarLinha!.transacaoId, body: data }))} className="space-y-4">
@@ -573,7 +499,9 @@ export default function NeoPage() {
               {associarForm.formState.errors.conta_id && <p className="text-xs text-destructive">{associarForm.formState.errors.conta_id.message}</p>}
             </div>
             <div className="space-y-1">
-              <Label>Descrição</Label>
+              {/* É o texto que vai para o razão como histórico do lançamento —
+                  e é o que a coluna Histórico passa a mostrar. */}
+              <Label>Histórico contábil</Label>
               <Input {...associarForm.register('descricao')} />
               {associarForm.formState.errors.descricao && <p className="text-xs text-destructive">{associarForm.formState.errors.descricao.message}</p>}
             </div>
@@ -602,7 +530,9 @@ export default function NeoPage() {
               {associarForm.formState.errors.conta_id && <p className="text-xs text-destructive">{associarForm.formState.errors.conta_id.message}</p>}
             </div>
             <div className="space-y-1">
-              <Label>Descrição</Label>
+              {/* É o texto que vai para o razão como histórico do lançamento —
+                  e é o que a coluna Histórico passa a mostrar. */}
+              <Label>Histórico contábil</Label>
               <Input {...associarForm.register('descricao')} />
               {associarForm.formState.errors.descricao && <p className="text-xs text-destructive">{associarForm.formState.errors.descricao.message}</p>}
             </div>
@@ -615,28 +545,6 @@ export default function NeoPage() {
               <Button type="submit" disabled={alterarMutation.isPending}>{alterarMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}Alterar</Button>
             </DialogFooter>
           </form>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={!!criarRegraDecisao} onOpenChange={open => { if (!open) setCriarRegraDecisao(null) }}>
-        <DialogContent className="max-w-lg overflow-visible">
-          <DialogHeader><DialogTitle>Criar regra de categorização</DialogTitle></DialogHeader>
-          {criarRegraDecisao && (
-            <RegraForm
-              contas={contaOptions}
-              agencia={{ mode: 'fixed', id: criarRegraDecisao.agencia_id ?? '' }}
-              initialValues={{
-                descricao: criarRegraDecisao.transacao_descricao ?? '',
-                historico: criarRegraDecisao.transacao_descricao ?? '',
-                dc: criarRegraDecisao.transacao_dc === 'C' ? 'C' : 'D',
-              }}
-              editableFields={['descricao', 'historico', 'conta_id', 'dc']}
-              isSubmitting={criarRegraMutation.isPending}
-              onSubmit={data => criarRegraMutation.mutate(data)}
-              onCancel={() => setCriarRegraDecisao(null)}
-              submitLabel="Criar regra"
-            />
-          )}
         </DialogContent>
       </Dialog>
     </div>
