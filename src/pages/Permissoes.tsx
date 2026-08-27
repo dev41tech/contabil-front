@@ -19,6 +19,7 @@ interface Permissao {
   usuario_id: string
   empresa_id: string
   modulos: string
+  papel: string
   usuario_nome: string
   usuario_email: string
   usuario_role: string
@@ -35,14 +36,52 @@ interface Usuario {
 
 // ── módulos disponíveis ───────────────────────────────────────────────────────
 
+// Espelha `MODULOS_VALIDOS` do backend. A lista tinha 6 dos 17 concedíveis, e
+// a diferença não era cosmética: módulo que não aparece aqui não pode ser
+// concedido por esta tela, e quem quisesse liberar ConcilPro ou Classificação
+// precisava marcar "todos" — ou seja, dar a empresa inteira.
 const TODOS_MODULOS = [
-  { value: 'extrato', label: 'Extrato OFX' },
+  { value: 'extrato', label: 'Extrato bancário' },
+  { value: 'neo', label: 'Classificação (NEO)' },
   { value: 'regras', label: 'Regras' },
-  { value: 'notas', label: 'Notas Fiscais' },
+  { value: 'contrapartes', label: 'Contrapartes' },
+  { value: 'notas', label: 'Notas fiscais' },
   { value: 'comprovantes', label: 'Comprovantes' },
-  { value: 'contabil', label: 'Registros Contábeis' },
+  { value: 'contabil', label: 'Registros contábeis' },
+  { value: 'plano_contas', label: 'Plano de contas' },
+  { value: 'agencias', label: 'Contas bancárias' },
+  { value: 'cartoes', label: 'Cartões de crédito' },
+  { value: 'aplicacoes_financeiras', label: 'Aplicações financeiras' },
+  { value: 'openbanking', label: 'Open Banking' },
+  { value: 'concilpro', label: 'ConcilPro' },
+  { value: 'relatorios', label: 'Relatórios' },
   { value: 'exportacao', label: 'Exportações' },
+  { value: 'stats', label: 'Estatísticas' },
+  { value: 'jobs', label: 'Processamentos' },
 ]
+
+// Módulo diz ONDE a pessoa entra; papel diz O QUANTO ela faz lá dentro.
+// O efetivo é a interseção — um `leitura` com todos os módulos abre todas as
+// telas e não grava em nenhuma.
+const PAPEIS = [
+  {
+    value: 'leitura',
+    label: 'Leitura',
+    descricao: 'Consulta e exporta. Não cadastra, não classifica, não importa.',
+  },
+  {
+    value: 'contador',
+    label: 'Contador',
+    descricao: 'Opera o dia a dia: cadastra, classifica, importa e desfaz.',
+  },
+  {
+    value: 'dono',
+    label: 'Dono',
+    descricao: 'Tudo do contador, mais exclusão estrutural e importação em massa.',
+  },
+]
+
+const PAPEL_PADRAO = 'contador'
 
 function parseModulos(modulos: string): string[] {
   if (modulos === '*') return TODOS_MODULOS.map(m => m.value)
@@ -115,6 +154,41 @@ function ModulosSelector({
   )
 }
 
+// ── seletor de papel ──────────────────────────────────────────────────────────
+
+function PapelSelector({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (v: string) => void
+}) {
+  return (
+    <div className="grid gap-2">
+      {PAPEIS.map(papel => {
+        const ativo = value === papel.value
+        return (
+          <button
+            key={papel.value}
+            type="button"
+            onClick={() => onChange(papel.value)}
+            className={`rounded-md border px-3 py-2 text-left transition-colors ${
+              ativo
+                ? 'border-primary bg-primary/10'
+                : 'border-muted hover:bg-muted'
+            }`}
+          >
+            <div className={`text-sm ${ativo ? 'font-medium text-primary' : ''}`}>
+              {papel.label}
+            </div>
+            <div className="text-xs text-muted-foreground">{papel.descricao}</div>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 // ── badges de módulos ─────────────────────────────────────────────────────────
 
 function ModulosBadges({ modulos }: { modulos: string }) {
@@ -153,6 +227,7 @@ export default function PermissoesPage() {
 
   // Form state
   const [novoUsuarioId, setNovoUsuarioId] = useState('')
+  const [papelSelecionado, setPapelSelecionado] = useState<string>(PAPEL_PADRAO)
   const [modulosSelecionados, setModulosSelecionados] = useState<string[]>(
     TODOS_MODULOS.map(m => m.value)
   )
@@ -205,12 +280,14 @@ export default function PermissoesPage() {
       api.post(`/empresas/${selectedEmpresa}/permissoes`, {
         usuario_id: novoUsuarioId,
         modulos: serializeModulos(modulosSelecionados),
+        papel: papelSelecionado,
       }),
     onSuccess: () => {
       invalidar()
       toast({ title: 'Acesso concedido!', variant: 'success' })
       setModalAdicionar(false)
       setNovoUsuarioId('')
+      setPapelSelecionado(PAPEL_PADRAO)
       setModulosSelecionados(TODOS_MODULOS.map(m => m.value))
     },
     onError: (e: unknown) =>
@@ -221,10 +298,11 @@ export default function PermissoesPage() {
     mutationFn: (p: Permissao) =>
       api.patch(`/empresas/${selectedEmpresa}/permissoes/${p.usuario_id}`, {
         modulos: serializeModulos(modulosSelecionados),
+        papel: papelSelecionado,
       }),
     onSuccess: () => {
       invalidar()
-      toast({ title: 'Módulos atualizados!', variant: 'success' })
+      toast({ title: 'Acesso atualizado!', variant: 'success' })
       setModalEditar(null)
     },
     onError: (e: unknown) =>
@@ -245,6 +323,8 @@ export default function PermissoesPage() {
 
   const abrirEditar = (p: Permissao) => {
     setModulosSelecionados(parseModulos(p.modulos))
+    // Papel antigo pode vir vazio se a linha for anterior à migration 0032.
+    setPapelSelecionado(p.papel || PAPEL_PADRAO)
     setModalEditar(p)
   }
 
@@ -335,6 +415,7 @@ export default function PermissoesPage() {
                   <tr className="border-b text-muted-foreground">
                     <th className="text-left py-3 px-3">Usuário</th>
                     <th className="text-left py-3 px-3">E-mail</th>
+                    <th className="text-left py-3 px-3">Papel</th>
                     <th className="text-left py-3 px-3">Módulos</th>
                     <th className="text-left py-3 px-3">Status</th>
                     <th className="text-right py-3 px-3">Ações</th>
@@ -351,6 +432,11 @@ export default function PermissoesPage() {
                         {p.usuario_email}
                       </td>
                       <td className="py-2 px-3">
+                        <Badge variant="outline" className="text-xs">
+                          {PAPEIS.find(x => x.value === p.papel)?.label ?? p.papel}
+                        </Badge>
+                      </td>
+                      <td className="py-2 px-3">
                         <ModulosBadges modulos={p.modulos} />
                       </td>
                       <td className="py-2 px-3">
@@ -365,7 +451,7 @@ export default function PermissoesPage() {
                             size="icon"
                             className="h-7 w-7"
                             onClick={() => abrirEditar(p)}
-                            title="Editar módulos"
+                            title="Editar acesso"
                           >
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
@@ -425,6 +511,11 @@ export default function PermissoesPage() {
             </div>
 
             <div className="space-y-1">
+              <label className="text-sm font-medium">Papel</label>
+              <PapelSelector value={papelSelecionado} onChange={setPapelSelecionado} />
+            </div>
+
+            <div className="space-y-1">
               <label className="text-sm font-medium">Módulos permitidos</label>
               <ModulosSelector
                 value={modulosSelecionados}
@@ -459,14 +550,21 @@ export default function PermissoesPage() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              Editar Módulos — {modalEditar?.usuario_nome}
+              Editar acesso — {modalEditar?.usuario_nome}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <ModulosSelector
-              value={modulosSelecionados}
-              onChange={setModulosSelecionados}
-            />
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Papel</label>
+              <PapelSelector value={papelSelecionado} onChange={setPapelSelecionado} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Módulos permitidos</label>
+              <ModulosSelector
+                value={modulosSelecionados}
+                onChange={setModulosSelecionados}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setModalEditar(null)}>
