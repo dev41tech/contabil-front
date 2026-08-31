@@ -43,6 +43,30 @@ api.interceptors.response.use(
       url.includes('/auth/login') ||
       url.includes('/auth/refresh')
 
+    // ── 403 de CSRF: o token desta aba divergiu do cookie ────────────────────
+    //
+    // O cookie de CSRF é do NAVEGADOR; o token guardado é da ABA
+    // (sessionStorage). Eles divergem quando outra aba faz um login novo, e o
+    // 403 daí não é falta de permissão — é um token velho, que se resolve
+    // buscando o atual e repetindo. Por isso o backend marca este caso com
+    // `CSRF_INVALID`, distinto de um 403 de permissão, que não deve repetir.
+    if (
+      err.response?.status === 403 &&
+      err.response?.data?.error === 'CSRF_INVALID' &&
+      !isAuthEndpoint &&
+      !err.config?._csrfRetry
+    ) {
+      err.config._csrfRetry = true
+      try {
+        const { data } = await api.get('/auth/me')
+        if (!data.csrf_token) throw new Error('sem csrf')
+        sessionStorage.setItem('csrf_token', data.csrf_token)
+        return api(err.config)
+      } catch {
+        return Promise.reject(err)
+      }
+    }
+
     if (err.response?.status === 401 && !isAuthEndpoint && !err.config?._retry) {
       // Já estamos renovando → enfileira e aguarda
       if (isRefreshing) {

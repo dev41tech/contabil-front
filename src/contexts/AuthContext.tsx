@@ -26,6 +26,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data } = await api.get('/auth/me')
       setUser(data)
+      // O csrf_token vive em sessionStorage, que é POR ABA. Uma segunda aba
+      // aberta com a sessão já válida não passa por login nem por refresh, e
+      // como o backend está em outra origem ela não consegue ler o cookie:
+      // subia sem token nenhum e a primeira gravação levava 403.
+      //
+      // /auth/me é a única rota que toda aba chama no boot, e ela devolve o
+      // token em vigor. É daqui que a aba nova se abastece.
+      if (data.csrf_token) sessionStorage.setItem('csrf_token', data.csrf_token)
     } catch {
       setUser(null)
     } finally {
