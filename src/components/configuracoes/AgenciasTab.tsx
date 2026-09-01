@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Building2, Loader2, Pencil, Plus, ToggleLeft } from 'lucide-react'
+import { Building2, Loader2, Pencil, Plus, ToggleLeft, Wrench } from 'lucide-react'
 import { opcaoConta } from '@/lib/contas'
 
 const agenciaSchema = z.object({
@@ -89,6 +89,25 @@ export function AgenciasTab({ empresaId }: { empresaId: string }) {
     onError: (e: unknown) => toast({ title: 'Erro ao desativar conta bancária', description: extractApiError(e), variant: 'destructive' }),
   })
 
+  // Reapontar a conta bancária do razão. Fica atrás de confirmação porque
+  // REESCREVE registros contábeis já gravados — não é o tipo de coisa que pode
+  // acontecer por um clique distraído.
+  const [confirmarReapontar, setConfirmarReapontar] = useState(false)
+  const [relatorio, setRelatorio] = useState<any[] | null>(null)
+  const reapontarMutation = useMutation({
+    mutationFn: () =>
+      api.post(`/empresas/${empresaId}/agencias/reapontar-contas-sinteticas`).then(r => r.data),
+    onSuccess: (dados: any[]) => {
+      qc.invalidateQueries({ queryKey: ['agencias', empresaId] })
+      setConfirmarReapontar(false)
+      setRelatorio(dados)
+      if (!dados.length) {
+        toast({ title: 'Nada a corrigir', description: 'Nenhuma agência com conta sintética pendente.', variant: 'default' })
+      }
+    },
+    onError: (e: unknown) => toast({ title: 'Erro ao reapontar', description: extractApiError(e), variant: 'destructive' }),
+  })
+
   const abrirEdicao = (agencia: any) => {
     editForm.reset({
       banco_sigla: agencia.banco_sigla,
@@ -104,9 +123,14 @@ export function AgenciasTab({ empresaId }: { empresaId: string }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{data.length} agência{data.length !== 1 ? 's' : ''} cadastrada{data.length !== 1 ? 's' : ''}</p>
-        <Button size="sm" onClick={() => setOpen(true)}>
-          <Plus className="h-4 w-4 mr-1" /> Nova Agência
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => setConfirmarReapontar(true)}>
+            <Wrench className="h-4 w-4 mr-1" /> Corrigir conta do razão
+          </Button>
+          <Button size="sm" onClick={() => setOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" /> Nova Agência
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -258,6 +282,64 @@ export function AgenciasTab({ empresaId }: { empresaId: string }) {
             <Button variant="destructive" onClick={() => desativarAgencia && desativarMutation.mutate(desativarAgencia.id)} disabled={desativarMutation.isPending}>
               {desativarMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Desativando...</> : 'Desativar'}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={confirmarReapontar} onOpenChange={setConfirmarReapontar}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Corrigir a conta bancária do razão</DialogTitle></DialogHeader>
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <p>
+              Quando uma agência fica <span className="font-medium text-foreground">sem conta do Plano de Contas</span>,
+              o motor NEO cria uma conta sintética (<code className="text-xs">1.1.B.…</code>) para a contrapartida
+              bancária. Ela não tem número abreviado — e é o abreviado que a exportação de registros contábeis usa,
+              então esses lançamentos saem num formato que o sistema contábil externo não importa.
+            </p>
+            <p>
+              Vincular a conta na agência resolve os lançamentos <span className="font-medium text-foreground">novos</span>.
+              Esta ação corrige os que <span className="font-medium text-foreground">já estão gravados</span>: move o razão
+              da conta sintética para a conta vinculada e desativa a sintética.
+            </p>
+            <p className="text-amber-700">
+              Isso <span className="font-medium">reescreve registros contábeis já lançados</span>. Se alguma conta sintética
+              ainda for usada por outra coisa (uma regra, por exemplo), ela é mantida e aparece no relatório.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmarReapontar(false)}>Cancelar</Button>
+            <Button onClick={() => reapontarMutation.mutate()} disabled={reapontarMutation.isPending}>
+              {reapontarMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Corrigindo...</> : 'Corrigir agora'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!relatorio?.length} onOpenChange={v => { if (!v) setRelatorio(null) }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Contas corrigidas</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            {relatorio?.map((r: any, i: number) => (
+              <div key={i} className="rounded-md border p-3 text-sm">
+                <p className="font-medium">{r.agencia}</p>
+                <p className="text-xs text-muted-foreground font-mono">{r.conta_sintetica}</p>
+                <p className="mt-1">
+                  {r.registros_movidos} lançamento{r.registros_movidos !== 1 ? 's' : ''} no razão
+                  {r.decisoes_movidas ? ` · ${r.decisoes_movidas} decisão(ões) do NEO` : ''}
+                </p>
+                {!r.sintetica_desativada && (
+                  <p className="mt-1 text-xs text-amber-700">
+                    A conta sintética foi mantida porque ainda é usada por:{' '}
+                    {Object.entries(r.referencias_restantes ?? {})
+                      .map(([k, v]) => `${k} (${v})`)
+                      .join(', ')}.
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setRelatorio(null)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
