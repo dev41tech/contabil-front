@@ -9,11 +9,21 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 
+// Sentinela do select. O backend representa "vale para todos os bancos" com
+// `agencia_id: null`, mas um <select> não guarda null — guarda string. A
+// conversão acontece num lugar só, no submit deste formulário, para nenhum
+// chamador precisar lembrar dela.
+export const TODOS_OS_BANCOS = 'todos'
+
 export const regraSchema = z.object({
   descricao: z.string().min(2, 'Mínimo 2 caracteres').max(500),
   historico: z.string().min(2, 'Padrão muito curto').max(500),
   conta_id: z.string().uuid('Selecione uma conta'),
-  agencia_id: z.string().uuid('Selecione uma agência'),
+  agencia_id: z
+    .string()
+    .refine(v => v === TODOS_OS_BANCOS || z.string().uuid().safeParse(v).success, {
+      message: 'Selecione a agência ou "Todos os bancos"',
+    }),
   dc: z.enum(['D', 'C'], {
     errorMap: () => ({ message: 'Selecione débito ou crédito' }),
   }),
@@ -22,6 +32,11 @@ export const regraSchema = z.object({
 })
 
 export type RegraFormData = z.infer<typeof regraSchema>
+
+/** O que sai daqui para a API: a sentinela já virou `null`. */
+export type RegraPayload = Omit<RegraFormData, 'agencia_id'> & {
+  agencia_id: string | null
+}
 export type RegraFormField = 'descricao' | 'historico' | 'conta_id' | 'agencia_id' | 'dc'
 
 interface RegraOption {
@@ -39,7 +54,7 @@ interface RegraFormProps {
   initialValues?: Partial<RegraFormData>
   editableFields: readonly RegraFormField[]
   isSubmitting: boolean
-  onSubmit: (data: RegraFormData) => void
+  onSubmit: (data: RegraPayload) => void
   onCancel: () => void
   submitLabel?: string
 }
@@ -79,7 +94,15 @@ export function RegraForm({
   const editable = (field: RegraFormField) => editableFields.includes(field)
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+    <form
+      onSubmit={form.handleSubmit(data =>
+        onSubmit({
+          ...data,
+          agencia_id: data.agencia_id === TODOS_OS_BANCOS ? null : data.agencia_id,
+        }),
+      )}
+      className="space-y-5"
+    >
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label>
@@ -130,7 +153,10 @@ export function RegraForm({
             <SearchableSelect
               value={form.watch('agencia_id')}
               onValueChange={value => form.setValue('agencia_id', value, { shouldValidate: true })}
-              options={agencia.options}
+              options={[
+                { value: TODOS_OS_BANCOS, label: 'Todos os bancos' },
+                ...agencia.options,
+              ]}
               placeholder="Selecione a agência"
               searchPlaceholder="Buscar agência..."
               disabled={!editable('agencia_id')}

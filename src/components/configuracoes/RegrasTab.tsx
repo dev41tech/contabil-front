@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { extractApiError } from '@/lib/utils'
 import { toast } from '@/hooks/useToast'
-import { RegraForm, type RegraFormData } from '@/components/regras/RegraForm'
+import { RegraForm, type RegraPayload } from '@/components/regras/RegraForm'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -65,7 +65,7 @@ export function RegrasTab({ empresaId }: { empresaId: string }) {
   })
 
   const createMutation = useMutation({
-    mutationFn: (d: RegraFormData) => api.post(`/empresas/${empresaId}/regras`, d),
+    mutationFn: (d: RegraPayload) => api.post(`/empresas/${empresaId}/regras`, d),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['regras', empresaId] })
       toast({ title: 'Regra criada com sucesso!', variant: 'success' })
