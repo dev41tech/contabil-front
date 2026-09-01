@@ -470,6 +470,19 @@ export default function NotasPage() {
                                 OCR
                               </Badge>
                             )}
+                            {n.origem === 'xml_nao_verificado' && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs text-amber-700 border-amber-300"
+                                title={
+                                  'A nota foi autorizada pela SEFAZ, mas a assinatura digital do arquivo não pôde ser conferida' +
+                                  (n.assinatura_motivo ? `: ${n.assinatura_motivo}.` : '.') +
+                                  ' Costuma acontecer com XML reempacotado por downloader de DF-e, que altera o conteúdo depois de assinado.'
+                                }
+                              >
+                                assinatura não conferida
+                              </Badge>
+                            )}
                           </div>
                         </td>
                         <td className="py-2 px-2 font-mono text-xs">{n.numero}{n.serie ? `-${n.serie}` : ''}</td>
