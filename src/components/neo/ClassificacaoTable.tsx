@@ -71,6 +71,15 @@ interface ClassificacaoTableProps {
   onRetry: () => void
   onAssociar: (linha: LinhaClassificacao) => void
   onAlterar: (linha: LinhaClassificacao) => void
+  /**
+   * Seleção múltipla. Só a fila de pendências liga isto: nas abas de
+   * classificadas e desfeitas não existe ação em lote, e uma coluna de
+   * marcação que não leva a lugar nenhum é promessa falsa.
+   */
+  selecionavel?: boolean
+  selecionados?: Set<string>
+  onAlternarSelecao?: (transacaoId: string) => void
+  onAlternarPagina?: (idsDaPagina: string[]) => void
 }
 
 export function ClassificacaoTable({
@@ -85,7 +94,18 @@ export function ClassificacaoTable({
   onRetry,
   onAssociar,
   onAlterar,
+  selecionavel = false,
+  selecionados,
+  onAlternarSelecao,
+  onAlternarPagina,
 }: ClassificacaoTableProps) {
+  const marcados = selecionados ?? new Set<string>()
+  // Só entra na marcação da página o que dá para classificar. Marcar "todas" e
+  // receber menos do que se contou é pior do que não oferecer a marcação.
+  const idsSelecionaveis = items.filter(l => l.status !== 'associada').map(l => l.transacaoId)
+  const todasMarcadas = idsSelecionaveis.length > 0 && idsSelecionaveis.every(id => marcados.has(id))
+  const algumaMarcada = idsSelecionaveis.some(id => marcados.has(id))
+
   if (isLoading) {
     return <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
   }
@@ -110,6 +130,19 @@ export function ClassificacaoTable({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b text-muted-foreground">
+              {selecionavel && (
+                <th className="w-8 px-2 py-3 text-center">
+                  <input
+                    type="checkbox"
+                    className="h-3.5 w-3.5"
+                    checked={todasMarcadas}
+                    ref={el => { if (el) el.indeterminate = !todasMarcadas && algumaMarcada }}
+                    onChange={() => onAlternarPagina?.(idsSelecionaveis)}
+                    aria-label="Selecionar as pendências desta página"
+                    disabled={idsSelecionaveis.length === 0}
+                  />
+                </th>
+              )}
               <th className="w-28 px-2 py-3 text-left">Data</th>
               <th className="px-2 py-3 text-left">Histórico</th>
               <th className="w-8 px-2 py-3 text-center">D/C</th>
@@ -120,7 +153,28 @@ export function ClassificacaoTable({
           </thead>
           <tbody>
             {items.map(linha => (
-              <tr key={linha.key} className="border-b transition-colors hover:bg-muted/50">
+              <tr
+                key={linha.key}
+                className={`border-b transition-colors hover:bg-muted/50 ${
+                  selecionavel && marcados.has(linha.transacaoId) ? 'bg-muted/40' : ''
+                }`}
+              >
+                {selecionavel && (
+                  <td className="px-2 py-2 text-center">
+                    {/* Linha já associada não é selecionável: o lote classifica
+                        pendências, e oferecer a marcação aqui produziria um
+                        "ignorado" silencioso na resposta. */}
+                    {linha.status !== 'associada' && (
+                      <input
+                        type="checkbox"
+                        className="h-3.5 w-3.5"
+                        checked={marcados.has(linha.transacaoId)}
+                        onChange={() => onAlternarSelecao?.(linha.transacaoId)}
+                        aria-label={`Selecionar lançamento de ${linha.historico || 'sem histórico'}`}
+                      />
+                    )}
+                  </td>
+                )}
                 <td className="whitespace-nowrap px-2 py-2">
                   {linha.data ? formatDate(linha.data) : '—'}
                 </td>
