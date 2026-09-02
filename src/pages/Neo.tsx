@@ -60,6 +60,15 @@ export default function NeoPage() {
   const [motivo, setMotivo] = useState('')
   const [valorMinFiltro, setValorMinFiltro] = useState('')
   const [valorMaxFiltro, setValorMaxFiltro] = useState('')
+  // Seleção múltipla da fila. Guarda `transacao_id` porque é o que o endpoint
+  // de lote recebe — guardar a chave de render obrigaria a traduzir na hora do
+  // envio, e é lá que um engano vira lançamento na conta errada.
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set())
+  const [loteAberto, setLoteAberto] = useState(false)
+  const [loteConta, setLoteConta] = useState('')
+  const [loteDescricao, setLoteDescricao] = useState('')
+  const [criarRegra, setCriarRegra] = useState(true)
+  const [regraHistorico, setRegraHistorico] = useState('')
 
   useEffect(() => {
     const timer = setTimeout(() => { setTermo(termoInput); setPage(1) }, 400)
@@ -221,6 +230,61 @@ export default function NeoPage() {
     qc.invalidateQueries({ queryKey: ['jobs', selectedEmpresa] })
   }, [processJob?.status, processJobId, qc, selectedEmpresa])
 
+  const classificarLoteMutation = useMutation({
+    mutationFn: async () => {
+      const { data } = await api.post(`/empresas/${selectedEmpresa}/neo/pendencias/classificar-lote`, {
+        transacao_ids: [...selecionados],
+        conta_id: loteConta,
+        descricao: loteDescricao,
+        // `null` = a regra vale para todos os bancos. É o padrão pedido pelo
+        // escritório: quase toda regra independe do banco.
+        regra: criarRegra ? { historico: regraHistorico, agencia_id: null, aplicar_nos_semelhantes: true } : undefined,
+      })
+      return data
+    },
+    onSuccess: (data: any) => {
+      const partes = [`${data.classificadas} classificado(s)`]
+      if (data.regra_criada) partes.push('regra criada')
+      if (data.semelhantes_classificados) partes.push(`${data.semelhantes_classificados} semelhante(s) alcançado(s)`)
+      // Bloqueadas não são sucesso silencioso: a linha existe, está pendente, e
+      // foi recusada por um motivo que o contador precisa ler.
+      if (data.bloqueadas) partes.push(`${data.bloqueadas} recusado(s)`)
+      toast({
+        title: 'Lote classificado',
+        description: partes.join(' · '),
+        // Só é 'success' quando NADA foi recusado. Lote com bloqueio vira
+        // toast neutro, e cada recusa sai no seu próprio toast com o motivo —
+        // marcar como sucesso um lote parcial esconde o que precisa de ação.
+        variant: data.bloqueadas ? 'default' : 'success',
+      })
+      if (data.bloqueios?.length) {
+        data.bloqueios.slice(0, 3).forEach((b: any) =>
+          toast({ title: 'Lançamento recusado', description: b.motivo, variant: 'destructive' }))
+      }
+      setLoteAberto(false)
+      setSelecionados(new Set())
+      qc.invalidateQueries({ queryKey: ['neo-pendencias', selectedEmpresa] })
+      qc.invalidateQueries({ queryKey: ['neo-decisoes', selectedEmpresa] })
+      qc.invalidateQueries({ queryKey: ['neo-resumo', selectedEmpresa] })
+      qc.invalidateQueries({ queryKey: ['extrato', selectedEmpresa] })
+      qc.invalidateQueries({ queryKey: ['regras', selectedEmpresa] })
+    },
+    onError: (error: unknown) => toast({ title: 'Não foi possível classificar o lote', description: extractApiError(error), variant: 'destructive' }),
+  })
+
+  // Prévia do alcance da regra. Só roda com a caixa marcada e um texto de pelo
+  // menos dois caracteres, que é o mínimo que o backend aceita.
+  const previaRegra = useQuery<any>({
+    queryKey: ['neo-previa-regra', selectedEmpresa, regraHistorico, loteConta],
+    queryFn: () => api.post(`/empresas/${selectedEmpresa}/neo/pendencias/simular-regra`, {
+      historico: regraHistorico,
+      dc: linhasPendencias.find(l => selecionados.has(l.transacaoId))?.dc ?? 'D',
+      agencia_id: null,
+      conta_id: loteConta,
+    }).then(r => r.data),
+    enabled: loteAberto && criarRegra && regraHistorico.trim().length >= 2 && !!loteConta,
+  })
+
   // Classifica pela TRANSAÇÃO, não pela decisão: linha recém-importada não tem
   // decisão para associar, e o endpoint de lote já encerra a decisão aberta
   // quando existe. Um caminho só para os dois casos.
@@ -303,6 +367,54 @@ export default function NeoPage() {
   })
 
   const associarForm = useForm<AssociarManualForm>({ resolver: zodResolver(associarManualSchema), defaultValues: { conta_id: '', descricao: '' } })
+
+  // A seleção é uma fotografia da página. Trocar de página, de aba ou de
+  // filtro muda o que está embaixo dela, e manter as marcas classificaria
+  // linhas que o contador não está mais vendo.
+  useEffect(() => { setSelecionados(new Set()) }, [
+    activeTab, page, termo, dcFiltro, agenciaFiltro, mesFiltro,
+    dataDeFiltro, dataAteFiltro, valorMinFiltro, valorMaxFiltro,
+  ])
+
+  function alternarSelecao(transacaoId: string) {
+    setSelecionados(atual => {
+      const proximo = new Set(atual)
+      if (proximo.has(transacaoId)) proximo.delete(transacaoId)
+      else proximo.add(transacaoId)
+      return proximo
+    })
+  }
+
+  function alternarPagina(idsDaPagina: string[]) {
+    setSelecionados(atual => {
+      const todasMarcadas = idsDaPagina.length > 0 && idsDaPagina.every(id => atual.has(id))
+      const proximo = new Set(atual)
+      idsDaPagina.forEach(id => { if (todasMarcadas) proximo.delete(id); else proximo.add(id) })
+      return proximo
+    })
+  }
+
+  async function abrirLote() {
+    setLoteConta('')
+    setLoteDescricao('')
+    setCriarRegra(true)
+    setRegraHistorico('')
+    setLoteAberto(true)
+    // O texto que une as linhas vem do backend, que usa a MESMA normalização
+    // do motor. Deduzir aqui obrigaria a reimplementá-la em TypeScript, e a
+    // prévia passaria a mentir sobre o que a regra faz depois.
+    try {
+      const { data } = await api.post(`/empresas/${selectedEmpresa}/neo/pendencias/sugerir-regra`, {
+        transacao_ids: [...selecionados],
+      })
+      setRegraHistorico(data.historico_sugerido ?? '')
+      setLoteDescricao(data.historico_sugerido ?? '')
+      if (data.dc_misturado) setCriarRegra(false)
+    } catch {
+      // Sugestão é conveniência: sem ela o contador digita o texto. Falhar aqui
+      // não pode impedir a classificação, que é o que ele veio fazer.
+    }
+  }
 
   function openAssociar(linha: LinhaClassificacao) {
     associarForm.reset({ conta_id: '', descricao: linha.historico ?? '' })
@@ -444,6 +556,17 @@ export default function NeoPage() {
               {/* Sem Estratégia, Conta e Motivo: pendência não tem estratégia
                   nem conta, e o motivo já aparece embaixo do histórico. */}
               <DecisionFilters termoInput={termoInput} setTermoInput={setTermoInput} estrategiaFiltro={estrategiaFiltro} setEstrategiaFiltro={setEstrategiaFiltro} dcFiltro={dcFiltro} setDcFiltro={setDcFiltro} contaFiltro={contaFiltro} setContaFiltro={setContaFiltro} contaOptions={contaOptions} dataDeFiltro={dataDeFiltro} setDataDeFiltro={setDataDeFiltro} dataAteFiltro={dataAteFiltro} setDataAteFiltro={setDataAteFiltro} motivoInput={motivoInput} setMotivoInput={setMotivoInput} valorMinFiltro={valorMinFiltro} setValorMinFiltro={setValorMinFiltro} valorMaxFiltro={valorMaxFiltro} setValorMaxFiltro={setValorMaxFiltro} filtrosAtivos={filtrosAtivos} limparFiltros={limparFiltrosTabela} setPage={setPage} apenasFiltrosDeTransacao />
+              {selecionados.size > 0 && (
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border bg-muted/50 px-3 py-2">
+                  <span className="text-sm font-medium">
+                    {selecionados.size} lançamento{selecionados.size > 1 ? 's' : ''} selecionado{selecionados.size > 1 ? 's' : ''}
+                  </span>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => setSelecionados(new Set())}>Limpar seleção</Button>
+                    <Button size="sm" onClick={abrirLote}>Classificar selecionados</Button>
+                  </div>
+                </div>
+              )}
               <ClassificacaoTable
                 items={linhasPendencias}
                 total={pendenciasQuery.data?.total ?? 0}
@@ -456,6 +579,10 @@ export default function NeoPage() {
                 onRetry={() => pendenciasQuery.refetch()}
                 onAssociar={openAssociar}
                 onAlterar={openAlterar}
+                selecionavel
+                selecionados={selecionados}
+                onAlternarSelecao={alternarSelecao}
+                onAlternarPagina={alternarPagina}
               />
             </CardContent>
           </Card>
@@ -489,6 +616,72 @@ export default function NeoPage() {
           </TabsContent>
         ))}
       </Tabs>
+
+      <Dialog open={loteAberto} onOpenChange={setLoteAberto}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Classificar {selecionados.size} lançamento{selecionados.size > 1 ? 's' : ''}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <Label>Conta contábil</Label>
+              <SearchableSelect value={loteConta} onValueChange={setLoteConta} options={contaOptions} placeholder="Selecione a conta..." searchPlaceholder="Buscar conta..." />
+            </div>
+            <div className="space-y-1">
+              <Label>Histórico contábil</Label>
+              <Input value={loteDescricao} onChange={e => setLoteDescricao(e.target.value)} />
+            </div>
+
+            <div className="space-y-2 rounded-md border p-3">
+              <label className="flex items-center gap-2 text-sm font-medium">
+                <input type="checkbox" className="h-3.5 w-3.5" checked={criarRegra} onChange={e => setCriarRegra(e.target.checked)} />
+                Criar regra e aplicar nos semelhantes
+              </label>
+              {criarRegra && (
+                <>
+                  <p className="text-xs text-muted-foreground">
+                    Texto em comum às linhas selecionadas. Os próximos lançamentos que contiverem
+                    este texto passam a cair sozinhos nesta conta.
+                  </p>
+                  <Input value={regraHistorico} onChange={e => setRegraHistorico(e.target.value)} placeholder="Texto que dispara a regra" />
+                  {previaRegra.isFetching && <p className="text-xs text-muted-foreground">Medindo o alcance…</p>}
+                  {previaRegra.data && (
+                    <div className="space-y-1 text-xs">
+                      <p className="text-muted-foreground">
+                        Atinge <span className="font-semibold text-foreground">{previaRegra.data.pendencias_atingidas.quantidade}</span> pendência(s)
+                        {' e '}<span className="font-semibold text-foreground">{previaRegra.data.ja_contabilizadas_atingidas.quantidade}</span> já contabilizada(s).
+                      </p>
+                      {previaRegra.data.conflitos.quantidade > 0 && (
+                        // O número que decide se a regra deve nascer: quantas
+                        // já foram classificadas em OUTRA conta. Sem ele, criar
+                        // regra é apostar.
+                        <p className="text-amber-700">
+                          {previaRegra.data.conflitos.quantidade} já classificada(s) em outra conta — confira antes de criar.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setLoteAberto(false)}>Cancelar</Button>
+            <Button
+              onClick={() => classificarLoteMutation.mutate()}
+              disabled={
+                classificarLoteMutation.isPending ||
+                !loteConta ||
+                loteDescricao.trim().length < 2 ||
+                (criarRegra && regraHistorico.trim().length < 2)
+              }
+            >
+              {classificarLoteMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              {criarRegra ? 'Classificar e criar regra' : 'Classificar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!associarLinha} onOpenChange={open => { if (!open) setAssociarLinha(null) }}>
         <DialogContent className="max-w-md"><DialogHeader><DialogTitle>Associar manualmente</DialogTitle></DialogHeader><form onSubmit={associarForm.handleSubmit(data => associarManualMutation.mutate({ transacaoId: associarLinha!.transacaoId, body: data }))} className="space-y-4">
