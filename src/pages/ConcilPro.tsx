@@ -151,7 +151,7 @@ function ModalFifo({
                           <span>{p.historico}</span>
                         </div>
                         <div className="text-right shrink-0 ml-4">
-                          <span className="text-emerald-600 font-mono">{formatCurrency(p.valor_pago)}</span>
+                          <span className="text-success font-mono">{formatCurrency(p.valor_pago)}</span>
                           <span className="text-muted-foreground ml-2">
                             saldo: {formatCurrency(p.saldo_restante)}
                           </span>
@@ -219,8 +219,8 @@ function ModalFornecedor({
               <div className="grid grid-cols-3 gap-3">
                 {[
                   { label: 'Total Compras (C)', value: data.fornecedor.total_credito, color: 'text-foreground' },
-                  { label: 'Total Pagamentos (D)', value: data.fornecedor.total_debito, color: 'text-emerald-600' },
-                  { label: 'Valor a Pagar', value: data.fornecedor.valor_a_pagar, color: 'text-red-600' },
+                  { label: 'Total Pagamentos (D)', value: data.fornecedor.total_debito, color: 'text-success' },
+                  { label: 'Valor a Pagar', value: data.fornecedor.valor_a_pagar, color: 'text-danger' },
                 ].map(({ label, value, color }) => (
                   <div key={label} className="rounded-lg border p-3">
                     <p className="text-xs text-muted-foreground">{label}</p>
@@ -274,8 +274,8 @@ function ModalFornecedor({
                               <td className="py-1.5 px-2 text-xs">{c.numero_nf ?? '—'}</td>
                               <td className="py-1.5 px-2 max-w-[200px] truncate text-xs">{c.historico}</td>
                               <td className="py-1.5 px-2 text-right font-mono text-xs">{formatCurrency(c.valor_total)}</td>
-                              <td className="py-1.5 px-2 text-right font-mono text-xs text-emerald-600">{formatCurrency(c.valor_pago_parcial)}</td>
-                              <td className="py-1.5 px-2 text-right font-mono text-xs text-red-600">{formatCurrency(c.valor_saldo)}</td>
+                              <td className="py-1.5 px-2 text-right font-mono text-xs text-success">{formatCurrency(c.valor_pago_parcial)}</td>
+                              <td className="py-1.5 px-2 text-right font-mono text-xs text-danger">{formatCurrency(c.valor_saldo)}</td>
                               <td className="py-1.5 px-2 text-center">
                                 <Badge variant={STATUS_VARIANT[c.status_pagamento] ?? 'outline'} className="text-xs">
                                   {rotuloStatus(c.status_pagamento)}
@@ -313,10 +313,10 @@ function ModalFornecedor({
                                 {l.tipo_operacao}
                               </Badge>
                             </td>
-                            <td className="py-1.5 px-2 text-right font-mono text-xs text-red-600">
+                            <td className="py-1.5 px-2 text-right font-mono text-xs text-danger">
                               {l.valor_debito > 0 ? formatCurrency(l.valor_debito) : '—'}
                             </td>
-                            <td className="py-1.5 px-2 text-right font-mono text-xs text-emerald-600">
+                            <td className="py-1.5 px-2 text-right font-mono text-xs text-success">
                               {l.valor_credito > 0 ? formatCurrency(l.valor_credito) : '—'}
                             </td>
                             <td className="py-1.5 px-2 text-right font-mono text-xs">{formatCurrency(l.saldo_apos)}</td>
@@ -526,7 +526,7 @@ export default function ConcilProPage() {
                     {arquivos.map(a => (
                       <SelectItem key={a.id} value={a.id.toString()}>
                         <div className="flex items-center gap-2">
-                          <div className={`h-2 w-2 rounded-full ${a.status === 'CONCLUIDO' ? 'bg-emerald-500' : a.status === 'ERRO' ? 'bg-red-500' : 'bg-yellow-500'}`} />
+                          <div className={`h-2 w-2 rounded-full ${a.status === 'CONCLUIDO' ? 'bg-success' : a.status === 'ERRO' ? 'bg-danger' : 'bg-warning'}`} />
                           <span className="truncate max-w-[300px]">{a.nome_arquivo}</span>
                           <span className="text-muted-foreground text-xs shrink-0">
                             {formatDate(a.created_at)}
@@ -573,12 +573,12 @@ export default function ConcilProPage() {
 
       {/* Aguardando processamento */}
       {processando && (
-        <Card className="border-amber-300 bg-amber-50">
+        <Card className="border-warning/40 bg-warning/15">
           <CardContent className="pt-6 flex items-center gap-3">
-            <Loader2 className="h-5 w-5 animate-spin text-amber-600" />
+            <Loader2 className="h-5 w-5 animate-spin text-warning" />
             <div>
-              <p className="font-medium text-amber-800">Processando arquivo…</p>
-              <p className="text-sm text-amber-700">
+              <p className="font-medium text-warning">Processando arquivo…</p>
+              <p className="text-sm text-warning">
                 Isso pode levar alguns minutos dependendo do tamanho do arquivo.
               </p>
             </div>
@@ -591,12 +591,12 @@ export default function ConcilProPage() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {[
             { label: 'Total Fornecedores', value: est.total_fornecedores, suffix: '', color: 'text-foreground' },
-            { label: 'Quitados', value: est.fornecedores_quitados, suffix: '', color: 'text-emerald-600' },
-            { label: 'Em Aberto', value: est.fornecedores_em_aberto, suffix: '', color: 'text-amber-600' },
+            { label: 'Quitados', value: est.fornecedores_quitados, suffix: '', color: 'text-success' },
+            { label: 'Em Aberto', value: est.fornecedores_em_aberto, suffix: '', color: 'text-warning' },
             // Contas sem lançamento no período. Card próprio porque não são
             // quitadas — juntá-las mascararia quantas contas de fato fecharam.
             { label: 'Sem Movimento', value: est.fornecedores_sem_movimento ?? 0, suffix: '', color: 'text-muted-foreground' },
-            { label: 'Valor a Pagar', value: formatCurrency(est.valor_total_a_pagar), suffix: '', color: 'text-red-600' },
+            { label: 'Valor a Pagar', value: formatCurrency(est.valor_total_a_pagar), suffix: '', color: 'text-danger' },
           ].map(({ label, value, color }) => (
             <Card key={label}>
               <CardHeader className="pb-2">
@@ -703,13 +703,13 @@ export default function ConcilProPage() {
                                 dia a dia. As duas continuam no export em Excel. */}
                             <td className="py-2.5 px-2 text-xs font-mono text-muted-foreground">{f.codigo_conta}</td>
                             <td className="py-2.5 px-2 text-right font-mono text-xs">{formatCurrency(f.total_credito)}</td>
-                            <td className="py-2.5 px-2 text-right font-mono text-xs text-emerald-600">{formatCurrency(f.total_debito)}</td>
-                            <td className="py-2.5 px-2 text-right font-mono text-xs text-red-600 font-semibold">
+                            <td className="py-2.5 px-2 text-right font-mono text-xs text-success">{formatCurrency(f.total_debito)}</td>
+                            <td className="py-2.5 px-2 text-right font-mono text-xs text-danger font-semibold">
                               {f.valor_a_pagar > 0 ? formatCurrency(f.valor_a_pagar) : '—'}
                             </td>
                             <td className="py-2.5 px-2 text-center text-xs">
                               {f.qtd_nfs_pendentes > 0 ? (
-                                <span className="text-amber-600 font-medium">{f.qtd_nfs_pendentes}</span>
+                                <span className="text-warning font-medium">{f.qtd_nfs_pendentes}</span>
                               ) : '—'}
                             </td>
                             <td className="py-2.5 px-2 text-center">
@@ -757,7 +757,7 @@ export default function ConcilProPage() {
                           <tr key={d.id} className="border-b hover:bg-muted/50">
                             <td className="py-2.5 px-2 text-xs font-mono">{d.tipo}</td>
                             <td className="py-2.5 px-2 text-xs">{d.descricao}</td>
-                            <td className="py-2.5 px-2 text-right font-mono text-xs text-red-600">
+                            <td className="py-2.5 px-2 text-right font-mono text-xs text-danger">
                               {formatCurrency(d.diferenca)}
                             </td>
                             <td className="py-2.5 px-2 text-center">

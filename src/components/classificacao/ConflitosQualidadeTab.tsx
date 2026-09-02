@@ -144,11 +144,11 @@ export function ConflitosQualidadeTab({ empresaId }: { empresaId: string }) {
             <MetricCard label="Percentual divergente" value="0%" />
             <MetricCard label="Valor total envolvido" value={formatCurrency(data?.valor_total_divergente)} featured />
           </div>
-          <Card className="border-emerald-200 bg-emerald-50/60">
+          <Card className="border-success/40 bg-success/10">
             <CardContent className="py-10 text-center">
-              <CheckCircle2 className="mx-auto mb-3 h-9 w-9 text-emerald-600" />
-              <p className="font-semibold text-emerald-900">Nenhum conflito encontrado nas classificações medidas.</p>
-              <p className="mt-1 text-sm text-emerald-700">{formatNumber(data?.total_avaliadas)} classificações foram avaliadas neste escopo.</p>
+              <CheckCircle2 className="mx-auto mb-3 h-9 w-9 text-success" />
+              <p className="font-semibold text-success">Nenhum conflito encontrado nas classificações medidas.</p>
+              <p className="mt-1 text-sm text-success">{formatNumber(data?.total_avaliadas)} classificações foram avaliadas neste escopo.</p>
             </CardContent>
           </Card>
         </>
@@ -190,10 +190,10 @@ export function ConflitosQualidadeTab({ empresaId }: { empresaId: string }) {
 
 function MetricCard({ label, value, featured = false }: { label: string; value: string; featured?: boolean }) {
   return (
-    <Card className={featured ? 'border-amber-300 bg-amber-50' : undefined}>
+    <Card className={featured ? 'border-warning/40 bg-warning/15' : undefined}>
       <CardContent className="pt-6">
         <p className="text-sm text-muted-foreground">{label}</p>
-        <p className={`mt-1 font-bold tabular-nums ${featured ? 'text-3xl text-amber-900' : 'text-2xl'}`}>{value}</p>
+        <p className={`mt-1 font-bold tabular-nums ${featured ? 'text-3xl text-warning' : 'text-2xl'}`}>{value}</p>
       </CardContent>
     </Card>
   )

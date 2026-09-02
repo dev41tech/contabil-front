@@ -185,7 +185,7 @@ export default function UsuariosPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="text-green-600 hover:text-green-600"
+                              className="text-success hover:text-success"
                               onClick={() => reactivateMutation.mutate(u.id)}
                               disabled={reactivateMutation.isPending}
                             >

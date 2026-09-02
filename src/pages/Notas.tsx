@@ -314,12 +314,12 @@ export default function NotasPage() {
         <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 text-sm">
-              <span className="flex items-center gap-1 text-emerald-700 font-medium">
+              <span className="flex items-center gap-1 text-success font-medium">
                 <CheckCircle2 className="h-4 w-4" /> {importResult.importadas} importada(s)
               </span>
               <span className="text-muted-foreground">{importResult.duplicadas} duplicada(s) ignorada(s)</span>
               {importResult.erros.length > 0 && (
-                <span className="flex items-center gap-1 text-amber-700 font-medium">
+                <span className="flex items-center gap-1 text-warning font-medium">
                   <AlertCircle className="h-4 w-4" /> {importResult.erros.length} erro(s)
                 </span>
               )}
@@ -329,7 +329,7 @@ export default function NotasPage() {
           {importResult.erros.length > 0 && (
             <div className="max-h-48 overflow-y-auto space-y-1">
               {importResult.erros.map((erro, i) => (
-                <div key={i} className="text-xs text-amber-800 bg-amber-50 px-2 py-1.5 rounded">
+                <div key={i} className="text-xs text-warning bg-warning/15 px-2 py-1.5 rounded">
                   {erro}
                 </div>
               ))}
@@ -464,7 +464,7 @@ export default function NotasPage() {
                             {n.origem === 'ocr' && (
                               <Badge
                                 variant="outline"
-                                className="text-xs text-amber-700 border-amber-300"
+                                className="text-xs text-warning border-warning/40"
                                 title="Extraída de PDF/imagem por OCR — sem verificação de assinatura digital."
                               >
                                 OCR
@@ -473,7 +473,7 @@ export default function NotasPage() {
                             {n.origem === 'xml_nao_verificado' && (
                               <Badge
                                 variant="outline"
-                                className="text-xs text-amber-700 border-amber-300"
+                                className="text-xs text-warning border-warning/40"
                                 title={
                                   'A nota foi autorizada pela SEFAZ, mas a assinatura digital do arquivo não pôde ser conferida' +
                                   (n.assinatura_motivo ? `: ${n.assinatura_motivo}.` : '.') +
@@ -491,7 +491,7 @@ export default function NotasPage() {
                           <p className="text-xs text-muted-foreground">{n.cnpj_emitente}</p>
                         </td>
                         <td className="py-2 px-2 whitespace-nowrap">{formatDate(n.data_emissao)}</td>
-                        <td className="py-2 px-2 text-right font-mono text-green-600">{formatCurrency(n.valor)}</td>
+                        <td className="py-2 px-2 text-right font-mono text-success">{formatCurrency(n.valor)}</td>
                         <td className="py-2 px-2 min-w-[190px]">
                           {n.transacao_id ? (() => {
                             const transacao = transacoesPorId.get(n.transacao_id)

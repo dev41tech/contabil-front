@@ -19,7 +19,7 @@ export default function ClassificacaoPage() {
         <p className="text-muted-foreground">Configure como os lançamentos são associados ao plano de contas e confira a qualidade das decisões.</p>
       </div>
 
-      <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-950">
+      <div className="rounded-lg border border-info/40 bg-info/15 px-4 py-3 text-sm text-info">
         <span className="font-semibold">Prioridade:</span> histórico bancário → CPF/CNPJ do favorecido → pendência manual
       </div>
 

@@ -20,13 +20,13 @@ const TIPO_LABEL: Record<string, string> = {
   receita: 'Receita', despesa: 'Despesa', custo: 'Custo', resultado: 'Resultado',
 }
 const TIPO_COLOR: Record<string, string> = {
-  ativo: 'bg-emerald-100 text-emerald-700',
-  passivo: 'bg-red-100 text-red-700',
-  patrimonio_liquido: 'bg-purple-100 text-purple-700',
-  receita: 'bg-blue-100 text-blue-700',
-  despesa: 'bg-orange-100 text-orange-700',
-  custo: 'bg-yellow-100 text-yellow-700',
-  resultado: 'bg-cyan-100 text-cyan-700',
+  ativo: 'bg-success/15 text-success',
+  passivo: 'bg-danger/15 text-danger',
+  patrimonio_liquido: 'bg-brand/15 text-brand',
+  receita: 'bg-info/15 text-info',
+  despesa: 'bg-warning/15 text-warning',
+  custo: 'bg-warning/25 text-warning',
+  resultado: 'bg-info/25 text-info',
 }
 
 const TIPOS_OPCOES = [
@@ -255,8 +255,8 @@ export function PlanoContasTab({ empresaId }: { empresaId: string }) {
 
       {/* Barra de seleção em lote */}
       {selecionadas.size > 0 && (
-        <div className="flex items-center justify-between gap-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2">
-          <span className="text-sm text-blue-900">{selecionadas.size} conta(s) selecionada(s)</span>
+        <div className="flex items-center justify-between gap-3 rounded-md border border-brand/40 bg-brand/10 px-3 py-2">
+          <span className="text-sm text-brand">{selecionadas.size} conta(s) selecionada(s)</span>
           <div className="flex gap-2">
             <Button size="sm" variant="ghost" onClick={() => setSelecionadas(new Set())}>Limpar seleção</Button>
             <Button size="sm" variant="destructive" onClick={() => setConfirmExcluirSelecionadas(true)}>
@@ -271,12 +271,12 @@ export function PlanoContasTab({ empresaId }: { empresaId: string }) {
         <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 text-sm">
-              <span className="flex items-center gap-1 text-emerald-700 font-medium">
+              <span className="flex items-center gap-1 text-success font-medium">
                 <CheckCircle2 className="h-4 w-4" /> {importResult.importadas} importadas
               </span>
               <span className="text-muted-foreground">{importResult.duplicadas} duplicadas ignoradas</span>
               {importResult.erros?.length > 0 && (
-                <span className="flex items-center gap-1 text-amber-700 font-medium">
+                <span className="flex items-center gap-1 text-warning font-medium">
                   <AlertCircle className="h-4 w-4" /> {importResult.erros.length} erros
                 </span>
               )}
@@ -286,7 +286,7 @@ export function PlanoContasTab({ empresaId }: { empresaId: string }) {
           {importResult.erros?.length > 0 && (
             <div className="max-h-40 overflow-y-auto space-y-1">
               {importResult.erros.map((e: any, i: number) => (
-                <div key={i} className="text-xs flex items-start gap-2 text-amber-800 bg-amber-50 px-2 py-1 rounded">
+                <div key={i} className="text-xs flex items-start gap-2 text-warning bg-warning/15 px-2 py-1 rounded">
                   <span className="font-medium shrink-0">Linha {e.linha}:</span>
                   {e.codigo && <span className="font-mono text-muted-foreground shrink-0">{e.codigo}</span>}
                   <span className="truncate">{e.erro}</span>
@@ -302,11 +302,11 @@ export function PlanoContasTab({ empresaId }: { empresaId: string }) {
         <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 text-sm">
-              <span className="flex items-center gap-1 text-emerald-700 font-medium">
+              <span className="flex items-center gap-1 text-success font-medium">
                 <CheckCircle2 className="h-4 w-4" /> {loteResult.removidas} removida(s)
               </span>
               {loteResult.bloqueadas?.length > 0 && (
-                <span className="flex items-center gap-1 text-amber-700 font-medium">
+                <span className="flex items-center gap-1 text-warning font-medium">
                   <AlertCircle className="h-4 w-4" /> {loteResult.bloqueadas.length} bloqueada(s)
                 </span>
               )}
@@ -316,7 +316,7 @@ export function PlanoContasTab({ empresaId }: { empresaId: string }) {
           {loteResult.bloqueadas?.length > 0 && (
             <div className="max-h-40 overflow-y-auto space-y-1">
               {loteResult.bloqueadas.map((b: any) => (
-                <div key={b.id} className="text-xs flex items-start gap-2 text-amber-800 bg-amber-50 px-2 py-1 rounded">
+                <div key={b.id} className="text-xs flex items-start gap-2 text-warning bg-warning/15 px-2 py-1 rounded">
                   <span className="font-mono font-medium shrink-0">{b.codigo}</span>
                   <span className="truncate">{b.erro}</span>
                 </div>
@@ -394,7 +394,7 @@ export function PlanoContasTab({ empresaId }: { empresaId: string }) {
               return (
                 <div
                   key={c.id}
-                  className={`grid grid-cols-[1.5rem_4rem_8rem_1fr_3rem_5rem_4rem] gap-2 items-center px-2 py-2 hover:bg-muted/30 transition-colors group ${isSintetico ? 'bg-slate-50/70' : ''} ${selecionadas.has(c.id) ? 'bg-blue-50/60' : ''}`}
+                  className={`grid grid-cols-[1.5rem_4rem_8rem_1fr_3rem_5rem_4rem] gap-2 items-center px-2 py-2 hover:bg-muted/30 transition-colors group ${isSintetico ? 'bg-surface-hover/70' : ''} ${selecionadas.has(c.id) ? 'bg-brand/10' : ''}`}
                   style={{ paddingLeft: `${8 + depth * 16}px` }}
                 >
                   <input
@@ -407,19 +407,19 @@ export function PlanoContasTab({ empresaId }: { empresaId: string }) {
                   <span className="font-mono text-xs text-muted-foreground truncate">
                     {c.conta_numero ?? '—'}
                   </span>
-                  <span className={`font-mono text-xs truncate ${isSintetico ? 'text-slate-600 font-semibold' : 'text-muted-foreground'}`}>
+                  <span className={`font-mono text-xs truncate ${isSintetico ? 'text-fg-secondary font-semibold' : 'text-muted-foreground'}`}>
                     {c.codigo}
                   </span>
-                  <span className={`text-sm truncate ${isSintetico ? 'font-semibold text-slate-700' : ''}`}>
+                  <span className={`text-sm truncate ${isSintetico ? 'font-semibold text-foreground' : ''}`}>
                     {c.descricao}
                   </span>
                   <span className="text-center">
-                    <span className={`inline-block text-xs px-1.5 py-0.5 rounded font-medium ${isSintetico ? 'bg-slate-200 text-slate-600' : 'bg-slate-100 text-slate-500'}`}>
+                    <span className={`inline-block text-xs px-1.5 py-0.5 rounded font-medium ${isSintetico ? 'bg-surface-hover text-fg-secondary' : 'bg-muted text-muted-foreground'}`}>
                       {c.tipo_sa ?? 'A'}
                     </span>
                   </span>
                   <span>
-                    <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${TIPO_COLOR[c.tipo] ?? 'bg-gray-100 text-gray-600'}`}>
+                    <span className={`inline-block text-xs px-2 py-0.5 rounded-full font-medium ${TIPO_COLOR[c.tipo] ?? 'bg-muted text-muted-foreground'}`}>
                       {TIPO_LABEL[c.tipo] ?? c.tipo}
                     </span>
                   </span>
@@ -433,7 +433,7 @@ export function PlanoContasTab({ empresaId }: { empresaId: string }) {
                     </button>
                     <button
                       onClick={() => setDeleteConta(c)}
-                      className="p-1 rounded hover:bg-red-50 text-muted-foreground hover:text-red-600 transition-colors"
+                      className="p-1 rounded hover:bg-danger/15 text-muted-foreground hover:text-danger transition-colors"
                       title="Remover"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -459,7 +459,7 @@ export function PlanoContasTab({ empresaId }: { empresaId: string }) {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5 text-emerald-600" /> Nova Conta Contábil
+              <Plus className="h-5 w-5 text-brand" /> Nova Conta Contábil
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={createForm.handleSubmit(d => createMutation.mutate(d))} className="space-y-4">
@@ -523,7 +523,7 @@ export function PlanoContasTab({ empresaId }: { empresaId: string }) {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Pencil className="h-5 w-5 text-blue-500" /> Editar Conta
+              <Pencil className="h-5 w-5 text-brand" /> Editar Conta
             </DialogTitle>
             {editConta && (
               <p className="text-sm text-muted-foreground font-mono">{editConta.codigo}</p>

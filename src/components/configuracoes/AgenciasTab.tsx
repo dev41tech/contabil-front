@@ -145,7 +145,7 @@ export function AgenciasTab({ empresaId }: { empresaId: string }) {
           {data.map((a: any) => (
             <div key={a.id} className={`flex items-center justify-between gap-3 p-4 rounded-lg border transition-shadow ${a.ativa ? 'bg-white hover:shadow-sm' : 'bg-muted/50 opacity-75'}`}>
               <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-600 font-bold text-sm shrink-0">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand/10 text-brand font-bold text-sm shrink-0">
                   {a.banco_sigla?.slice(0, 2).toUpperCase()}
                 </div>
                 <div>
@@ -301,7 +301,7 @@ export function AgenciasTab({ empresaId }: { empresaId: string }) {
               Esta ação corrige os que <span className="font-medium text-foreground">já estão gravados</span>: move o razão
               da conta sintética para a conta vinculada e desativa a sintética.
             </p>
-            <p className="text-amber-700">
+            <p className="text-warning">
               Isso <span className="font-medium">reescreve registros contábeis já lançados</span>. Se alguma conta sintética
               ainda for usada por outra coisa (uma regra, por exemplo), ela é mantida e aparece no relatório.
             </p>
@@ -328,7 +328,7 @@ export function AgenciasTab({ empresaId }: { empresaId: string }) {
                   {r.decisoes_movidas ? ` · ${r.decisoes_movidas} decisão(ões) do NEO` : ''}
                 </p>
                 {!r.sintetica_desativada && (
-                  <p className="mt-1 text-xs text-amber-700">
+                  <p className="mt-1 text-xs text-warning">
                     A conta sintética foi mantida porque ainda é usada por:{' '}
                     {Object.entries(r.referencias_restantes ?? {})
                       .map(([k, v]) => `${k} (${v})`)

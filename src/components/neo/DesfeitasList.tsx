@@ -86,7 +86,7 @@ function Linha({
       <span className="truncate text-xs text-muted-foreground" title={item.conta_descricao}>
         {item.conta_descricao}
       </span>
-      <span className={`w-28 shrink-0 text-right font-mono tabular-nums ${item.dc === 'D' ? 'text-red-600' : 'text-emerald-600'}`}>
+      <span className={`w-28 shrink-0 text-right font-mono tabular-nums ${item.dc === 'D' ? 'text-danger' : 'text-success'}`}>
         {item.dc === 'D' ? '-' : '+'}{formatCurrency(item.valor)}
       </span>
       <span className="flex shrink-0 items-center justify-end gap-1">
@@ -169,12 +169,12 @@ export function DesfeitasList({
         return (
           <div
             key={grupo.chave}
-            className={emLote ? 'rounded-md border border-orange-200 bg-orange-50/50' : 'rounded-md border'}
+            className={emLote ? 'rounded-md border border-warning/40 bg-warning/10' : 'rounded-md border'}
           >
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b px-3 py-2">
               {emLote ? (
                 <>
-                  <FileX2 className="h-4 w-4 shrink-0 text-orange-600" />
+                  <FileX2 className="h-4 w-4 shrink-0 text-warning" />
                   <span className="font-medium">Importação desfeita</span>
                   <span className="truncate font-mono text-xs text-muted-foreground" title={grupo.arquivo ?? ''}>
                     {grupo.arquivo}

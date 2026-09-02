@@ -195,14 +195,14 @@ export function ClassificacaoTable({
                 </td>
                 <td className="px-2 py-2 text-center">
                   {linha.dc ? (
-                    <span className={`rounded px-1.5 py-0.5 text-xs font-bold ${linha.dc === 'D' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                    <span className={`rounded px-1.5 py-0.5 text-xs font-bold ${linha.dc === 'D' ? 'bg-danger/15 text-danger' : 'bg-success/15 text-success'}`}>
                       {linha.dc}
                     </span>
                   ) : '—'}
                 </td>
                 {/* Mesmo tratamento do Extrato: sinal e cor pelo D/C, para a
                     leitura de uma tela servir na outra sem tradução. */}
-                <td className={`whitespace-nowrap px-2 py-2 text-right font-mono ${linha.dc === 'D' ? 'text-red-600' : 'text-emerald-600'}`}>
+                <td className={`whitespace-nowrap px-2 py-2 text-right font-mono ${linha.dc === 'D' ? 'text-danger' : 'text-success'}`}>
                   {/* A API devolve Decimal, que chega como string em JSON. */}
                   {linha.valor == null ? '—' : `${linha.dc === 'D' ? '-' : '+'}${formatCurrency(Number(linha.valor))}`}
                 </td>

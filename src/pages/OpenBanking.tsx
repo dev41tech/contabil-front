@@ -133,7 +133,7 @@ function MockConnectModal({
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
-          <div className="rounded-md bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
+          <div className="rounded-md bg-warning/15 border border-warning/40 p-3 text-sm text-warning">
             <p className="font-medium mb-1">⚠️ Modo demonstração ativo</p>
             <p>A conexão com bancos reais não está disponível neste ambiente. Para habilitá-la, acione o suporte.</p>
           </div>
@@ -344,15 +344,15 @@ export default function OpenBankingPage() {
 
       {/* Resultado da última sincronização */}
       {lastSync && (
-        <Card className="border-green-200 bg-green-50/50">
+        <Card className="border-success/40 bg-success/10">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center justify-between flex-wrap gap-3">
-              <div className="flex items-center gap-2 text-green-800">
+              <div className="flex items-center gap-2 text-success">
                 <CheckCircle2 className="h-5 w-5" />
                 <span className="font-medium">Última sincronização concluída</span>
               </div>
               <div className="flex gap-4 text-sm">
-                <span className="text-green-700">
+                <span className="text-success">
                   <strong>{lastSync.importadas}</strong> importadas
                 </span>
                 <span className="text-muted-foreground">
@@ -442,7 +442,7 @@ export default function OpenBankingPage() {
                           </span>
                         )}
                         {!c.last_sync_at && (
-                          <span className="text-amber-600">Nunca sincronizado</span>
+                          <span className="text-warning">Nunca sincronizado</span>
                         )}
                       </div>
                       {c.erro_msg && (

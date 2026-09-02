@@ -288,7 +288,7 @@ export default function RegistrosPage() {
                         </td>
                         <td
                           className={`py-2 px-2 text-center font-bold ${
-                            r.dc === 'D' ? 'text-red-600' : 'text-green-600'
+                            r.dc === 'D' ? 'text-danger' : 'text-success'
                           }`}
                         >
                           {r.dc}

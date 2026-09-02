@@ -276,7 +276,7 @@ export function ContrapartesTab({ empresaId }: { empresaId: string }) {
                               title={c.ativa ? 'Desativar' : 'Reativar'}
                               onClick={() => alternarAtivaMutation.mutate({ id: c.id, ativa: !c.ativa })}
                             >
-                              {c.ativa ? <Ban className="h-3.5 w-3.5 text-amber-600" /> : <RotateCcw className="h-3.5 w-3.5 text-emerald-600" />}
+                              {c.ativa ? <Ban className="h-3.5 w-3.5 text-warning" /> : <RotateCcw className="h-3.5 w-3.5 text-success" />}
                             </Button>
                             <Button
                               size="sm" variant="ghost" className="h-7 px-2 text-destructive hover:text-destructive"

@@ -150,7 +150,7 @@ export default function DashboardPage() {
                       <td className="px-3 py-3"><CarteiraStatus item={item} /></td>
                       <td className="px-3 py-3 text-right tabular-nums">{item.transacoes_importadas.toLocaleString('pt-BR')}</td>
                       <td className="px-3 py-3 text-right tabular-nums">{item.classificadas.toLocaleString('pt-BR')}</td>
-                      <td className={`px-3 py-3 text-right tabular-nums ${item.pendentes ? 'font-semibold text-amber-700' : ''}`}>{item.pendentes.toLocaleString('pt-BR')}</td>
+                      <td className={`px-3 py-3 text-right tabular-nums ${item.pendentes ? 'font-semibold text-warning' : ''}`}>{item.pendentes.toLocaleString('pt-BR')}</td>
                       <td className={`px-3 py-3 text-right tabular-nums ${item.valor_total_pendente ? 'font-semibold' : 'text-muted-foreground'}`}>{formatCurrency(item.valor_total_pendente)}</td>
                       <td className="px-2 py-3"><ArrowRight className="h-4 w-4 text-muted-foreground" /></td>
                     </tr>
@@ -173,9 +173,9 @@ export default function DashboardPage() {
         <>
           <div className="grid gap-4 md:grid-cols-3">
             {[
-              { to: '/extrato', icon: FileText, color: 'text-blue-500', title: 'Extrato OFX', desc: 'Importar e visualizar extratos' },
-              { to: '/neo', icon: Zap, color: 'text-yellow-500', title: 'NEO', desc: 'Conciliação automática' },
-              { to: '/registros', icon: BookOpen, color: 'text-green-500', title: 'Registros', desc: 'Lançamentos contábeis' },
+              { to: '/extrato', icon: FileText, color: 'text-brand', title: 'Extrato OFX', desc: 'Importar e visualizar extratos' },
+              { to: '/neo', icon: Zap, color: 'text-brand', title: 'NEO', desc: 'Conciliação automática' },
+              { to: '/registros', icon: BookOpen, color: 'text-brand', title: 'Registros', desc: 'Lançamentos contábeis' },
             ].map(({ to, icon: Icon, color, title, desc }) => (
               <Card key={to} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate(to)}>
                 <CardContent className="flex items-center gap-4 p-6">
@@ -225,35 +225,35 @@ export default function DashboardPage() {
                 {/* KPI Cards */}
                 <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
                   <KpiCard
-                    icon={<FileText className="h-5 w-5 text-blue-500" />}
+                    icon={<FileText className="h-5 w-5 text-brand" />}
                     label="Transações"
                     value={stats.resumo.total_transacoes}
                   />
                   <KpiCard
-                    icon={<CheckCircle2 className="h-5 w-5 text-green-500" />}
+                    icon={<CheckCircle2 className="h-5 w-5 text-success" />}
                     label="Conciliados"
                     value={stats.resumo.total_conciliados}
                     sub={`${stats.resumo.percentual_conciliacao}%`}
-                    subColor="text-green-600"
+                    subColor="text-success"
                   />
                   <KpiCard
-                    icon={<AlertCircle className="h-5 w-5 text-red-500" />}
+                    icon={<AlertCircle className="h-5 w-5 text-danger" />}
                     label="Não Conciliados"
                     value={stats.resumo.total_nao_conciliados}
-                    subColor="text-red-600"
+                    subColor="text-danger"
                   />
                   <KpiCard
-                    icon={<BookOpen className="h-5 w-5 text-purple-500" />}
+                    icon={<BookOpen className="h-5 w-5 text-brand" />}
                     label="Registros"
                     value={stats.resumo.total_registros}
                   />
                   <KpiCard
-                    icon={<Receipt className="h-5 w-5 text-orange-500" />}
+                    icon={<Receipt className="h-5 w-5 text-brand" />}
                     label="Notas Fiscais"
                     value={stats.resumo.total_notas}
                   />
                   <KpiCard
-                    icon={<ClipboardCheck className="h-5 w-5 text-teal-500" />}
+                    icon={<ClipboardCheck className="h-5 w-5 text-brand" />}
                     label="Comprovantes"
                     value={stats.resumo.total_comprovantes}
                   />
@@ -306,7 +306,7 @@ export default function DashboardPage() {
                             </div>
                             <div className="h-2 rounded-full bg-muted overflow-hidden">
                               <div
-                                className="h-full bg-green-500 rounded-full transition-all"
+                                className="h-full bg-success rounded-full transition-all"
                                 style={{ width: `${pct}%` }}
                               />
                             </div>
@@ -328,10 +328,10 @@ export default function DashboardPage() {
 }
 
 function CarteiraStatus({ item }: { item: CarteiraItem }) {
-  if (!item.ha_extrato_importado) return <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700"><Upload className="h-3.5 w-3.5" />Sem extrato importado</span>
-  if (item.erros > 0) return <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-800"><CircleAlert className="h-3.5 w-3.5" />{item.erros.toLocaleString('pt-BR')} {item.erros === 1 ? 'erro' : 'erros'}{item.pendentes > 0 ? ` · ${item.pendentes.toLocaleString('pt-BR')} pendentes` : ''}</span>
-  if (item.pendentes > 0) return <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800"><CircleAlert className="h-3.5 w-3.5" />{item.pendentes.toLocaleString('pt-BR')} {item.pendentes === 1 ? 'pendência' : 'pendências'}</span>
-  return <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-800"><CircleCheck className="h-3.5 w-3.5" />Tudo classificado</span>
+  if (!item.ha_extrato_importado) return <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground"><Upload className="h-3.5 w-3.5" />Sem extrato importado</span>
+  if (item.erros > 0) return <span className="inline-flex items-center gap-1.5 rounded-full bg-danger/15 px-2.5 py-1 text-xs font-semibold text-danger"><CircleAlert className="h-3.5 w-3.5" />{item.erros.toLocaleString('pt-BR')} {item.erros === 1 ? 'erro' : 'erros'}{item.pendentes > 0 ? ` · ${item.pendentes.toLocaleString('pt-BR')} pendentes` : ''}</span>
+  if (item.pendentes > 0) return <span className="inline-flex items-center gap-1.5 rounded-full bg-warning/15 px-2.5 py-1 text-xs font-semibold text-warning"><CircleAlert className="h-3.5 w-3.5" />{item.pendentes.toLocaleString('pt-BR')} {item.pendentes === 1 ? 'pendência' : 'pendências'}</span>
+  return <span className="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-2.5 py-1 text-xs font-semibold text-success"><CircleCheck className="h-3.5 w-3.5" />Tudo classificado</span>
 }
 
 // ── sub-componentes ───────────────────────────────────────────────────────────

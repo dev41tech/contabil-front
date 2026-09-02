@@ -503,7 +503,7 @@ export default function NeoPage() {
           <div className="flex flex-wrap items-end gap-4">
             <div className="min-w-[240px] flex-1"><Label className="mb-1 block">Empresa</Label><SearchableSelect value={selectedEmpresa} onValueChange={value => { setSelectedEmpresa(value); setAgenciaFiltro('todas'); setContaFiltro('todas'); setProcessResult(null); setProcessJobId(null); setPage(1) }} options={empresas.map((empresa: any) => ({ value: empresa.id, label: empresa.razao_social }))} placeholder="Selecione a empresa" searchPlaceholder="Buscar empresa..." /></div>
             <div className="min-w-[190px]"><Label className="mb-1 block">Agência</Label><Select value={agenciaFiltro} onValueChange={value => { setAgenciaFiltro(value); setPage(1) }}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todas">Todas as agências</SelectItem>{agencias.map(agencia => <SelectItem key={agencia.id} value={agencia.id}>{agenciaLabel(agencia)}</SelectItem>)}</SelectContent></Select></div>
-            <Button onClick={() => processMutation.mutate()} disabled={!selectedEmpresa || processMutation.isPending || isJobRunning(processJob?.status)} className="bg-yellow-500 text-white hover:bg-yellow-600">
+            <Button onClick={() => processMutation.mutate()} disabled={!selectedEmpresa || processMutation.isPending || isJobRunning(processJob?.status)} className="bg-brand text-on-brand hover:bg-brand-hover">
               {processMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin" />Iniciando...</> : <><Zap className="h-4 w-4" />{escopoProcessamento ? `Processar ${escopoProcessamento}` : 'Executar NEO'}</>}
             </Button>
           </div>
@@ -513,7 +513,7 @@ export default function NeoPage() {
       {processJob && !processJobQuery.pollingTimedOut && <JobProgress job={processJob} />}
       {isJobRunning(processJob?.status) && (processJobQuery.isError || processJobQuery.pollingTimedOut) && <JobPollingError timedOut={processJobQuery.pollingTimedOut} onRetry={processJobQuery.restartPolling} />}
       {processJob?.status === 'falhou' && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-900">
+        <div className="rounded-lg border border-danger/40 bg-danger/15 p-4 text-sm text-danger">
           <p className="font-medium">O processamento NEO falhou.</p>
           <p className="mt-1">{processJob.erro || 'O servidor não informou o motivo da falha.'}</p>
           <Button className="mt-3" variant="destructive" size="sm" onClick={() => processMutation.mutate()} disabled={processMutation.isPending}>
@@ -530,13 +530,13 @@ export default function NeoPage() {
       )}
 
       {processResult && (
-        <Card className={processWithAlerts ? 'border-amber-300 bg-amber-50' : 'border-green-200 bg-green-50'}>
-          <CardHeader><CardTitle className={processWithAlerts ? 'text-lg text-amber-900' : 'text-lg text-green-800'}>{processWithAlerts ? 'Processamento concluído com alertas' : 'Resultado do processamento'}</CardTitle></CardHeader>
+        <Card className={processWithAlerts ? 'border-warning/40 bg-warning/15' : 'border-success/40 bg-success/15'}>
+          <CardHeader><CardTitle className={processWithAlerts ? 'text-lg text-warning' : 'text-lg text-success'}>{processWithAlerts ? 'Processamento concluído com alertas' : 'Resultado do processamento'}</CardTitle></CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">{[
               ['Associadas', processResult.associadas], ['Sem regra', processResult.sem_regra], ['Erros', processResult.erros], ['Pendentes', processResult.total_pendentes],
-            ].map(([label, value]) => <div key={label} className="text-center"><p className={`text-2xl font-bold ${processWithAlerts ? 'text-amber-800' : 'text-green-700'}`}>{value ?? 0}</p><p className={`text-sm ${processWithAlerts ? 'text-amber-700' : 'text-green-600'}`}>{label}</p></div>)}</div>
-            {(processResult.comprovantes_associados > 0 || processResult.notas_associadas > 0) && <div className={`mt-4 grid grid-cols-2 gap-4 border-t pt-4 ${processWithAlerts ? 'border-amber-200' : 'border-green-200'}`}>{processResult.comprovantes_associados > 0 && <div className="text-center"><p className={`text-xl font-bold ${processWithAlerts ? 'text-amber-800' : 'text-green-700'}`}>{processResult.comprovantes_associados}</p><p className={`text-xs ${processWithAlerts ? 'text-amber-700' : 'text-green-600'}`}>Comprovantes vinculados</p></div>}{processResult.notas_associadas > 0 && <div className="text-center"><p className={`text-xl font-bold ${processWithAlerts ? 'text-amber-800' : 'text-green-700'}`}>{processResult.notas_associadas}</p><p className={`text-xs ${processWithAlerts ? 'text-amber-700' : 'text-green-600'}`}>Notas fiscais vinculadas</p></div>}</div>}
+            ].map(([label, value]) => <div key={label} className="text-center"><p className={`text-2xl font-bold ${processWithAlerts ? 'text-warning' : 'text-success'}`}>{value ?? 0}</p><p className={`text-sm ${processWithAlerts ? 'text-warning' : 'text-success'}`}>{label}</p></div>)}</div>
+            {(processResult.comprovantes_associados > 0 || processResult.notas_associadas > 0) && <div className={`mt-4 grid grid-cols-2 gap-4 border-t pt-4 ${processWithAlerts ? 'border-warning/40' : 'border-success/40'}`}>{processResult.comprovantes_associados > 0 && <div className="text-center"><p className={`text-xl font-bold ${processWithAlerts ? 'text-warning' : 'text-success'}`}>{processResult.comprovantes_associados}</p><p className={`text-xs ${processWithAlerts ? 'text-warning' : 'text-success'}`}>Comprovantes vinculados</p></div>}{processResult.notas_associadas > 0 && <div className="text-center"><p className={`text-xl font-bold ${processWithAlerts ? 'text-warning' : 'text-success'}`}>{processResult.notas_associadas}</p><p className={`text-xs ${processWithAlerts ? 'text-warning' : 'text-success'}`}>Notas fiscais vinculadas</p></div>}</div>}
           </CardContent>
         </Card>
       )}
@@ -655,7 +655,7 @@ export default function NeoPage() {
                         // O número que decide se a regra deve nascer: quantas
                         // já foram classificadas em OUTRA conta. Sem ele, criar
                         // regra é apostar.
-                        <p className="text-amber-700">
+                        <p className="text-warning">
                           {previaRegra.data.conflitos.quantidade} já classificada(s) em outra conta — confira antes de criar.
                         </p>
                       )}

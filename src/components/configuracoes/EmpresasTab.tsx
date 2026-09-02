@@ -96,7 +96,7 @@ export function EmpresasTab() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <CardTitle className="flex items-center gap-2 text-lg">
-              <Building2 className="h-5 w-5 text-slate-600" /> Empresas
+              <Building2 className="h-5 w-5 text-brand" /> Empresas
             </CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">Cadastre e atualize as empresas do escritório.</p>
           </div>

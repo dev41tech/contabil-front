@@ -351,7 +351,7 @@ export default function CartoesPage() {
                   <div className="flex items-center justify-between pt-1">
                     <span className="text-xs text-muted-foreground">{c.total_faturas} faturas</span>
                     {c.fatura_aberta_valor != null && (
-                      <span className="text-sm font-semibold text-orange-600">
+                      <span className="text-sm font-semibold text-warning">
                         Aberta: {formatCurrency(c.fatura_aberta_valor)}
                       </span>
                     )}
@@ -761,7 +761,7 @@ export default function CartoesPage() {
                   <p className="text-sm truncate">{t.historico}</p>
                   <p className="text-xs text-muted-foreground">{formatDate(t.data)}</p>
                 </div>
-                <span className={`font-mono text-sm font-semibold ${t.dc === 'D' ? 'text-red-600' : 'text-green-600'}`}>
+                <span className={`font-mono text-sm font-semibold ${t.dc === 'D' ? 'text-danger' : 'text-success'}`}>
                   {formatCurrency(t.valor)}
                 </span>
               </label>

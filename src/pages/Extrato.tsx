@@ -280,20 +280,20 @@ export default function ExtratoPage() {
 
           {/* Banner de erro de upload */}
           {uploadError && (
-            <div className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm">
-              <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+            <div className="flex items-start gap-3 rounded-lg border border-warning/40 bg-warning/15 p-3 text-sm">
+              <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
               <div className="flex-1">
-                <p className="font-medium text-amber-800">Falha ao processar o arquivo</p>
-                <p className="text-amber-700 mt-0.5">{uploadError}</p>
+                <p className="font-medium text-warning">Falha ao processar o arquivo</p>
+                <p className="text-warning mt-0.5">{uploadError}</p>
               </div>
-              <button onClick={() => setUploadError(null)} className="text-amber-500 hover:text-amber-700 shrink-0">✕</button>
+              <button onClick={() => setUploadError(null)} className="text-warning/70 hover:text-warning shrink-0">✕</button>
             </div>
           )}
 
           {uploadJob && !uploadJobQuery.pollingTimedOut && <JobProgress job={uploadJob} />}
           {isJobRunning(uploadJob?.status) && (uploadJobQuery.isError || uploadJobQuery.pollingTimedOut) && <JobPollingError timedOut={uploadJobQuery.pollingTimedOut} onRetry={uploadJobQuery.restartPolling} />}
           {uploadJob?.status === 'falhou' && (
-            <div className="flex items-start gap-3 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-900">
+            <div className="flex items-start gap-3 rounded-lg border border-danger/40 bg-danger/15 p-3 text-sm text-danger">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <div className="flex-1">
                 <p className="font-medium">A importação falhou.</p>
@@ -308,26 +308,26 @@ export default function ExtratoPage() {
           {/* Linhas recusadas — cada uma precisa de lançamento manual, então o
               painel é persistente e traz o motivo de cada uma. */}
           {rejeicoes.length > 0 && (
-            <div className="flex items-start gap-3 rounded-lg border border-orange-300 bg-orange-50 p-3 text-sm">
-              <AlertTriangle className="h-4 w-4 text-orange-600 mt-0.5 shrink-0" />
+            <div className="flex items-start gap-3 rounded-lg border border-warning/40 bg-warning/15 p-3 text-sm">
+              <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-orange-900">
+                <p className="font-medium text-warning">
                   {rejeicoes.length === 1
                     ? '1 linha não foi importada'
                     : `${rejeicoes.length} linhas não foram importadas`}
                 </p>
-                <p className="text-orange-800 mt-0.5">
+                <p className="text-warning mt-0.5">
                   O valor lido não confere com a linha do extrato. Ficaram de fora para
                   não entrar na contabilidade com valor errado — lance manualmente ou
                   reimporte o arquivo em OFX.
                 </p>
                 <ul className="mt-2 space-y-1">
                   {rejeicoes.map((motivo, i) => (
-                    <li key={i} className="text-xs text-orange-800 break-words">• {motivo}</li>
+                    <li key={i} className="text-xs text-warning break-words">• {motivo}</li>
                   ))}
                 </ul>
               </div>
-              <button onClick={() => setRejeicoes([])} className="text-orange-500 hover:text-orange-700 shrink-0">✕</button>
+              <button onClick={() => setRejeicoes([])} className="text-warning/70 hover:text-warning shrink-0">✕</button>
             </div>
           )}
 
@@ -457,11 +457,11 @@ export default function ExtratoPage() {
                           {t.historico || '-'}
                         </td>
                         <td className="py-2 px-2 text-center">
-                          <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${t.dc === 'D' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                          <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${t.dc === 'D' ? 'bg-danger/15 text-danger' : 'bg-success/15 text-success'}`}>
                             {t.dc}
                           </span>
                         </td>
-                        <td className={`py-2 px-2 text-right font-mono text-sm ${t.dc === 'D' ? 'text-red-600' : 'text-emerald-600'}`}>
+                        <td className={`py-2 px-2 text-right font-mono text-sm ${t.dc === 'D' ? 'text-danger' : 'text-success'}`}>
                           {t.dc === 'D' ? '-' : '+'}{formatCurrency(t.valor)}
                         </td>
                         {/* Saldo da conta após o lançamento, como impresso no extrato.
@@ -472,7 +472,7 @@ export default function ExtratoPage() {
                             t.saldo_apos == null
                               ? 'text-muted-foreground'
                               : t.saldo_apos < 0
-                                ? 'text-red-600'
+                                ? 'text-danger'
                                 : 'text-muted-foreground'
                           }`}
                           title={t.saldo_apos == null ? 'O arquivo importado não informa saldo' : undefined}

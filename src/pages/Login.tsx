@@ -98,11 +98,11 @@ export default function LoginPage() {
                   onBlur={resolveTenant}
                 />
                 {resolvingTenant && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />}
-                {!resolvingTenant && tenantInfo && <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />}
+                {!resolvingTenant && tenantInfo && <CheckCircle2 className="h-5 w-5 text-success shrink-0" />}
                 {!resolvingTenant && tenantError && <AlertCircle className="h-5 w-5 text-destructive shrink-0" />}
               </div>
               {errors.cnpj && <p className="text-xs text-destructive">{errors.cnpj.message}</p>}
-              {tenantInfo && <p className="text-xs text-green-600 font-medium">✓ {tenantInfo.nome}</p>}
+              {tenantInfo && <p className="text-xs text-success font-medium">✓ {tenantInfo.nome}</p>}
               {tenantError && <p className="text-xs text-destructive">{tenantError}</p>}
             </div>
 
