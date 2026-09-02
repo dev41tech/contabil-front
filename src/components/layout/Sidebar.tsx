@@ -1,27 +1,12 @@
-import { useEffect, useState } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import {
-  BookOpen,
-  ChevronDown,
-  ClipboardCheck,
-  CreditCard,
-  FileText,
-  FileClock,
-  LayoutDashboard,
-  LogOut,
-  PiggyBank,
-  Receipt,
-  Scale,
-  Settings,
-  ShieldCheck,
-  Tags,
-  TrendingUp,
-  Users,
-  Wifi,
-  Zap,
+  BarChart3, BookOpen, ClipboardCheck, CreditCard, FileText, FileClock, Inbox,
+  LayoutDashboard, LogOut, PiggyBank, Receipt, Scale, ShieldCheck,
+  SlidersHorizontal, Tags, TrendingUp, Users, Wifi, Zap,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { cn } from '@/lib/utils'
+import { EmpresaSwitcher } from './EmpresaSwitcher'
 
 const navGroups = [
   {
@@ -33,6 +18,7 @@ const navGroups = [
   {
     label: 'Movimentações',
     items: [
+      { to: '/importacoes', icon: Inbox, label: 'Importações', adminOnly: false },
       { to: '/extrato', icon: FileText, label: 'Extrato Bancário', adminOnly: false },
       { to: '/cartoes', icon: CreditCard, label: 'Cartão de Crédito', adminOnly: false },
       { to: '/aplicacoes-financeiras', icon: PiggyBank, label: 'Aplicações Financeiras', adminOnly: false },
@@ -64,7 +50,7 @@ const navGroups = [
   {
     label: 'Administração',
     items: [
-      { to: '/configuracoes', icon: Settings, label: 'Configurações', adminOnly: false },
+      { to: '/configuracoes', icon: SlidersHorizontal, label: 'Configurações', adminOnly: false },
       { to: '/usuarios', icon: Users, label: 'Usuários', adminOnly: true },
       { to: '/permissoes', icon: ShieldCheck, label: 'Permissões', adminOnly: true },
       { to: '/auditoria', icon: FileClock, label: 'Auditoria', adminOnly: true },
@@ -72,71 +58,71 @@ const navGroups = [
   },
 ]
 
+/**
+ * Sidebar do DS: rótulos de grupo fixos, sem acordeão.
+ *
+ * Os grupos eram colapsáveis porque a lista não cabia; com a densidade do
+ * Connect (item de 14px em 8px de padding) os 17 itens cabem, e um clique a
+ * menos por navegação vale mais que a altura economizada. O item ativo é
+ * marcado por cor + barra de 3px na borda, não por fundo cheio.
+ */
 export function Sidebar() {
   const { user, logout } = useAuth()
-  const { pathname } = useLocation()
-  const activeGroup = navGroups.find(group => group.items.some(item => pathname.startsWith(item.to)))?.label
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => activeGroup ? { [activeGroup]: true } : {})
-
-  useEffect(() => {
-    if (activeGroup) setOpenGroups(current => ({ ...current, [activeGroup]: true }))
-  }, [activeGroup])
 
   return (
-    <aside className="flex w-64 shrink-0 flex-col border-r bg-card">
-      <div className="border-b p-6">
-        <h1 className="text-xl font-bold text-primary">Contabil Core</h1>
-        <p className="mt-1 truncate text-sm font-medium">{user?.nome}</p>
-        <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
+    <aside className="flex w-60 shrink-0 flex-col border-r border-border bg-sidebar">
+      <div className="flex h-14 shrink-0 items-center gap-2.5 px-[18px]">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand">
+          <BarChart3 className="h-4 w-4 text-on-brand" strokeWidth={2.2} />
+        </span>
+        <span className="font-display text-base font-semibold tracking-[-0.01em]">Contabil Core</span>
       </div>
 
-      <nav className="flex-1 space-y-2 overflow-y-auto p-3">
+      <div className="shrink-0 border-b border-border px-3 pb-3">
+        <EmpresaSwitcher />
+      </div>
+
+      <nav className="scroll-y flex-1 space-y-0.5 overflow-y-auto p-3">
         {navGroups.map(group => {
           const items = group.items.filter(({ adminOnly }) => !adminOnly || user?.role === 'admin')
-          const isOpen = !!openGroups[group.label]
+          if (items.length === 0) return null
 
           return (
             <section key={group.label}>
-              <button
-                type="button"
-                onClick={() => setOpenGroups(current => ({ ...current, [group.label]: !isOpen }))}
-                className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                aria-expanded={isOpen}
-              >
+              <p className="px-2.5 pb-1.5 pt-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {group.label}
-                <ChevronDown className={cn('h-4 w-4 transition-transform', isOpen && 'rotate-180')} />
-              </button>
-
-              {isOpen && (
-                <div className="mt-1 space-y-1">
-                  {items.map(({ to, icon: Icon, label }) => (
-                    <NavLink
-                      key={to}
-                      to={to}
-                      className={({ isActive }) => cn(
-                        'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                        isActive
-                          ? 'bg-primary text-primary-foreground'
-                          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+              </p>
+              {items.map(({ to, icon: Icon, label }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  className={({ isActive }) => cn(
+                    'relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-label font-medium transition-colors',
+                    isActive ? 'text-brand' : 'text-fg-secondary hover:text-foreground',
+                  )}
+                >
+                  {({ isActive }) => (
+                    <>
+                      {isActive && (
+                        <span className="absolute -left-3 bottom-1 top-1 w-[3px] rounded-r-full bg-brand" />
                       )}
-                    >
-                      <Icon className="h-4 w-4" />
+                      <Icon className="h-4 w-4 shrink-0" />
                       {label}
-                    </NavLink>
-                  ))}
-                </div>
-              )}
+                    </>
+                  )}
+                </NavLink>
+              ))}
             </section>
           )
         })}
       </nav>
 
-      <div className="border-t p-4">
+      <div className="shrink-0 border-t border-border p-3">
         <button
           onClick={logout}
-          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+          className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-label font-medium text-fg-secondary transition-colors hover:text-foreground"
         >
-          <LogOut className="h-4 w-4" />
+          <LogOut className="h-4 w-4 shrink-0" />
           Sair
         </button>
       </div>

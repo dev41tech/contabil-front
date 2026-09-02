@@ -12,8 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { SearchableSelect } from '@/components/ui/searchable-select'
 import { Pagination } from '@/components/ui/pagination'
-import { ImportacoesCard } from '@/components/extrato/ImportacoesCard'
-import { Upload, Loader2, RefreshCw, AlertTriangle, Download } from 'lucide-react'
+import { Upload, Loader2, RefreshCw, AlertTriangle, Download, SlidersHorizontal } from 'lucide-react'
 import { useEmpresas } from '@/hooks/useEmpresas'
 import { useJob, isJobFinished, isJobRunning, type Job } from '@/hooks/useJob'
 import { JobPollingError, JobProgress } from '@/components/jobs/JobProgress'
@@ -37,6 +36,8 @@ export default function ExtratoPage() {
   const [dataFim, setDataFim] = useState('')
   const [dcFiltro, setDcFiltro] = useState('todos')
   const [page, setPage] = useState(1)
+  // Filtro ativo escondido é estado invisível: abre já aberto quando há um.
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false)
   const [pageSize, setPageSize] = useState(20)
   const [uploadJobId, setUploadJobId] = useState<string | null>(null)
 
@@ -330,8 +331,26 @@ export default function ExtratoPage() {
             </div>
           )}
 
-          {/* Linha 2: filtros */}
-          <div className="flex gap-4 flex-wrap items-end border-t pt-4">
+          {/* Linha 2: a busca fica sempre à mão; o resto entra atrás de Filtros. */}
+          <div className="flex flex-wrap items-center gap-2.5 border-t pt-4">
+            <Input
+              compact
+              className="max-w-md flex-1"
+              placeholder="Buscar no histórico do banco"
+              value={buscaInputs.historico}
+              onChange={e => setBuscaInputs(s => ({ ...s, historico: e.target.value }))}
+            />
+            <Button variant="outline" size="sm" onClick={() => setFiltrosAbertos(a => !a)} aria-expanded={filtrosAbertos}>
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              Filtros
+              {filtrosAtivos && <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-brand" />}
+            </Button>
+            {filtrosAtivos && (
+              <Button variant="ghost" size="sm" onClick={limparFiltros}>Limpar filtros</Button>
+            )}
+          </div>
+
+          <div className={`flex flex-wrap items-end gap-4 rounded-md border border-border bg-surface-hover p-3 ${filtrosAbertos ? '' : 'hidden'}`}>
             <div className="min-w-[140px]">
               <label className="text-sm font-medium mb-1 block">Status</label>
               <Select value={statusFiltro} onValueChange={v => { setStatusFiltro(v); setPage(1) }}>
@@ -362,14 +381,6 @@ export default function ExtratoPage() {
                   <SelectItem value="C">Crédito</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-            <div className="min-w-[200px] flex-1">
-              <label className="text-sm font-medium mb-1 block">Histórico do banco</label>
-              <Input
-                placeholder="Ex.: TARIFA, PIX, fornecedor…"
-                value={buscaInputs.historico}
-                onChange={e => setBuscaInputs(s => ({ ...s, historico: e.target.value }))}
-              />
             </div>
             {/* O valor gravado é sempre positivo — o sinal mora em D/C. A faixa,
                 portanto, é sobre o módulo do lançamento, e o rótulo diz isso. */}
@@ -403,18 +414,9 @@ export default function ExtratoPage() {
                 </SelectContent>
               </Select>
             </div>
-            {filtrosAtivos && (
-              <Button variant="ghost" size="sm" className="self-end" onClick={limparFiltros}>
-                Limpar filtros
-              </Button>
-            )}
           </div>
         </CardContent>
       </Card>
-
-      {selectedEmpresa && (
-        <ImportacoesCard empresaId={selectedEmpresa} agenciaId={selectedAgencia || undefined} />
-      )}
 
       <Card>
         <CardHeader>

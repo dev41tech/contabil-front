@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, Zap } from 'lucide-react'
+import { Loader2, SlidersHorizontal, Zap } from 'lucide-react'
 import { api } from '@/lib/api'
 import { extractApiError } from '@/lib/utils'
 import { opcaoConta } from '@/lib/contas'
@@ -542,7 +542,7 @@ export default function NeoPage() {
       )}
 
       <Tabs value={activeTab} onValueChange={value => { setActiveTab(value as NeoTab); setPage(1) }}>
-        <TabsList className="grid h-auto w-full grid-cols-3 md:w-[520px]">
+        <TabsList>
           <TabsTrigger value="pendencias">Pendências <span className="ml-1 text-xs">{resumoPendencias.data ?? 0}</span></TabsTrigger>
           <TabsTrigger value="classificadas">Classificadas <span className="ml-1 text-xs">{resumoClassificadas.data ?? 0}</span></TabsTrigger>
           <TabsTrigger value="erros">Erros <span className="ml-1 text-xs">{resumoErros.data ?? 0}</span></TabsTrigger>
@@ -763,10 +763,27 @@ interface DecisionFiltersProps {
 
 function DecisionFilters(props: DecisionFiltersProps) {
   const update = (setter: (value: string) => void) => (value: string) => { setter(value); props.setPage(1) }
+  // Abre já aberto quando há filtro valendo: filtro ativo escondido é estado
+  // invisível, e a pessoa fica sem entender por que a lista está curta.
+  const [aberto, setAberto] = useState(props.filtrosAtivos)
   return (
-    <div className="mb-5 space-y-4">
-      <div><Label className="mb-1 block">Buscar</Label><Input placeholder={props.apenasFiltrosDeTransacao ? 'Histórico do extrato' : 'Histórico do extrato ou descrição da regra'} value={props.termoInput} onChange={event => props.setTermoInput(event.target.value)} /></div>
-      <div className="flex flex-wrap items-end gap-4">
+    <div className="mb-5 space-y-3">
+      <div className="flex items-center gap-2.5">
+        <Input
+          compact
+          className="max-w-md flex-1"
+          placeholder={props.apenasFiltrosDeTransacao ? 'Buscar no histórico do extrato' : 'Buscar no histórico ou na descrição da regra'}
+          value={props.termoInput}
+          onChange={event => props.setTermoInput(event.target.value)}
+        />
+        <Button variant="outline" size="sm" onClick={() => setAberto(a => !a)} aria-expanded={aberto}>
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+          Filtros
+          {props.filtrosAtivos && <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-brand" />}
+        </Button>
+        {props.filtrosAtivos && <Button variant="ghost" size="sm" onClick={props.limparFiltros}>Limpar filtros</Button>}
+      </div>
+      <div className={`flex flex-wrap items-end gap-4 rounded-md border border-border bg-surface-hover p-3 ${aberto ? '' : 'hidden'}`}>
         {!props.apenasFiltrosDeTransacao && <div className="min-w-[160px]"><Label className="mb-1 block">Estratégia</Label><Select value={props.estrategiaFiltro} onValueChange={update(props.setEstrategiaFiltro)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todas">Todas</SelectItem><SelectItem value="exato">Texto exato</SelectItem><SelectItem value="substring">Contém o texto</SelectItem><SelectItem value="todas_palavras">Contém todas as palavras</SelectItem><SelectItem value="contraparte">Por CNPJ do favorecido</SelectItem><SelectItem value="manual">Associação manual</SelectItem></SelectContent></Select></div>}
         <div className="min-w-[120px]"><Label className="mb-1 block">D/C</Label><Select value={props.dcFiltro} onValueChange={update(props.setDcFiltro)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Todos</SelectItem><SelectItem value="D">Débito</SelectItem><SelectItem value="C">Crédito</SelectItem></SelectContent></Select></div>
         {!props.apenasFiltrosDeTransacao && <div className="min-w-[240px] flex-1"><Label className="mb-1 block">Conta contábil</Label><SearchableSelect value={props.contaFiltro} onValueChange={update(props.setContaFiltro)} options={[{ value: 'todas', label: 'Todas' }, ...props.contaOptions]} searchPlaceholder="Buscar conta..." /></div>}
@@ -775,7 +792,6 @@ function DecisionFilters(props: DecisionFiltersProps) {
         {!props.apenasFiltrosDeTransacao && <div className="min-w-[180px] flex-1"><Label className="mb-1 block">Motivo</Label><Input placeholder="Por que parou na fila" value={props.motivoInput} onChange={event => props.setMotivoInput(event.target.value)} /></div>}
         <div className="w-[140px]"><Label className="mb-1 block">Valor mínimo</Label><Input type="number" min="0" step="0.01" value={props.valorMinFiltro} onChange={event => { if (!event.target.value || Number(event.target.value) >= 0) update(props.setValorMinFiltro)(event.target.value) }} /></div>
         <div className="w-[140px]"><Label className="mb-1 block">Valor máximo</Label><Input type="number" min="0" step="0.01" value={props.valorMaxFiltro} onChange={event => { if (!event.target.value || Number(event.target.value) >= 0) update(props.setValorMaxFiltro)(event.target.value) }} /></div>
-        {props.filtrosAtivos && <Button variant="ghost" size="sm" onClick={props.limparFiltros}>Limpar filtros</Button>}
       </div>
     </div>
   )

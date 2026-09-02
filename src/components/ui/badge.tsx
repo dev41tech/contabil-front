@@ -2,17 +2,21 @@ import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
+// Pílula do Connect: fundo tingido, texto na cor cheia, borda a 40%.
+// As variantes de estado antes eram bg-green-100/bg-yellow-100 cravados —
+// invisíveis no tema escuro. Agora saem dos tokens e trocam de tema sozinhas.
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center rounded-full border px-2.5 py-1 text-badge font-semibold transition-colors focus:outline-none",
   {
     variants: {
       variant: {
-        default: "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
-        secondary: "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        destructive: "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline: "text-foreground",
-        success: "border-transparent bg-green-100 text-green-800",
-        warning: "border-transparent bg-yellow-100 text-yellow-800",
+        default: "border-transparent bg-brand text-on-brand",
+        secondary: "border-transparent bg-surface-hover text-fg-secondary",
+        destructive: "border-danger/40 bg-danger/15 text-danger",
+        outline: "border-border-strong text-fg-secondary",
+        success: "border-success/40 bg-success/15 text-success",
+        warning: "border-warning/40 bg-warning/15 text-warning",
+        info: "border-info/40 bg-info/15 text-info",
       },
     },
     defaultVariants: { variant: "default" },

@@ -77,8 +77,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30">
-      <Card className="w-full max-w-md shadow-lg">
+    <div className="min-h-screen flex items-center justify-center bg-canvas">
+      <Card className="w-full max-w-md p-2 shadow-lg">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Contabil Core</CardTitle>
           <CardDescription>Entre com suas credenciais para continuar</CardDescription>
