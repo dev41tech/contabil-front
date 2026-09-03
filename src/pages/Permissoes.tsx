@@ -7,6 +7,7 @@ import { toast } from '@/hooks/useToast'
 import { useAuth } from '@/contexts/AuthContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { ErroConsulta } from '@/components/ui/erro-consulta'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -258,7 +259,7 @@ export default function PermissoesPage() {
     ? todosUsuariosRaw
     : (todosUsuariosRaw?.items ?? [])
 
-  const { data: permissoes, isLoading } = useQuery<{ items: Permissao[]; total: number }>({
+  const { data: permissoes, isLoading, isError, error, refetch } = useQuery<{ items: Permissao[]; total: number }>({
     queryKey: ['permissoes', selectedEmpresa],
     queryFn: () =>
       api.get(`/empresas/${selectedEmpresa}/permissoes`).then(r => r.data),
@@ -398,6 +399,8 @@ export default function PermissoesPage() {
             <div className="flex justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
+          ) : isError ? (
+            <ErroConsulta erro={error} contexto="os acessos desta empresa" onTentarDeNovo={() => refetch()} />
           ) : items.length === 0 ? (
             <div className="text-center py-8 space-y-2">
               <ShieldAlert className="h-10 w-10 mx-auto text-muted-foreground" />

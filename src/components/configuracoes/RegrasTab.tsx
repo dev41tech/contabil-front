@@ -163,7 +163,7 @@ export function RegrasTab({ empresaId }: { empresaId: string }) {
           {regras.map((r: any) => (
             <div
               key={r.id}
-              className={`p-4 rounded-lg border transition-colors hover:shadow-sm ${r.ativa ? 'bg-white' : 'bg-muted/30 opacity-70'}`}
+              className={`p-4 rounded-lg border transition-colors hover:shadow-sm ${r.ativa ? 'bg-card' : 'bg-muted/30 opacity-70'}`}
             >
               <div className="flex items-start justify-between gap-3">
                 {/* Lado esquerdo: info principal */}
@@ -185,7 +185,7 @@ export function RegrasTab({ empresaId }: { empresaId: string }) {
                   {/* Linha 2: padrão */}
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span className="shrink-0">Padrão:</span>
-                    <code className="bg-muted px-2 py-0.5 rounded font-mono text-foreground max-w-xs truncate">
+                    <code className="bg-muted px-2 py-0.5 rounded-sm font-mono text-foreground max-w-xs truncate">
                       {r.historico}
                     </code>
                   </div>
@@ -221,7 +221,7 @@ export function RegrasTab({ empresaId }: { empresaId: string }) {
                     onClick={() => toggleMutation.mutate({ id: r.id, ativa: !r.ativa })}
                     disabled={toggleMutation.isPending}
                     title={r.ativa ? 'Desativar regra' : 'Ativar regra'}
-                    className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded"
+                    className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-sm"
                   >
                     {r.ativa
                       ? <ToggleRight className="h-5 w-5 text-success" />
@@ -245,6 +245,7 @@ export function RegrasTab({ empresaId }: { empresaId: string }) {
             <Button
               variant="outline" size="icon"
               className="h-8 w-8"
+              aria-label="Página anterior"
               disabled={page <= 1}
               onClick={() => setPage(p => p - 1)}
             >
@@ -256,9 +257,11 @@ export function RegrasTab({ empresaId }: { empresaId: string }) {
               return (
                 <Button
                   key={p}
-                  variant={p === page ? 'default' : 'outline'}
+                  variant="outline"
                   size="icon"
-                  className="h-8 w-8 text-xs"
+                  aria-label={`Página ${p}`}
+                  aria-current={p === page ? 'page' : undefined}
+                  className={`h-8 w-8 text-xs ${p === page ? 'border-brand text-brand' : ''}`}
                   onClick={() => setPage(p)}
                 >
                   {p}
@@ -268,6 +271,7 @@ export function RegrasTab({ empresaId }: { empresaId: string }) {
             <Button
               variant="outline" size="icon"
               className="h-8 w-8"
+              aria-label="Próxima página"
               disabled={page >= totalPages}
               onClick={() => setPage(p => p + 1)}
             >

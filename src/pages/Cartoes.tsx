@@ -2,10 +2,11 @@ import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEmpresaDefault } from '@/hooks/useEmpresaDefault'
 import { api } from '@/lib/api'
-import { formatCurrency, formatDate, extractApiError } from '@/lib/utils'
+import { formatCurrency, formatDate, extractApiError, formatCompetencia } from '@/lib/utils'
 import { toast } from '@/hooks/useToast'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { ErroConsulta } from '@/components/ui/erro-consulta'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -69,6 +70,10 @@ export default function CartoesPage() {
   const [modalAssociar, setModalAssociar] = useState(false)
   const [modalDeleteCartao, setModalDeleteCartao] = useState<Cartao | null>(null)
   const [modalDeleteFatura, setModalDeleteFatura] = useState<Fatura | null>(null)
+  // Confirmação para o que não dava para desfazer com um clique.
+  const [modalRemoverLanc, setModalRemoverLanc] = useState<Lancamento | null>(null)
+  const [modalFecharFatura, setModalFecharFatura] = useState<Fatura | null>(null)
+  const [modalDesvincular, setModalDesvincular] = useState(false)
 
   // form states
   const [formCartao, setFormCartao] = useState({
@@ -86,7 +91,7 @@ export default function CartoesPage() {
 
   const { data: empresas = [] } = useEmpresas()
 
-  const { data: cartoes, isLoading: loadingCartoes } = useQuery<{ items: Cartao[] }>({
+  const { data: cartoes, isLoading: loadingCartoes, isError: erroCartoes, error: errCartoes, refetch: refetchCartoes } = useQuery<{ items: Cartao[] }>({
     queryKey: ['cartoes', selectedEmpresa],
     queryFn: () => api.get(`/empresas/${selectedEmpresa}/cartoes`).then(r => r.data),
     enabled: !!selectedEmpresa,
@@ -277,7 +282,7 @@ export default function CartoesPage() {
       {viewFatura && (
         <>
           <ChevronRight className="h-3 w-3" />
-          <span className="text-foreground font-medium">Fatura {viewFatura.competencia}</span>
+          <span className="text-foreground font-medium">Fatura {formatCompetencia(viewFatura.competencia)}</span>
         </>
       )}
     </div>
@@ -314,6 +319,8 @@ export default function CartoesPage() {
             <p className="text-muted-foreground text-center py-8">Selecione uma empresa</p>
           ) : loadingCartoes ? (
             <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : erroCartoes ? (
+            <ErroConsulta erro={errCartoes} contexto="os cartões" onTentarDeNovo={() => refetchCartoes()} />
           ) : !cartoes?.items.length ? (
             <div className="text-center py-8 space-y-2">
               <CreditCard className="h-10 w-10 mx-auto text-muted-foreground" />
@@ -324,8 +331,14 @@ export default function CartoesPage() {
               {cartoes.items.map(c => (
                 <div
                   key={c.id}
-                  className="border rounded-lg p-4 space-y-2 hover:shadow-md transition-shadow cursor-pointer bg-card"
+                  role="link"
+                  tabIndex={0}
+                  aria-label={`Ver faturas do cartão ${c.nome}`}
+                  className="border rounded-lg p-4 space-y-2 hover:shadow-md transition-shadow cursor-pointer bg-card focus-visible:outline-none"
                   onClick={() => setViewCartao(c)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewCartao(c) }
+                  }}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
@@ -409,7 +422,7 @@ export default function CartoesPage() {
                       <tr key={f.id} className="border-b hover:bg-muted/50 transition-colors">
                         <td className="py-2 px-3 font-medium cursor-pointer hover:text-primary"
                           onClick={() => { setViewFatura(f) }}>
-                          {f.competencia}
+                          <span className="tnum">{formatCompetencia(f.competencia)}</span>
                         </td>
                         <td className="py-2 px-3 text-muted-foreground">
                           {f.data_vencimento ? formatDate(f.data_vencimento) : '—'}
@@ -431,8 +444,10 @@ export default function CartoesPage() {
                             </Button>
                             {f.status === 'aberta' && (
                               <Button variant="ghost" size="icon" className="h-7 w-7"
+                                aria-label={`Fechar fatura de ${formatCompetencia(f.competencia)}`}
                                 title="Fechar fatura"
-                                onClick={() => fecharFaturaMut.mutate(f)}>
+                                disabled={fecharFaturaMut.isPending}
+                                onClick={() => setModalFecharFatura(f)}>
                                 <Pencil className="h-3.5 w-3.5" />
                               </Button>
                             )}
@@ -456,7 +471,7 @@ export default function CartoesPage() {
     <>
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold">Fatura {viewFatura.competencia}</h1>
+          <h1 className="text-3xl font-bold">Fatura {formatCompetencia(viewFatura.competencia)}</h1>
           {breadcrumb}
         </div>
         {viewFatura.status !== 'paga' && (
@@ -510,14 +525,19 @@ export default function CartoesPage() {
       {/* Botões de pagamento */}
       <div className="flex gap-2">
         {!viewFatura.transacao_id ? (
-          <Button variant="outline" size="sm" onClick={() => { setTransacaoSelecionada(''); setModalAssociar(true) }}
-            disabled={viewFatura.status === 'aberta'}>
-            <LinkIcon className="h-4 w-4 mr-2" />
-            Associar Pagamento
-          </Button>
+          <div className="flex flex-col items-start gap-1">
+            <Button variant="outline" size="sm" onClick={() => { setTransacaoSelecionada(''); setModalAssociar(true) }}
+              disabled={viewFatura.status === 'aberta'}>
+              <LinkIcon className="h-4 w-4 mr-2" />
+              Associar Pagamento
+            </Button>
+            {viewFatura.status === 'aberta' && (
+              <p className="text-xs text-muted-foreground">Feche a fatura para poder associar o pagamento</p>
+            )}
+          </div>
         ) : (
           <Button variant="outline" size="sm"
-            onClick={() => desassociarMut.mutate()} disabled={desassociarMut.isPending}>
+            onClick={() => setModalDesvincular(true)} disabled={desassociarMut.isPending}>
             <Unlink className="h-4 w-4 mr-2" />
             Desvincular Pagamento
           </Button>
@@ -567,7 +587,9 @@ export default function CartoesPage() {
                       {viewFatura.status !== 'paga' && (
                         <td className="py-2 px-3 text-right">
                           <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"
-                            onClick={() => removerLancMut.mutate(l.id)}>
+                            aria-label={`Remover lançamento ${l.descricao} de ${formatCurrency(l.valor)}`}
+                            disabled={removerLancMut.isPending}
+                            onClick={() => setModalRemoverLanc(l)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </td>
@@ -646,6 +668,66 @@ export default function CartoesPage() {
       </Dialog>
 
       {/* ── Modal: Confirmar exclusão cartão ── */}
+      {/* ── Confirmações de ação destrutiva ──
+          Remover lançamento e fechar fatura disparavam direto do ícone. Um
+          toque errado apagava dinheiro lançado, e o resto do produto já
+          confirma operação equivalente em diálogo. */}
+      <Dialog open={!!modalRemoverLanc} onOpenChange={() => setModalRemoverLanc(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Remover lançamento</DialogTitle></DialogHeader>
+          <p className="py-2 text-sm text-muted-foreground">
+            Remover <strong className="text-foreground">{modalRemoverLanc?.descricao}</strong>, de{' '}
+            <strong className="tnum text-foreground">
+              {modalRemoverLanc ? formatCurrency(modalRemoverLanc.valor) : ''}
+            </strong>, desta fatura? O total da fatura é recalculado.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModalRemoverLanc(null)}>Cancelar</Button>
+            <Button variant="destructive" disabled={removerLancMut.isPending}
+              onClick={() => { if (modalRemoverLanc) { removerLancMut.mutate(modalRemoverLanc.id); setModalRemoverLanc(null) } }}>
+              {removerLancMut.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Remover
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!modalFecharFatura} onOpenChange={() => setModalFecharFatura(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Fechar fatura</DialogTitle></DialogHeader>
+          <p className="py-2 text-sm text-muted-foreground">
+            Fechar a fatura de <strong className="tnum text-foreground">{modalFecharFatura ? formatCompetencia(modalFecharFatura.competencia) : ''}</strong>?
+            Depois de fechada ela deixa de aceitar novos lançamentos e passa a aceitar a associação do pagamento.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModalFecharFatura(null)}>Cancelar</Button>
+            <Button disabled={fecharFaturaMut.isPending}
+              onClick={() => { if (modalFecharFatura) { fecharFaturaMut.mutate(modalFecharFatura); setModalFecharFatura(null) } }}>
+              {fecharFaturaMut.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Fechar fatura
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={modalDesvincular} onOpenChange={setModalDesvincular}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Desvincular pagamento</DialogTitle></DialogHeader>
+          <p className="py-2 text-sm text-muted-foreground">
+            Soltar a transação bancária que está vinculada a esta fatura? A fatura volta a ficar sem pagamento
+            associado; a transação continua no extrato.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModalDesvincular(false)}>Cancelar</Button>
+            <Button variant="destructive" disabled={desassociarMut.isPending}
+              onClick={() => { desassociarMut.mutate(); setModalDesvincular(false) }}>
+              {desassociarMut.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Desvincular
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!modalDeleteCartao} onOpenChange={() => setModalDeleteCartao(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Remover Cartão</DialogTitle></DialogHeader>

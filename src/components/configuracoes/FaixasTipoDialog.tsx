@@ -137,6 +137,7 @@ export function FaixasTipoDialog({ empresaId, open, onOpenChange }: FaixasTipoDi
                             type="button"
                             size="icon"
                             variant="ghost"
+                            aria-label="Remover faixa"
                             onClick={() => setFaixasDraft(current => current.filter(item => item.id !== faixa.id))}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />

@@ -286,7 +286,7 @@ export function PlanoContasTab({ empresaId }: { empresaId: string }) {
           {importResult.erros?.length > 0 && (
             <div className="max-h-40 overflow-y-auto space-y-1">
               {importResult.erros.map((e: any, i: number) => (
-                <div key={i} className="text-xs flex items-start gap-2 text-warning bg-warning/15 px-2 py-1 rounded">
+                <div key={i} className="text-xs flex items-start gap-2 text-warning bg-warning/15 px-2 py-1 rounded-sm">
                   <span className="font-medium shrink-0">Linha {e.linha}:</span>
                   {e.codigo && <span className="font-mono text-muted-foreground shrink-0">{e.codigo}</span>}
                   <span className="truncate">{e.erro}</span>
@@ -316,7 +316,7 @@ export function PlanoContasTab({ empresaId }: { empresaId: string }) {
           {loteResult.bloqueadas?.length > 0 && (
             <div className="max-h-40 overflow-y-auto space-y-1">
               {loteResult.bloqueadas.map((b: any) => (
-                <div key={b.id} className="text-xs flex items-start gap-2 text-warning bg-warning/15 px-2 py-1 rounded">
+                <div key={b.id} className="text-xs flex items-start gap-2 text-warning bg-warning/15 px-2 py-1 rounded-sm">
                   <span className="font-mono font-medium shrink-0">{b.codigo}</span>
                   <span className="truncate">{b.erro}</span>
                 </div>
@@ -360,7 +360,7 @@ export function PlanoContasTab({ empresaId }: { empresaId: string }) {
       </div>
 
       {/* Cabeçalho */}
-      <div className="grid grid-cols-[1.5rem_4rem_8rem_1fr_3rem_5rem_4rem] gap-2 px-2 py-1.5 bg-muted/50 rounded text-xs font-semibold text-muted-foreground uppercase tracking-wide items-center">
+      <div className="grid grid-cols-[1.5rem_4rem_8rem_1fr_3rem_5rem_4rem] gap-2 px-2 py-1.5 bg-muted/50 rounded-sm text-xs font-semibold text-muted-foreground uppercase tracking-wide items-center">
         <input
           type="checkbox"
           className="h-3.5 w-3.5"
@@ -426,14 +426,14 @@ export function PlanoContasTab({ empresaId }: { empresaId: string }) {
                   <span className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity justify-end pr-1">
                     <button
                       onClick={() => setEditConta(c)}
-                      className="p-1 rounded hover:bg-muted/70 text-muted-foreground hover:text-foreground transition-colors"
+                      className="p-1 rounded-sm hover:bg-muted/70 text-muted-foreground hover:text-foreground transition-colors"
                       title="Editar"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
                     <button
                       onClick={() => setDeleteConta(c)}
-                      className="p-1 rounded hover:bg-danger/15 text-muted-foreground hover:text-danger transition-colors"
+                      className="p-1 rounded-sm hover:bg-danger/15 text-muted-foreground hover:text-danger transition-colors"
                       title="Remover"
                     >
                       <Trash2 className="h-3.5 w-3.5" />

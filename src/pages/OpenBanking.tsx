@@ -467,6 +467,7 @@ export default function OpenBankingPage() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-destructive hover:text-destructive"
+                        aria-label="Remover conexão de Open Banking"
                         onClick={() => setDeletando(c)}
                       >
                         <Trash2 className="h-4 w-4" />

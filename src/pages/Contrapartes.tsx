@@ -256,7 +256,10 @@ export function ContrapartesTab({ empresaId }: { empresaId: string }) {
                         <td className="py-2 px-2">
                           <Badge variant="outline">{TIPO_LABEL[c.tipo] ?? c.tipo}</Badge>
                         </td>
-                        <td className="py-2 px-2 max-w-[200px] truncate">
+                        <td
+                          className="py-2 px-2 max-w-[200px] truncate"
+                          title={`${c.conta_codigo ? c.conta_codigo + ' — ' : ''}${c.conta_descricao ?? ''}`.trim() || undefined}
+                        >
                           {c.conta_codigo ? `${c.conta_codigo} — ` : ''}{c.conta_descricao ?? '—'}
                         </td>
                         <td className="py-2 px-2 text-center">

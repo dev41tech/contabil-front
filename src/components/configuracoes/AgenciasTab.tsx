@@ -164,7 +164,7 @@ export function AgenciasTab({ empresaId }: { empresaId: string }) {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {data.map((a: any) => (
-            <div key={a.id} className={`flex items-center justify-between gap-3 p-4 rounded-lg border transition-shadow ${a.ativa ? 'bg-white hover:shadow-sm' : 'bg-muted/50 opacity-75'}`}>
+            <div key={a.id} className={`flex items-center justify-between gap-3 p-4 rounded-lg border transition-shadow ${a.ativa ? 'bg-card hover:shadow-sm' : 'bg-muted/50 opacity-75'}`}>
               <div className="flex items-start gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand/10 text-brand font-bold text-sm shrink-0">
                   {a.banco_sigla?.slice(0, 2).toUpperCase()}

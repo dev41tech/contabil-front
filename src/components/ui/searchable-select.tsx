@@ -28,6 +28,12 @@ interface SearchableSelectProps {
   disabled?: boolean
   className?: string
   emptyText?: string
+  /** Para o `htmlFor` de um <Label> externo apontar para o gatilho. */
+  id?: string
+  /** Quando não há rótulo visível ao lado. */
+  'aria-label'?: string
+  /** Id do elemento que rotula este campo. */
+  'aria-labelledby'?: string
 }
 
 export function SearchableSelect({
@@ -39,7 +45,15 @@ export function SearchableSelect({
   disabled = false,
   className,
   emptyText = 'Nenhum resultado.',
+  id,
+  'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
 }: SearchableSelectProps) {
+  // Ids estáveis para amarrar gatilho, listbox e opção ativa. Sem isso o
+  // leitor de tela anunciava "botão" e nunca a opção sob o cursor.
+  const uid = React.useId()
+  const listboxId = `${uid}-listbox`
+  const opcaoId = (idx: number) => `${uid}-opcao-${idx}`
   const [open, setOpen] = React.useState(false)
   const [search, setSearch] = React.useState('')
   const [activeIdx, setActiveIdx] = React.useState(-1)
@@ -134,10 +148,15 @@ export function SearchableSelect({
         disabled={disabled}
         onClick={() => !disabled && setOpen(o => !o)}
         onKeyDown={handleTriggerKeyDown}
+        id={id}
+        role="combobox"
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-controls={open ? listboxId : undefined}
+        aria-label={ariaLabel}
+        aria-labelledby={ariaLabelledBy}
         className={cn(
-          'flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm',
+          'flex h-9 w-full items-center justify-between rounded-md border border-input bg-input-bg px-3 py-2 text-sm',
           'ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
           'disabled:cursor-not-allowed disabled:opacity-50',
           !selectedLabel && 'text-muted-foreground',
@@ -154,7 +173,7 @@ export function SearchableSelect({
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute z-50 mt-1 w-full min-w-[8rem] rounded-md border border-border bg-white text-foreground shadow-md">
+        <div className="absolute z-50 mt-1 w-full min-w-[8rem] rounded-md border border-border bg-popover text-popover-foreground shadow-md">
           {/* Search box */}
           <div className="flex items-center border-b px-3">
             <Search className="h-4 w-4 shrink-0 opacity-40 mr-2" />
@@ -164,18 +183,25 @@ export function SearchableSelect({
               onChange={e => { setSearch(e.target.value); setActiveIdx(-1) }}
               onKeyDown={handleInputKeyDown}
               placeholder={searchPlaceholder}
+              role="combobox"
+              aria-expanded
+              aria-controls={listboxId}
+              aria-autocomplete="list"
+              aria-label={searchPlaceholder}
+              aria-activedescendant={activeIdx >= 0 ? opcaoId(activeIdx) : undefined}
               className="flex h-9 w-full bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground"
             />
           </div>
 
           {/* Option list */}
-          <div ref={listRef} className="max-h-60 overflow-y-auto p-1" role="listbox">
+          <div ref={listRef} id={listboxId} className="max-h-60 overflow-y-auto p-1" role="listbox">
             {filtered.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">{emptyText}</p>
             ) : (
               filtered.map((option, idx) => (
                 <div
                   key={option.value}
+                  id={opcaoId(idx)}
                   role="option"
                   aria-selected={option.value === value}
                   onClick={() => selectOption(option.value)}

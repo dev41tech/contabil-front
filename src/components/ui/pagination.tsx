@@ -18,11 +18,11 @@ export function Pagination({ page, pageSize, total, onPageChange }: PaginationPr
         Mostrando {Math.min((page - 1) * pageSize + 1, total)}–{Math.min(page * pageSize, total)} de {total}
       </p>
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" onClick={() => onPageChange(page - 1)} disabled={page <= 1}>
+        <Button variant="outline" size="sm" aria-label="Página anterior" onClick={() => onPageChange(page - 1)} disabled={page <= 1}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <span className="text-sm font-medium">{page} / {totalPages}</span>
-        <Button variant="outline" size="sm" onClick={() => onPageChange(page + 1)} disabled={page >= totalPages}>
+        <Button variant="outline" size="sm" aria-label="Próxima página" onClick={() => onPageChange(page + 1)} disabled={page >= totalPages}>
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>

@@ -5,6 +5,7 @@ import { api } from '@/lib/api'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { ErroConsulta } from '@/components/ui/erro-consulta'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -59,16 +60,28 @@ function fmt(val: number) {
   return formatCurrency(val)
 }
 
-function buildQuery(dataInicio: string, dataFim: string): string {
+/**
+ * Monta o intervalo do relatório a partir dos dois campos `type="date"`.
+ *
+ * Antes daqui saía `new Date(valor).toISOString()`. `new Date('2026-09-03')` é
+ * lido como meia-noite UTC, e o `setHours(23,59,59,999)` que vinha depois opera
+ * no fuso local — em São Paulo o fim do período virava 23:59 do dia ANTERIOR.
+ * O intervalo enviado cobria três horas em vez de um dia, e o relatório saía
+ * com número redondo e errado, sem nenhum aviso.
+ *
+ * Agora nada é convertido para UTC: as strings dos inputs já são datas civis
+ * (AAAA-MM-DD) e é isso que a API quer.
+ *
+ * O fim do dia depende do endpoint, e essa diferença é do backend:
+ * DRE e balancete recebem `datetime` e comparam contra `data_lancamento`, que é
+ * timestamptz — com data pura, `data_ate` viraria 00:00 e o último dia sumiria.
+ * Livro-caixa recebe `date` e já resolve o fim do dia lá dentro (foi corrigido
+ * assim justamente por causa desse mesmo bug), e recusa string com hora.
+ */
+function buildQuery(dataInicio: string, dataFim: string, fimDoDia = true): string {
   const p = new URLSearchParams()
-  if (dataInicio) p.set('data_de', new Date(dataInicio).toISOString())
-  if (dataFim) {
-    const d = new Date(dataFim)
-    if (!isNaN(d.getTime())) {
-      d.setHours(23, 59, 59, 999)
-      p.set('data_ate', d.toISOString())
-    }
-  }
+  if (dataInicio) p.set('data_de', dataInicio)
+  if (dataFim) p.set('data_ate', fimDoDia ? `${dataFim}T23:59:59.999` : dataFim)
   return p.toString() ? '?' + p.toString() : ''
 }
 
@@ -121,8 +134,8 @@ function DREView({ data }: { data: DREResponse }) {
             <span className="font-semibold text-sm">{grupo.label}</span>
             <span className="font-bold text-sm">{fmt(grupo.total)}</span>
           </div>
-          <div className="border rounded-b-md overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="border rounded-b-md overflow-x-auto">
+            <table className="w-full min-w-[720px] text-sm">
               <thead className="bg-muted/50">
                 <tr>
                   <th className="text-left px-3 py-2 text-xs text-muted-foreground w-24">Código</th>
@@ -162,8 +175,8 @@ function DREView({ data }: { data: DREResponse }) {
 function BalanceteView({ data }: { data: BalanceteResponse }) {
   return (
     <div className="space-y-4">
-      <div className="border rounded-md overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="border rounded-md overflow-x-auto">
+        <table className="w-full min-w-[900px] text-sm">
           <thead className="bg-muted">
             <tr>
               <th className="text-left px-3 py-2 text-xs text-muted-foreground w-24">Código</th>
@@ -233,13 +246,13 @@ function LivroCaixaView({ data }: { data: LivroCaixaResponse }) {
               <span>Saldo Final: <strong className={cn(agencia.saldo_final >= 0 ? 'text-success' : 'text-danger')}>{fmt(agencia.saldo_final)}</strong></span>
             </div>
           </div>
-          <div className="border rounded-b-md overflow-hidden">
+          <div className="border rounded-b-md overflow-x-auto">
             {agencia.lancamentos.length === 0 ? (
               <div className="text-center py-6 text-muted-foreground text-sm">
                 Sem movimentações no período.
               </div>
             ) : (
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[760px] text-sm">
                 <thead className="bg-muted/50">
                   <tr>
                     <th className="text-left px-3 py-2 text-xs text-muted-foreground w-32">Data</th>
@@ -299,7 +312,7 @@ export default function RelatoriosPage() {
   const isReady = !!fetchParams.empresa
 
   // DRE
-  const { data: dreData, isFetching: dreLoading } = useQuery<DREResponse>({
+  const { data: dreData, isFetching: dreLoading, isError: dreErro, error: dreErr, refetch: refetchDre } = useQuery<DREResponse>({
     queryKey: ['relatorio-dre', fetchParams],
     queryFn: () => {
       const qs = buildQuery(fetchParams.dataDe, fetchParams.dataAte)
@@ -309,7 +322,7 @@ export default function RelatoriosPage() {
   })
 
   // Balancete
-  const { data: balanceteData, isFetching: balanceteLoading } = useQuery<BalanceteResponse>({
+  const { data: balanceteData, isFetching: balanceteLoading, isError: balanceteErro, error: balanceteErr, refetch: refetchBalancete } = useQuery<BalanceteResponse>({
     queryKey: ['relatorio-balancete', fetchParams],
     queryFn: () => {
       const qs = buildQuery(fetchParams.dataDe, fetchParams.dataAte)
@@ -319,16 +332,24 @@ export default function RelatoriosPage() {
   })
 
   // Livro Caixa
-  const { data: caixaData, isFetching: caixaLoading } = useQuery<LivroCaixaResponse>({
+  const { data: caixaData, isFetching: caixaLoading, isError: caixaErro, error: caixaErr, refetch: refetchCaixa } = useQuery<LivroCaixaResponse>({
     queryKey: ['relatorio-livro-caixa', fetchParams],
     queryFn: () => {
-      const qs = buildQuery(fetchParams.dataDe, fetchParams.dataAte)
+      // `date` no backend: manda data pura, sem hora.
+      const qs = buildQuery(fetchParams.dataDe, fetchParams.dataAte, false)
       return api.get(`/empresas/${fetchParams.empresa}/relatorios/livro-caixa${qs}`).then(r => r.data)
     },
     enabled: isReady && activeTab === 'livro_caixa',
   })
 
   const isLoading = dreLoading || balanceteLoading || caixaLoading
+
+  // Erro e refetch da aba visível — antes a falha não casava com nenhuma
+  // condição de render e a área simplesmente ficava em branco.
+  const erroDaAba =
+    activeTab === 'dre' ? { erro: dreErro, err: dreErr, refetch: refetchDre, contexto: 'o DRE' }
+    : activeTab === 'balancete' ? { erro: balanceteErro, err: balanceteErr, refetch: refetchBalancete, contexto: 'o balancete' }
+    : { erro: caixaErro, err: caixaErr, refetch: refetchCaixa, contexto: 'o livro-caixa' }
 
   function handleGerar() {
     if (!selectedEmpresa) return
@@ -431,7 +452,8 @@ export default function RelatoriosPage() {
             {empresaLabel && <p className="text-sm text-muted-foreground">{empresaLabel}</p>}
             {(fetchParams.dataDe || fetchParams.dataAte) && (
               <p className="text-xs text-muted-foreground">
-                Período: {fetchParams.dataDe || '—'} até {fetchParams.dataAte || '—'}
+                Período: {fetchParams.dataDe ? formatDate(fetchParams.dataDe) : '—'} até{' '}
+                {fetchParams.dataAte ? formatDate(fetchParams.dataAte) : '—'}
               </p>
             )}
           </div>
@@ -439,6 +461,14 @@ export default function RelatoriosPage() {
               <div className="flex items-center justify-center py-16">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
+            )}
+
+            {!isLoading && erroDaAba.erro && (
+              <ErroConsulta
+                erro={erroDaAba.err}
+                contexto={erroDaAba.contexto}
+                onTentarDeNovo={() => erroDaAba.refetch()}
+              />
             )}
 
             {!isLoading && activeTab === 'dre' && dreData && (
