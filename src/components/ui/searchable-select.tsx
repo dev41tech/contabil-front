@@ -154,7 +154,7 @@ export function SearchableSelect({
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute z-50 mt-1 w-full min-w-[8rem] rounded-md border border-border bg-white text-foreground shadow-md">
+        <div className="absolute z-50 mt-1 w-full min-w-[8rem] rounded-md border border-border bg-popover text-popover-foreground shadow-md">
           {/* Search box */}
           <div className="flex items-center border-b px-3">
             <Search className="h-4 w-4 shrink-0 opacity-40 mr-2" />

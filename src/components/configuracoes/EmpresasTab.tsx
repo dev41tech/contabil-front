@@ -116,7 +116,7 @@ export function EmpresasTab() {
         ) : (
           <div className="grid gap-3 md:grid-cols-2">
             {empresas.map(empresa => (
-              <div key={empresa.id} className="flex items-center justify-between gap-3 rounded-lg border bg-white p-4">
+              <div key={empresa.id} className="flex items-center justify-between gap-3 rounded-lg border bg-card p-4">
                 <div className="min-w-0">
                   <p className="truncate font-semibold">{empresa.razao_social}</p>
                   <p className="text-xs text-muted-foreground">{empresa.cnpj || 'CNPJ não informado'}</p>

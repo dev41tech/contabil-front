@@ -59,16 +59,28 @@ function fmt(val: number) {
   return formatCurrency(val)
 }
 
-function buildQuery(dataInicio: string, dataFim: string): string {
+/**
+ * Monta o intervalo do relatório a partir dos dois campos `type="date"`.
+ *
+ * Antes daqui saía `new Date(valor).toISOString()`. `new Date('2026-09-03')` é
+ * lido como meia-noite UTC, e o `setHours(23,59,59,999)` que vinha depois opera
+ * no fuso local — em São Paulo o fim do período virava 23:59 do dia ANTERIOR.
+ * O intervalo enviado cobria três horas em vez de um dia, e o relatório saía
+ * com número redondo e errado, sem nenhum aviso.
+ *
+ * Agora nada é convertido para UTC: as strings dos inputs já são datas civis
+ * (AAAA-MM-DD) e é isso que a API quer.
+ *
+ * O fim do dia depende do endpoint, e essa diferença é do backend:
+ * DRE e balancete recebem `datetime` e comparam contra `data_lancamento`, que é
+ * timestamptz — com data pura, `data_ate` viraria 00:00 e o último dia sumiria.
+ * Livro-caixa recebe `date` e já resolve o fim do dia lá dentro (foi corrigido
+ * assim justamente por causa desse mesmo bug), e recusa string com hora.
+ */
+function buildQuery(dataInicio: string, dataFim: string, fimDoDia = true): string {
   const p = new URLSearchParams()
-  if (dataInicio) p.set('data_de', new Date(dataInicio).toISOString())
-  if (dataFim) {
-    const d = new Date(dataFim)
-    if (!isNaN(d.getTime())) {
-      d.setHours(23, 59, 59, 999)
-      p.set('data_ate', d.toISOString())
-    }
-  }
+  if (dataInicio) p.set('data_de', dataInicio)
+  if (dataFim) p.set('data_ate', fimDoDia ? `${dataFim}T23:59:59.999` : dataFim)
   return p.toString() ? '?' + p.toString() : ''
 }
 
@@ -322,7 +334,8 @@ export default function RelatoriosPage() {
   const { data: caixaData, isFetching: caixaLoading } = useQuery<LivroCaixaResponse>({
     queryKey: ['relatorio-livro-caixa', fetchParams],
     queryFn: () => {
-      const qs = buildQuery(fetchParams.dataDe, fetchParams.dataAte)
+      // `date` no backend: manda data pura, sem hora.
+      const qs = buildQuery(fetchParams.dataDe, fetchParams.dataAte, false)
       return api.get(`/empresas/${fetchParams.empresa}/relatorios/livro-caixa${qs}`).then(r => r.data)
     },
     enabled: isReady && activeTab === 'livro_caixa',

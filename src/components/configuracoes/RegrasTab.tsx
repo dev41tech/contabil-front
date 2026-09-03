@@ -163,7 +163,7 @@ export function RegrasTab({ empresaId }: { empresaId: string }) {
           {regras.map((r: any) => (
             <div
               key={r.id}
-              className={`p-4 rounded-lg border transition-colors hover:shadow-sm ${r.ativa ? 'bg-white' : 'bg-muted/30 opacity-70'}`}
+              className={`p-4 rounded-lg border transition-colors hover:shadow-sm ${r.ativa ? 'bg-card' : 'bg-muted/30 opacity-70'}`}
             >
               <div className="flex items-start justify-between gap-3">
                 {/* Lado esquerdo: info principal */}

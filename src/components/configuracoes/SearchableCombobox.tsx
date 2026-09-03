@@ -49,7 +49,7 @@ export function SearchableCombobox({
       <button
         type="button"
         onClick={handleOpen}
-        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-white px-3 py-2 text-sm hover:bg-muted/30 transition-colors"
+        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-input-bg px-3 py-2 text-sm hover:bg-muted/30 transition-colors"
       >
         <span className={`truncate ${selected ? 'text-foreground' : 'text-muted-foreground'}`}>
           {selected ? selected.label : placeholder}
@@ -58,7 +58,7 @@ export function SearchableCombobox({
       </button>
 
       {open && (
-        <div className="absolute z-[200] w-full mt-1 bg-white border rounded-md shadow-xl">
+        <div className="absolute z-[200] w-full mt-1 bg-popover text-popover-foreground border rounded-md shadow-xl">
           <div className="p-2 border-b">
             <div className="relative">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
