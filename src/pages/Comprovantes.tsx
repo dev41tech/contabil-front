@@ -9,6 +9,7 @@ import { formatCurrency, formatDate, extractApiError } from '@/lib/utils'
 import { toast } from '@/hooks/useToast'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { ErroConsulta } from '@/components/ui/erro-consulta'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -48,6 +49,8 @@ export default function ComprovantesPage() {
   const [pendingFile, setPendingFile] = useState<{ nome: string; base64: string } | null>(null)
   const [extracaoStatus, setExtracaoStatus] = useState<'idle' | 'extraindo' | 'extraido' | 'falhou'>('idle')
   const [extracaoConfianca, setExtracaoConfianca] = useState<string | null>(null)
+  const [confirmarDescarte, setConfirmarDescarte] = useState(false)
+  const [abrindoArquivo, setAbrindoArquivo] = useState<string | null>(null)
 
   // Fila de arquivos soltos de uma vez (item 5 do PDF de feedback dos contadores).
   // Processa um por vez — reaproveita o mesmo fluxo de extração + revisão de
@@ -66,7 +69,7 @@ export default function ComprovantesPage() {
     return p.toString()
   }
 
-  const { data: comprovantes, isLoading } = useQuery<any>({
+  const { data: comprovantes, isLoading, isError, error, refetch } = useQuery<any>({
     queryKey: ['comprovantes', selectedEmpresa, statusFiltro, page],
     queryFn: () => api.get(`/empresas/${selectedEmpresa}/comprovantes?${buildParams()}`).then(r => r.data),
     enabled: !!selectedEmpresa,
@@ -221,6 +224,11 @@ export default function ComprovantesPage() {
     avancarFila()
   }
 
+  /**
+   * Descarta a fila inteira. Antes era chamado direto pelo X, pelo Escape e
+   * pelo clique fora — um toque errado jogava fora N arquivos já escolhidos,
+   * sem perguntar. Agora só roda depois da confirmação.
+   */
   const fecharFila = () => {
     setOpenCreate(false)
     reset()
@@ -229,6 +237,21 @@ export default function ComprovantesPage() {
     setExtracaoConfianca(null)
     setBatch([])
     setBatchIndex(0)
+  }
+
+  /** Quantos arquivos ainda restam na fila, contando o que está na tela. */
+  const restantesNaFila = batch.length > 0 ? batch.length - batchIndex : 0
+
+  /**
+   * Só fecha direto quando não há nada a perder. Com fila em andamento, ou
+   * envio em voo, pede confirmação antes.
+   */
+  const pedirParaFechar = () => {
+    if (createMutation.isPending || restantesNaFila > 1) {
+      setConfirmarDescarte(true)
+      return
+    }
+    fecharFila()
   }
 
   // ── Arrastar e soltar (item 5 do PDF de feedback dos contadores) ────────────
@@ -285,11 +308,24 @@ export default function ComprovantesPage() {
 
   const verArquivo = async (comprovante: any) => {
     if (!comprovante.tem_arquivo) return
-    const res = await api.get(`/empresas/${selectedEmpresa}/comprovantes/${comprovante.id}/arquivo`, {
-      responseType: 'blob',
-    })
-    const url = URL.createObjectURL(res.data)
-    setOpenArquivo({ url, nome: comprovante.arquivo_nome ?? 'comprovante' })
+    // Sem try/catch, arquivo indisponível virava clique que não faz nada mais
+    // uma promise rejeitada no console.
+    setAbrindoArquivo(comprovante.id)
+    try {
+      const res = await api.get(`/empresas/${selectedEmpresa}/comprovantes/${comprovante.id}/arquivo`, {
+        responseType: 'blob',
+      })
+      const url = URL.createObjectURL(res.data)
+      setOpenArquivo({ url, nome: comprovante.arquivo_nome ?? 'comprovante' })
+    } catch (e: unknown) {
+      toast({
+        title: 'Não foi possível abrir o comprovante',
+        description: extractApiError(e, 'O arquivo pode ter sido removido do servidor.'),
+        variant: 'destructive',
+      })
+    } finally {
+      setAbrindoArquivo(null)
+    }
   }
 
   const items: any[] = comprovantes?.items ?? []
@@ -373,6 +409,8 @@ export default function ComprovantesPage() {
             <p className="text-muted-foreground text-center py-8">Selecione uma empresa para ver os comprovantes</p>
           ) : isLoading ? (
             <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : isError ? (
+            <ErroConsulta erro={error} contexto="os comprovantes" onTentarDeNovo={() => refetch()} />
           ) : items.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">
               {statusFiltro !== 'todos' ? 'Nenhum comprovante encontrado com esse filtro.' : 'Nenhum comprovante cadastrado.'}
@@ -407,7 +445,7 @@ export default function ComprovantesPage() {
                         <td className="py-2 px-2 text-right font-mono text-xs">{(c.desconto ?? 0) > 0 ? formatCurrency(c.desconto) : '—'}</td>
                         <td className="py-2 px-2 text-center">
                           {c.tem_arquivo ? (
-                            <Button variant="ghost" size="sm" onClick={() => verArquivo(c)}>
+                            <Button variant="ghost" size="sm" disabled={abrindoArquivo === c.id} onClick={() => verArquivo(c)}>
                               <Eye className="h-4 w-4" />
                             </Button>
                           ) : (
@@ -443,9 +481,27 @@ export default function ComprovantesPage() {
         </CardContent>
       </Card>
 
+      {/* Confirmação antes de jogar a fila fora */}
+      <Dialog open={confirmarDescarte} onOpenChange={setConfirmarDescarte}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Descartar a fila?</DialogTitle></DialogHeader>
+          <p className="py-2 text-sm text-muted-foreground">
+            {createMutation.isPending
+              ? 'Há um envio em andamento. Fechar agora tira a fila da tela, mas o comprovante que já foi enviado continua sendo gravado no servidor.'
+              : `Ainda faltam ${restantesNaFila} comprovantes nesta fila. Fechar descarta todos, e os arquivos precisam ser escolhidos de novo.`}
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmarDescarte(false)}>Continuar cadastrando</Button>
+            <Button variant="destructive" onClick={() => { setConfirmarDescarte(false); fecharFila() }}>
+              Descartar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Modal Novo Comprovante */}
       <Dialog open={openCreate} onOpenChange={v => {
-        if (!v) fecharFila(); else setOpenCreate(true)
+        if (!v) pedirParaFechar(); else setOpenCreate(true)
       }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -616,7 +672,7 @@ export default function ComprovantesPage() {
             <DialogTitle>{openArquivo?.nome}</DialogTitle>
           </DialogHeader>
           {openArquivo?.url && (
-            <iframe src={openArquivo.url} className="w-full h-[60vh] border rounded" title="Comprovante" />
+            <iframe src={openArquivo.url} className="w-full h-[60vh] border rounded-sm" title="Comprovante" />
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenArquivo(null)}>Fechar</Button>

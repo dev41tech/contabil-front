@@ -49,7 +49,7 @@ export function SearchableCombobox({
       <button
         type="button"
         onClick={handleOpen}
-        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-input-bg px-3 py-2 text-sm hover:bg-muted/30 transition-colors"
+        className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-input-bg px-3 py-2 text-sm hover:bg-muted/30 transition-colors"
       >
         <span className={`truncate ${selected ? 'text-foreground' : 'text-muted-foreground'}`}>
           {selected ? selected.label : placeholder}
@@ -67,7 +67,7 @@ export function SearchableCombobox({
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Buscar conta..."
-                className="w-full pl-7 pr-3 py-1.5 text-sm border rounded bg-muted/30 focus:outline-none focus:ring-1 focus:ring-ring"
+                className="w-full pl-7 pr-3 py-1.5 text-sm border rounded-sm bg-muted/30 focus:outline-none focus:ring-1 focus:ring-ring"
               />
             </div>
           </div>

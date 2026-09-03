@@ -66,11 +66,25 @@ const navGroups = [
  * menos por navegação vale mais que a altura economizada. O item ativo é
  * marcado por cor + barra de 3px na borda, não por fundo cheio.
  */
-export function Sidebar() {
+interface SidebarProps {
+  /** Só vale abaixo de lg, onde a sidebar vira drawer sobreposto. */
+  aberta?: boolean
+  onFechar?: () => void
+}
+
+export function Sidebar({ aberta = false, onFechar }: SidebarProps) {
   const { user, logout } = useAuth()
 
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-r border-border bg-sidebar">
+    <aside
+      className={cn(
+        'z-50 flex w-60 shrink-0 flex-col border-r border-border bg-sidebar',
+        // Abaixo de lg é drawer: sai da tela e desliza por cima do conteúdo.
+        // Em lg+ volta a ser a coluna estática de sempre.
+        'fixed inset-y-0 left-0 transition-transform duration-200 ease-out lg:static lg:translate-x-0',
+        aberta ? 'translate-x-0' : '-translate-x-full',
+      )}
+    >
       <div className="flex h-14 shrink-0 items-center gap-2.5 px-[18px]">
         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand">
           <BarChart3 className="h-4 w-4 text-on-brand" strokeWidth={2.2} />
@@ -82,7 +96,7 @@ export function Sidebar() {
         <EmpresaSwitcher />
       </div>
 
-      <nav className="scroll-y flex-1 space-y-0.5 overflow-y-auto p-3">
+      <nav onClick={onFechar} className="scroll-y flex-1 space-y-0.5 overflow-y-auto p-3">
         {navGroups.map(group => {
           const items = group.items.filter(({ adminOnly }) => !adminOnly || user?.role === 'admin')
           if (items.length === 0) return null

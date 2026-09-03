@@ -6,6 +6,7 @@ import { formatCurrency, formatDate, extractApiError } from '@/lib/utils'
 import { toast } from '@/hooks/useToast'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { ErroConsulta } from '@/components/ui/erro-consulta'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Pagination } from '@/components/ui/pagination'
@@ -68,7 +69,7 @@ export default function RegistrosPage() {
     return params.toString()
   }
 
-  const { data: registros, isLoading } = useQuery<any>({
+  const { data: registros, isLoading, isError, error, refetch } = useQuery<any>({
     queryKey: ['registros', selectedEmpresa, dataInicio, dataFim, page],
     queryFn: () => api.get(`/empresas/${selectedEmpresa}/contabil?${buildParams()}`).then(r => r.data),
     enabled: !!selectedEmpresa,
@@ -260,6 +261,8 @@ export default function RegistrosPage() {
             <div className="flex justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
+          ) : isError ? (
+            <ErroConsulta erro={error} contexto="os lançamentos" onTentarDeNovo={() => refetch()} />
           ) : items.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">
               Nenhum lançamento encontrado. Execute o NEO primeiro.
@@ -296,7 +299,7 @@ export default function RegistrosPage() {
                         <td className="py-2 px-2 text-right font-mono">
                           {formatCurrency(r.valor)}
                         </td>
-                        <td className="py-2 px-2 text-muted-foreground text-xs truncate max-w-[200px]">
+                        <td className="py-2 px-2 text-muted-foreground text-xs truncate max-w-[200px]" title={r.historico ?? undefined}>
                           {r.historico ?? '-'}
                         </td>
                       </tr>

@@ -9,6 +9,7 @@ import { toast } from '@/hooks/useToast'
 import { useAuth } from '@/contexts/AuthContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { ErroConsulta } from '@/components/ui/erro-consulta'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -43,7 +44,7 @@ export default function UsuariosPage() {
   const [open, setOpen] = useState(false)
   const [confirmDeactivate, setConfirmDeactivate] = useState<Usuario | null>(null)
 
-  const { data, isLoading } = useQuery<{ items: Usuario[]; total: number }>({
+  const { data, isLoading, isError, error, refetch } = useQuery<{ items: Usuario[]; total: number }>({
     queryKey: ['usuarios'],
     queryFn: () => api.get('/usuarios').then(r => r.data),
     // Sempre refaz o fetch ao montar a página — evita cache desatualizado
@@ -135,6 +136,8 @@ export default function UsuariosPage() {
             <div className="flex justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
+          ) : isError ? (
+            <ErroConsulta erro={error} contexto="os usuários" onTentarDeNovo={() => refetch()} />
           ) : usuarios.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">Nenhum usuário cadastrado.</p>
           ) : (

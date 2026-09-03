@@ -7,6 +7,7 @@ import { formatCurrency, formatDate, extractApiError } from '@/lib/utils'
 import { toast } from '@/hooks/useToast'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { ErroConsulta } from '@/components/ui/erro-consulta'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -92,7 +93,7 @@ export default function ExtratoPage() {
     return params.toString()
   }
 
-  const { data: extrato, isLoading, refetch } = useQuery<any>({
+  const { data: extrato, isLoading, isError, error, refetch } = useQuery<any>({
     queryKey: ['extrato', selectedEmpresa, selectedAgencia, statusFiltro, dcFiltro, dataInicio, dataFim, busca, page, pageSize],
     queryFn: () => api.get(`/empresas/${selectedEmpresa}/extrato?${buildParams()}`).then(r => r.data),
     enabled: !!selectedEmpresa,
@@ -427,6 +428,8 @@ export default function ExtratoPage() {
             <p className="text-muted-foreground text-center py-8">Selecione uma empresa para ver as transações</p>
           ) : isLoading ? (
             <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : isError ? (
+            <ErroConsulta erro={error} contexto="as transações" onTentarDeNovo={() => refetch()} />
           ) : items.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">
               {filtrosAtivos
@@ -453,7 +456,7 @@ export default function ExtratoPage() {
                         <td className="py-2 px-2 whitespace-nowrap text-sm">
                           {formatDate(t.data)}
                         </td>
-                        <td className="py-2 px-2 max-w-sm truncate text-sm">
+                        <td className="py-2 px-2 max-w-sm truncate text-sm" title={t.historico || undefined}>
                           {t.historico || '-'}
                         </td>
                         <td className="py-2 px-2 text-center">

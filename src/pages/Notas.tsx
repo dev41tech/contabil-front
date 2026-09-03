@@ -9,6 +9,7 @@ import { formatCurrency, formatDate, extractApiError } from '@/lib/utils'
 import { toast } from '@/hooks/useToast'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { ErroConsulta } from '@/components/ui/erro-consulta'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
@@ -89,7 +90,7 @@ export default function NotasPage() {
     return p.toString()
   }
 
-  const { data: notas, isLoading } = useQuery<any>({
+  const { data: notas, isLoading, isError, error, refetch } = useQuery<any>({
     queryKey: ['notas', selectedEmpresa, tipoFiltro, statusFiltro, busca, dataDe, dataAte, page],
     queryFn: () => api.get(`/empresas/${selectedEmpresa}/notas?${buildParams()}`).then(r => r.data),
     enabled: !!selectedEmpresa,
@@ -329,7 +330,7 @@ export default function NotasPage() {
           {importResult.erros.length > 0 && (
             <div className="max-h-48 overflow-y-auto space-y-1">
               {importResult.erros.map((erro, i) => (
-                <div key={i} className="text-xs text-warning bg-warning/15 px-2 py-1.5 rounded">
+                <div key={i} className="text-xs text-warning bg-warning/15 px-2 py-1.5 rounded-sm">
                   {erro}
                 </div>
               ))}
@@ -435,6 +436,8 @@ export default function NotasPage() {
             <p className="text-muted-foreground text-center py-8">Selecione uma empresa</p>
           ) : isLoading ? (
             <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : isError ? (
+            <ErroConsulta erro={error} contexto="as notas fiscais" onTentarDeNovo={() => refetch()} />
           ) : items.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">
               {filtrosAtivos ? 'Nenhuma nota fiscal encontrada com esses filtros.' : 'Nenhuma nota fiscal cadastrada.'}

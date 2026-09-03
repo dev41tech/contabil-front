@@ -23,6 +23,16 @@ export function formatDate(dateStr: string): string {
  * FastAPI 422: { detail: [{type, loc, msg, input}] }
  * FastAPI 400/401: { detail: "mensagem" } ou { detail: { message: "..." } }
  */
+/**
+ * "2026-03" -> "03/2026". A competência estava vazando crua para breadcrumb,
+ * título e tabela em Cartões, no meio de datas que já saem como DD/MM/AAAA.
+ */
+export function formatCompetencia(competencia: string): string {
+  if (!competencia) return '-'
+  const [ano, mes] = competencia.split('-')
+  return mes && ano ? `${mes}/${ano}` : competencia
+}
+
 export function extractApiError(e: unknown, fallback = 'Ocorreu um erro.'): string {
   if (!e || typeof e !== 'object') return fallback
   const err = e as any
