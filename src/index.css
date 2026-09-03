@@ -46,6 +46,16 @@
     --danger: 351 57% 50.8%;
     --info: 212 62.4% 45.9%;
 
+    /* Séries de gráfico — ordem fixa, nunca ciclada. Tiradas das cores de
+       setor do DS e validadas para daltonismo sobre a superfície clara; a
+       ordem evita âmbar e teal adjacentes, que é o par que colapsa em
+       tritanopia. O âmbar fica em 2,98:1 contra o branco, então a legenda
+       com rótulo visível é obrigatória, não decorativa. */
+    --s1: 221 82.9% 52%;
+    --s2: 173 82.6% 31.6%;
+    --s3: 259 43.6% 55.5%;
+    --s4: 39 87.8% 41.8%;
+
     /* ---- nomes do shadcn, apontando para a paleta acima ---- */
     --background: 255 20% 96.1%;
     --foreground: 255 13.3% 11.8%;
@@ -96,6 +106,13 @@
     --warning: 39 72.7% 59.8%;
     --danger: 351 77.1% 65.7%;
     --info: 210 70.8% 62.4%;
+
+    /* Degraus próprios do tema escuro, validados sobre a superfície escura —
+       não é o flip automático da paleta clara. */
+    --s1: 221 83.1% 65.1%;
+    --s2: 172 68.7% 38.8%;
+    --s3: 260 58.1% 67.3%;
+    --s4: 38 61% 46.3%;
 
     --background: 257 16.3% 8.4%;
     --foreground: 264 26.3% 96.3%;

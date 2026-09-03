@@ -276,10 +276,10 @@ export default function DashboardPage() {
                           <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
                           <Tooltip />
                           <Legend wrapperStyle={{ fontSize: 12 }} />
-                          <Bar dataKey="transacoes" name="Transações" fill="#3b82f6" radius={[2,2,0,0]} />
-                          <Bar dataKey="registros" name="Registros" fill="#22c55e" radius={[2,2,0,0]} />
-                          <Bar dataKey="comprovantes" name="Comprovantes" fill="#f97316" radius={[2,2,0,0]} />
-                          <Bar dataKey="notas" name="Notas Fiscais" fill="#a855f7" radius={[2,2,0,0]} />
+                          <Bar dataKey="transacoes" name="Transações" fill="hsl(var(--s1))" radius={[2,2,0,0]} />
+                          <Bar dataKey="registros" name="Registros" fill="hsl(var(--s2))" radius={[2,2,0,0]} />
+                          <Bar dataKey="comprovantes" name="Comprovantes" fill="hsl(var(--s3))" radius={[2,2,0,0]} />
+                          <Bar dataKey="notas" name="Notas Fiscais" fill="hsl(var(--s4))" radius={[2,2,0,0]} />
                         </BarChart>
                       </ResponsiveContainer>
                     </CardContent>
