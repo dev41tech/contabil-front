@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Building2, Loader2, Pencil, Plus, ToggleLeft, Wrench } from 'lucide-react'
+import { Building2, Loader2, Pencil, Plus, ToggleLeft, ToggleRight, Wrench } from 'lucide-react'
 import { opcaoConta } from '@/lib/contas'
 
 const agenciaSchema = z.object({
@@ -87,6 +87,27 @@ export function AgenciasTab({ empresaId }: { empresaId: string }) {
       setDesativarAgencia(null)
     },
     onError: (e: unknown) => toast({ title: 'Erro ao desativar conta bancária', description: extractApiError(e), variant: 'destructive' }),
+  })
+
+  // Reativar sempre existiu no backend (`PATCH { ativa: true }`, e o serviço
+  // diz isso no próprio docstring). O que não existia era o botão: a tela só
+  // renderizava ação para conta ativa, e o formulário de edição nunca mandou
+  // `ativa`. Quem desativasse por engano ficava sem caminho de volta.
+  //
+  // Sem diálogo de confirmação de propósito: reativar não destrói nada, e o
+  // caminho de volta é um clique no mesmo lugar. A confirmação fica onde há
+  // perda — desativar e reapontar o razão.
+  const reativarMutation = useMutation({
+    mutationFn: (id: string) => api.patch(`/empresas/${empresaId}/agencias/${id}`, { ativa: true }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['agencias', empresaId] })
+      // O seletor de conta do Extrato e do NEO lista só as ativas: sem
+      // invalidar aqui, a conta volta na tela de Configurações e continua
+      // sumida onde ela é usada de verdade.
+      qc.invalidateQueries({ queryKey: ['extrato', empresaId] })
+      toast({ title: 'Conta bancária reativada.', variant: 'success' })
+    },
+    onError: (e: unknown) => toast({ title: 'Erro ao reativar conta bancária', description: extractApiError(e), variant: 'destructive' }),
   })
 
   // Reapontar a conta bancária do razão. Fica atrás de confirmação porque
@@ -169,9 +190,15 @@ export function AgenciasTab({ empresaId }: { empresaId: string }) {
                 <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => abrirEdicao(a)} title="Editar conta bancária">
                   <Pencil className="h-4 w-4" />
                 </Button>
-                {a.ativa && (
+                {a.ativa ? (
                   <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDesativarAgencia(a)} title="Desativar conta bancária">
                     <ToggleLeft className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button size="icon" variant="ghost" className="h-8 w-8 text-success hover:text-success" onClick={() => reativarMutation.mutate(a.id)} disabled={reativarMutation.isPending} title="Reativar conta bancária">
+                    {reativarMutation.isPending && reativarMutation.variables === a.id
+                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                      : <ToggleRight className="h-4 w-4" />}
                   </Button>
                 )}
               </div>
