@@ -20,13 +20,13 @@ const TIPOS_OPCOES = [
 ]
 
 const TIPO_COLOR: Record<string, string> = {
-  ativo: 'bg-emerald-100 text-emerald-700',
-  passivo: 'bg-red-100 text-red-700',
-  patrimonio_liquido: 'bg-purple-100 text-purple-700',
-  receita: 'bg-blue-100 text-blue-700',
-  despesa: 'bg-orange-100 text-orange-700',
-  custo: 'bg-yellow-100 text-yellow-700',
-  resultado: 'bg-cyan-100 text-cyan-700',
+  ativo: 'bg-success/15 text-success',
+  passivo: 'bg-danger/15 text-danger',
+  patrimonio_liquido: 'bg-brand/15 text-brand',
+  receita: 'bg-info/15 text-info',
+  despesa: 'bg-warning/15 text-warning',
+  custo: 'bg-warning/25 text-warning',
+  resultado: 'bg-info/25 text-info',
 }
 
 interface FaixaDraft {
@@ -92,7 +92,7 @@ export function FaixasTipoDialog({ empresaId, open, onOpenChange }: FaixasTipoDi
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5 text-emerald-600" /> Configurar Plano de Contas
+            <Settings className="h-5 w-5 text-brand" /> Configurar Plano de Contas
           </DialogTitle>
         </DialogHeader>
         <p className="text-sm text-muted-foreground">

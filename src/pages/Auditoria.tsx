@@ -266,7 +266,7 @@ function isForbidden(error: unknown) {
 function RestrictedAccess() {
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
-      <ShieldAlert className="h-12 w-12 text-amber-600" />
+      <ShieldAlert className="h-12 w-12 text-warning" />
       <h2 className="text-xl font-semibold">Trilha restrita a administradores</h2>
       <p className="max-w-lg text-muted-foreground">A auditoria contém informações sensíveis sobre ações de usuários. Peça a um administrador do escritório para realizar esta consulta.</p>
     </div>
@@ -309,7 +309,7 @@ function ChangeDetails({ before, after }: { before: JsonValue | null; after: Jso
     <div className="overflow-x-auto">
       <table className="w-full min-w-[560px] text-sm">
         <thead><tr className="border-b text-muted-foreground"><th className="px-2 py-2 text-left">Campo alterado</th><th className="px-2 py-2 text-left">Antes</th><th className="px-2 py-2 text-left">Depois</th></tr></thead>
-        <tbody>{fields.map(field => <tr key={field} className="border-b last:border-0"><td className="px-2 py-2 font-medium capitalize">{labelCampo(field)}</td><td className="max-w-xs break-words px-2 py-2 text-red-700">{formatValue(beforeFlat[field])}</td><td className="max-w-xs break-words px-2 py-2 text-green-700">{formatValue(afterFlat[field])}</td></tr>)}</tbody>
+        <tbody>{fields.map(field => <tr key={field} className="border-b last:border-0"><td className="px-2 py-2 font-medium capitalize">{labelCampo(field)}</td><td className="max-w-xs break-words px-2 py-2 text-danger">{formatValue(beforeFlat[field])}</td><td className="max-w-xs break-words px-2 py-2 text-success">{formatValue(afterFlat[field])}</td></tr>)}</tbody>
       </table>
     </div>
   )
@@ -319,7 +319,7 @@ function Snapshot({ title, tone, values }: { title: string; tone: 'created' | 'r
   const entries = Object.entries(values)
   return (
     <div>
-      <p className={`mb-3 text-sm font-semibold ${tone === 'created' ? 'text-green-700' : 'text-red-700'}`}>{title}</p>
+      <p className={`mb-3 text-sm font-semibold ${tone === 'created' ? 'text-success' : 'text-danger'}`}>{title}</p>
       {entries.length ? <dl className="grid gap-x-6 gap-y-3 md:grid-cols-2">{entries.map(([field, value]) => <div key={field} className="rounded-md bg-background p-3"><dt className="text-xs font-medium capitalize text-muted-foreground">{labelCampo(field)}</dt><dd className="mt-1 break-words text-sm">{formatValue(value)}</dd></div>)}</dl> : <p className="text-sm text-muted-foreground">Nenhum detalhe registrado.</p>}
     </div>
   )

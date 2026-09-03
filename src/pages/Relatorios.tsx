@@ -81,33 +81,33 @@ function DREView({ data }: { data: DREResponse }) {
     <div className="space-y-6">
       {/* Resultado resumo */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950">
+        <Card className="border-success/40 bg-success/15">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground mb-1">Receitas</p>
-            <p className="text-lg font-bold text-green-700 dark:text-green-400">{fmt(data.total_receitas)}</p>
+            <p className="text-lg font-bold text-success">{fmt(data.total_receitas)}</p>
           </CardContent>
         </Card>
-        <Card className="border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-950">
+        <Card className="border-warning/40 bg-warning/15">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground mb-1">Custos</p>
-            <p className="text-lg font-bold text-orange-700 dark:text-orange-400">{fmt(data.total_custos)}</p>
+            <p className="text-lg font-bold text-warning">{fmt(data.total_custos)}</p>
           </CardContent>
         </Card>
-        <Card className="border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950">
+        <Card className="border-danger/40 bg-danger/15">
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground mb-1">Despesas</p>
-            <p className="text-lg font-bold text-red-700 dark:text-red-400">{fmt(data.total_despesas)}</p>
+            <p className="text-lg font-bold text-danger">{fmt(data.total_despesas)}</p>
           </CardContent>
         </Card>
         <Card className={cn(
           'border-2',
           isPositivo
-            ? 'border-green-400 bg-green-50 dark:border-green-700 dark:bg-green-950'
-            : 'border-red-400 bg-red-50 dark:border-red-700 dark:bg-red-950'
+            ? 'border-success/60 bg-success/15'
+            : 'border-danger/60 bg-danger/15'
         )}>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground mb-1">Resultado Líquido</p>
-            <p className={cn('text-lg font-bold', isPositivo ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400')}>
+            <p className={cn('text-lg font-bold', isPositivo ? 'text-success' : 'text-danger')}>
               {fmt(data.resultado_liquido)}
             </p>
           </CardContent>
@@ -139,7 +139,7 @@ function DREView({ data }: { data: DREResponse }) {
                     <td className="px-3 py-2">{linha.descricao}</td>
                     <td className="px-3 py-2 text-right text-muted-foreground">{fmt(linha.debitos)}</td>
                     <td className="px-3 py-2 text-right text-muted-foreground">{fmt(linha.creditos)}</td>
-                    <td className={cn('px-3 py-2 text-right font-medium', linha.saldo >= 0 ? 'text-green-600' : 'text-red-600')}>
+                    <td className={cn('px-3 py-2 text-right font-medium', linha.saldo >= 0 ? 'text-success' : 'text-danger')}>
                       {fmt(linha.saldo)}
                     </td>
                   </tr>
@@ -230,7 +230,7 @@ function LivroCaixaView({ data }: { data: LivroCaixaResponse }) {
             </div>
             <div className="flex gap-6 text-xs text-muted-foreground">
               <span>Saldo Inicial: <strong className="text-foreground">{fmt(agencia.saldo_inicial)}</strong></span>
-              <span>Saldo Final: <strong className={cn(agencia.saldo_final >= 0 ? 'text-green-600' : 'text-red-600')}>{fmt(agencia.saldo_final)}</strong></span>
+              <span>Saldo Final: <strong className={cn(agencia.saldo_final >= 0 ? 'text-success' : 'text-danger')}>{fmt(agencia.saldo_final)}</strong></span>
             </div>
           </div>
           <div className="border rounded-b-md overflow-hidden">
@@ -255,14 +255,14 @@ function LivroCaixaView({ data }: { data: LivroCaixaResponse }) {
                       <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">{formatDate(lanc.data)}</td>
                       <td className="px-3 py-2 truncate max-w-xs">{lanc.historico}</td>
                       <td className="px-3 py-2 text-center">
-                        <span className={cn('text-xs font-bold px-1.5 py-0.5 rounded', lanc.dc === 'C' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
+                        <span className={cn('text-xs font-bold px-1.5 py-0.5 rounded', lanc.dc === 'C' ? 'bg-success/15 text-success' : 'bg-danger/15 text-danger')}>
                           {lanc.dc}
                         </span>
                       </td>
-                      <td className={cn('px-3 py-2 text-right font-medium', lanc.dc === 'C' ? 'text-green-600' : 'text-red-600')}>
+                      <td className={cn('px-3 py-2 text-right font-medium', lanc.dc === 'C' ? 'text-success' : 'text-danger')}>
                         {fmt(lanc.valor)}
                       </td>
-                      <td className={cn('px-3 py-2 text-right', lanc.saldo_acumulado >= 0 ? 'text-foreground' : 'text-red-600')}>
+                      <td className={cn('px-3 py-2 text-right', lanc.saldo_acumulado >= 0 ? 'text-foreground' : 'text-danger')}>
                         {fmt(lanc.saldo_acumulado)}
                       </td>
                     </tr>
@@ -271,8 +271,8 @@ function LivroCaixaView({ data }: { data: LivroCaixaResponse }) {
                 <tfoot>
                   <tr className="border-t bg-muted font-semibold text-xs">
                     <td colSpan={3} className="px-3 py-2">Totais do período</td>
-                    <td className="px-3 py-2 text-right text-red-600">{fmt(agencia.total_debitos)} D</td>
-                    <td className="px-3 py-2 text-right text-green-600">{fmt(agencia.total_creditos)} C</td>
+                    <td className="px-3 py-2 text-right text-danger">{fmt(agencia.total_debitos)} D</td>
+                    <td className="px-3 py-2 text-right text-success">{fmt(agencia.total_creditos)} C</td>
                   </tr>
                 </tfoot>
               </table>
@@ -428,9 +428,9 @@ export default function RelatoriosPage() {
             <h2 className="text-xl font-bold">
               {tabs.find(t => t.id === activeTab)?.label}
             </h2>
-            {empresaLabel && <p className="text-sm text-gray-600">{empresaLabel}</p>}
+            {empresaLabel && <p className="text-sm text-muted-foreground">{empresaLabel}</p>}
             {(fetchParams.dataDe || fetchParams.dataAte) && (
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Período: {fetchParams.dataDe || '—'} até {fetchParams.dataAte || '—'}
               </p>
             )}

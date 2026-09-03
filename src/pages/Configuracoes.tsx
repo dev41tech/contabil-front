@@ -52,7 +52,7 @@ export default function ConfiguracoesPage() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  <BookOpen className="h-5 w-5 text-emerald-600" /> Plano de Contas
+                  <BookOpen className="h-5 w-5 text-brand" /> Plano de Contas
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
                   Estrutura hierárquica de contas contábeis da empresa.
@@ -68,7 +68,7 @@ export default function ConfiguracoesPage() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  <Building2 className="h-5 w-5 text-slate-600" /> Agências Bancárias
+                  <Building2 className="h-5 w-5 text-brand" /> Agências Bancárias
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
                   Contas bancárias cadastradas para esta empresa.

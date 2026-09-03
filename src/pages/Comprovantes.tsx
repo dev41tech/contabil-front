@@ -423,7 +423,7 @@ export default function ComprovantesPage() {
                           <div className="flex gap-1 justify-center">
                             {!c.transacao_id ? (
                               <Button variant="ghost" size="sm" onClick={() => setOpenAssociar(c.id)} title="Associar transação">
-                                <Link2 className="h-4 w-4 text-blue-500" />
+                                <Link2 className="h-4 w-4 text-brand" />
                               </Button>
                             ) : (
                               <Button variant="ghost" size="sm" onClick={() => desassociarMutation.mutate(c.id)} title="Remover associação">
@@ -524,18 +524,18 @@ export default function ComprovantesPage() {
                 PDFs e imagens de comprovante têm os campos preenchidos automaticamente — revise antes de salvar.
               </p>
               {extracaoStatus === 'extraindo' && (
-                <p className="text-xs text-blue-700 flex items-center gap-1.5">
+                <p className="text-xs text-info flex items-center gap-1.5">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" /> Extraindo dados do arquivo...
                 </p>
               )}
               {extracaoStatus === 'extraido' && (
-                <p className="text-xs text-emerald-700 flex items-center gap-1.5">
+                <p className="text-xs text-success flex items-center gap-1.5">
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   Dados extraídos{extracaoConfianca === 'ia' ? ' via IA' : ''} — revise os campos antes de salvar.
                 </p>
               )}
               {extracaoStatus === 'falhou' && (
-                <p className="text-xs text-amber-700 flex items-center gap-1.5">
+                <p className="text-xs text-warning flex items-center gap-1.5">
                   <AlertCircle className="h-3.5 w-3.5" />
                   Não foi possível extrair automaticamente. Preencha os campos manualmente.
                 </p>
@@ -589,7 +589,7 @@ export default function ComprovantesPage() {
                       <td className="py-2 px-2 text-center">
                         <Badge variant="outline">{t.dc === 'D' ? 'Débito' : t.dc === 'C' ? 'Crédito' : '—'}</Badge>
                       </td>
-                      <td className={`py-2 px-2 text-right font-mono ${t.dc === 'D' ? 'text-red-600' : 'text-green-600'}`}>
+                      <td className={`py-2 px-2 text-right font-mono ${t.dc === 'D' ? 'text-danger' : 'text-success'}`}>
                         {formatCurrency(t.valor)}
                       </td>
                       <td className="py-2 px-2">

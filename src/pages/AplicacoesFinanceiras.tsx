@@ -184,7 +184,7 @@ export default function AplicacoesFinanceirasPage() {
           </CardContent></Card>
           <Card><CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Rendimento</p>
-            <p className={`text-xl font-bold flex items-center gap-1 ${rendimentoTotal >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+            <p className={`text-xl font-bold flex items-center gap-1 ${rendimentoTotal >= 0 ? 'text-success' : 'text-danger'}`}>
               {rendimentoTotal >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
               {formatCurrency(rendimentoTotal)}
             </p>
@@ -243,7 +243,7 @@ export default function AplicacoesFinanceirasPage() {
                       </td>
                       <td className="py-2 px-2 text-right font-mono">
                         {a.rendimento != null ? (
-                          <span className={a.rendimento >= 0 ? 'text-emerald-600' : 'text-red-600'}>
+                          <span className={a.rendimento >= 0 ? 'text-success' : 'text-danger'}>
                             {formatCurrency(a.rendimento)}
                           </span>
                         ) : '—'}
@@ -267,7 +267,7 @@ export default function AplicacoesFinanceirasPage() {
                             title={a.ativa ? 'Encerrar aplicação' : 'Reativar aplicação'}
                             onClick={() => alternarAtivaMutation.mutate({ id: a.id, ativa: !a.ativa })}
                           >
-                            {a.ativa ? <Ban className="h-3.5 w-3.5 text-amber-600" /> : <RotateCcw className="h-3.5 w-3.5 text-emerald-600" />}
+                            {a.ativa ? <Ban className="h-3.5 w-3.5 text-warning" /> : <RotateCcw className="h-3.5 w-3.5 text-success" />}
                           </Button>
                           <Button
                             size="sm" variant="ghost" className="h-7 px-2 text-destructive hover:text-destructive"

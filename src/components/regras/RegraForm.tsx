@@ -177,9 +177,9 @@ export function RegraForm({
               onClick={() => form.setValue('dc', dc, { shouldValidate: true })}
               className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-md border text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-60 ${form.watch('dc') === dc
                 ? dc === 'D'
-                  ? 'bg-red-50 border-red-400 text-red-700'
-                  : 'bg-emerald-50 border-emerald-400 text-emerald-700'
-                : 'bg-white border-border text-muted-foreground hover:bg-muted/30'
+                  ? 'bg-danger/15 border-danger/40 text-danger'
+                  : 'bg-success/15 border-success/40 text-success'
+                : 'bg-surface border-border text-muted-foreground hover:bg-muted/30'
               }`}
             >
               {dc === 'D' ? <TrendingDown className="h-4 w-4" /> : <TrendingUp className="h-4 w-4" />}

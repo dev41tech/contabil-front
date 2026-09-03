@@ -45,7 +45,7 @@ function useJobsByStatus(empresaId: string, status: 'na_fila' | 'processando') {
 }
 
 function JobResult({ job }: { job: Job }) {
-  if (job.erro) return <p className="mt-2 text-sm text-red-800">{job.erro}</p>
+  if (job.erro) return <p className="mt-2 text-sm text-danger">{job.erro}</p>
   if (!job.resultado) return null
 
   return (
@@ -111,7 +111,7 @@ export function JobsIndicator() {
         className="flex h-9 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
         title={empresaId ? 'Acompanhar jobs da empresa ativa' : 'Selecione uma empresa para acompanhar jobs'}
       >
-        {running.length > 0 ? <Loader2 className="h-4 w-4 animate-spin text-blue-600" /> : <Activity className="h-4 w-4 text-muted-foreground" />}
+        {running.length > 0 ? <Loader2 className="h-4 w-4 animate-spin text-info" /> : <Activity className="h-4 w-4 text-muted-foreground" />}
         <span className="hidden font-medium sm:inline">Jobs</span>
         {running.length > 0 && <Badge variant="default" className="px-1.5">{running.length}</Badge>}
       </button>
@@ -175,7 +175,7 @@ function JobRow({ job, onRetry }: { job: Job; onRetry: (job: Job) => void }) {
         </Button>
       )}
       {job.status === 'concluido_com_alertas' && !job.resultado && (
-        <p className="mt-2 flex items-center gap-1 text-xs text-amber-800"><AlertTriangle className="h-3.5 w-3.5" />Concluído com ocorrências que exigem atenção.</p>
+        <p className="mt-2 flex items-center gap-1 text-xs text-warning"><AlertTriangle className="h-3.5 w-3.5" />Concluído com ocorrências que exigem atenção.</p>
       )}
     </article>
   )

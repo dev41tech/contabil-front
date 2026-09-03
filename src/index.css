@@ -2,28 +2,137 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==========================================================================
+   Contabil Core — Design Tokens (Connect 41, direção B "Perímetro")
+   --------------------------------------------------------------------------
+   Fonte da verdade: connect-41/src/app/globals.css. Os valores são os mesmos,
+   convertidos para o formato "H S% L%" que o shadcn/ui já consome via
+   hsl(var(--x)) — é isso que mantém o modificador de opacidade (bg-brand/10)
+   funcionando.
+
+   Os nomes do shadcn (background, primary, muted…) foram REMAPEADOS para a
+   paleta do Connect em vez de renomeados: assim as 18 telas existentes trocam
+   de paleta sem editar className nenhum. Os tokens que o shadcn não tem
+   (surface, fg-secondary, brand, success/warning/info…) entram como cores
+   novas no tailwind.config.js.
+
+   Escuro é o padrão do DS — mora em .dark, ligado pelo ThemeContext no <html>.
+   ========================================================================== */
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    color-scheme: light;
+
+    /* superfícies e texto */
+    --canvas: 255 20% 96.1%;
+    --sidebar: 0 0% 100%;
+    --topbar: 0 0% 100%;
+    --surface: 0 0% 100%;
+    --surface-hover: 257 28% 95.1%;
+    --surface-elevated: 0 0% 100%;
+    --input-bg: 270 25% 98.4%;
+    --table-header-bg: 255 28.6% 97.3%;
+    --border-strong: 258 15.7% 83.7%;
+    --fg-secondary: 259 9.5% 32.9%;
+
+    /* marca */
+    --brand: 221 82.9% 52%;
+    --brand-hover: 221 83% 43.9%;
+    --on-brand: 0 0% 100%;
+
+    /* semânticas */
+    --success: 153 67.4% 36.1%;
+    --warning: 36 75.4% 41.4%;
+    --danger: 351 57% 50.8%;
+    --info: 212 62.4% 45.9%;
+
+    /* Séries de gráfico — ordem fixa, nunca ciclada. Tiradas das cores de
+       setor do DS e validadas para daltonismo sobre a superfície clara; a
+       ordem evita âmbar e teal adjacentes, que é o par que colapsa em
+       tritanopia. O âmbar fica em 2,98:1 contra o branco, então a legenda
+       com rótulo visível é obrigatória, não decorativa. */
+    --s1: 221 82.9% 52%;
+    --s2: 173 82.6% 31.6%;
+    --s3: 259 43.6% 55.5%;
+    --s4: 39 87.8% 41.8%;
+
+    /* ---- nomes do shadcn, apontando para a paleta acima ---- */
+    --background: 255 20% 96.1%;
+    --foreground: 255 13.3% 11.8%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 255 13.3% 11.8%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+    --popover-foreground: 255 13.3% 11.8%;
+    --primary: 221 82.9% 52%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 257 28% 95.1%;
+    --secondary-foreground: 255 13.3% 11.8%;
+    --muted: 257 28% 95.1%;
+    /* Era 215.4 16.3% 46.9%. Este é o --c41-fg-muted, que o DS subiu de
+       propósito: o tom anterior reprovava AA sobre o canvas, e é a cor de
+       quase todo texto secundário do app. */
+    --muted-foreground: 260 8.2% 43.1%;
+    --accent: 257 28% 95.1%;
+    --accent-foreground: 255 13.3% 11.8%;
+    --destructive: 351 57% 50.8%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 260 17.6% 90%;
+    --input: 258 15.7% 83.7%;
+    --ring: 221 82.9% 52%;
+  }
+
+  .dark {
+    color-scheme: dark;
+
+    --canvas: 257 16.3% 8.4%;
+    --sidebar: 263 16% 9.8%;
+    --topbar: 257 16.3% 8.4%;
+    --surface: 255 13.3% 11.8%;
+    --surface-hover: 252 12.8% 15.3%;
+    --surface-elevated: 256 12.4% 17.5%;
+    --input-bg: 255 14.3% 11%;
+    --table-header-bg: 258 15.2% 12.9%;
+    /* O DS usa rgba(255,255,255,.08/.16); aqui viram os sólidos equivalentes
+       sobre a superfície escura, porque o formato "H S% L%" do shadcn não
+       carrega alfa. */
+    --border-strong: 250 4.5% 25.9%;
+    --fg-secondary: 260 11.8% 75.1%;
+
+    --brand: 221 83.1% 65.1%;
+    --brand-hover: 221 83.2% 58%;
+    --on-brand: 0 0% 100%;
+
+    --success: 154 58% 52.4%;
+    --warning: 39 72.7% 59.8%;
+    --danger: 351 77.1% 65.7%;
+    --info: 210 70.8% 62.4%;
+
+    /* Degraus próprios do tema escuro, validados sobre a superfície escura —
+       não é o flip automático da paleta clara. */
+    --s1: 221 83.1% 65.1%;
+    --s2: 172 68.7% 38.8%;
+    --s3: 260 58.1% 67.3%;
+    --s4: 38 61% 46.3%;
+
+    --background: 257 16.3% 8.4%;
+    --foreground: 264 26.3% 96.3%;
+    --card: 255 13.3% 11.8%;
+    --card-foreground: 264 26.3% 96.3%;
+    --popover: 256 12.4% 17.5%;
+    --popover-foreground: 264 26.3% 96.3%;
+    --primary: 221 83.1% 65.1%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 252 12.8% 15.3%;
+    --secondary-foreground: 264 26.3% 96.3%;
+    --muted: 252 12.8% 15.3%;
+    --muted-foreground: 260 6.6% 55.5%;
+    --accent: 252 12.8% 15.3%;
+    --accent-foreground: 264 26.3% 96.3%;
+    --destructive: 351 77.1% 65.7%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 255 8.3% 18.8%;
+    --input: 250 4.5% 25.9%;
+    --ring: 221 83.1% 65.1%;
   }
 }
 
@@ -32,7 +141,62 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+    /* --fs-body do DS: o conteúdo de leitura, e a herança de todo texto sem
+       classe explícita. O padrão do Tailwind (16px) não está na escala. */
+    font-size: 15px;
+    line-height: 1.5;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+  /* Títulos no display face, como no Connect. */
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
+  }
+  /* Foco acessível padrão, sitewide. */
+  :focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px hsl(var(--ring) / 0.35);
+  }
+}
+
+@layer utilities {
+  /* Valores, CNPJ, IDs — alinhamento de dígito. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Scrollbar discreta, nos dois temas. */
+.scroll-y,
+.scroll-x,
+main {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--foreground) / 0.16) transparent;
+}
+.scroll-y::-webkit-scrollbar,
+.scroll-x::-webkit-scrollbar,
+main::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+.scroll-y::-webkit-scrollbar-track,
+.scroll-x::-webkit-scrollbar-track,
+main::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scroll-y::-webkit-scrollbar-thumb,
+.scroll-x::-webkit-scrollbar-thumb,
+main::-webkit-scrollbar-thumb {
+  background: hsl(var(--foreground) / 0.16);
+  border-radius: 100px;
+  border: 2px solid hsl(var(--canvas));
+  background-clip: padding-box;
+}
+.scroll-y:hover::-webkit-scrollbar-thumb,
+.scroll-x:hover::-webkit-scrollbar-thumb,
+main:hover::-webkit-scrollbar-thumb {
+  background: hsl(var(--foreground) / 0.28);
+  background-clip: padding-box;
 }

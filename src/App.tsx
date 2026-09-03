@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import LoginPage from '@/pages/Login'
 import DashboardPage from '@/pages/Dashboard'
 import ExtratoPage from '@/pages/Extrato'
+import ImportacoesPage from '@/pages/Importacoes'
 import NeoPage from '@/pages/Neo'
 import ConcilProPage from '@/pages/ConcilPro'
 import RegistrosPage from '@/pages/Registros'
@@ -23,6 +24,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Toaster } from '@/components/ui/toaster'
 import { EmpresaProvider } from '@/contexts/EmpresaContext'
 import { CompetenciaProvider } from '@/contexts/CompetenciaContext'
+import { ThemeProvider } from '@/contexts/ThemeContext'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -43,6 +45,7 @@ function AppRoutes() {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="extrato" element={<ExtratoPage />} />
+        <Route path="importacoes" element={<ImportacoesPage />} />
         <Route path="neo" element={<NeoPage />} />
         <Route path="concilpro" element={<ConcilProPage />} />
         <Route path="registros" element={<RegistrosPage />} />
@@ -67,16 +70,18 @@ function AppRoutes() {
 export default function App() {
   return (
     <ErrorBoundary>
-      <BrowserRouter>
-        <AuthProvider>
-          <EmpresaProvider>
-            <CompetenciaProvider>
-              <AppRoutes />
-              <Toaster />
-            </CompetenciaProvider>
-          </EmpresaProvider>
-        </AuthProvider>
-      </BrowserRouter>
+      <ThemeProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <EmpresaProvider>
+              <CompetenciaProvider>
+                <AppRoutes />
+                <Toaster />
+              </CompetenciaProvider>
+            </EmpresaProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </ThemeProvider>
     </ErrorBoundary>
   )
 }

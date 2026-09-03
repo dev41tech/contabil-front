@@ -85,7 +85,7 @@ export function SearchableCombobox({
                       setOpen(false)
                       setSearch('')
                     }}
-                    className={`px-3 py-2 text-sm cursor-pointer hover:bg-muted/60 transition-colors ${value === o.value ? 'bg-blue-50 font-medium text-blue-700' : ''}`}
+                    className={`px-3 py-2 text-sm cursor-pointer hover:bg-muted/60 transition-colors ${value === o.value ? 'bg-brand/10 font-medium text-brand' : ''}`}
                   >
                     <div className="font-medium truncate">{o.label}</div>
                     {o.sublabel && <div className="text-xs text-muted-foreground truncate">{o.sublabel}</div>}

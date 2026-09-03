@@ -132,7 +132,7 @@ export function RegrasTab({ empresaId }: { empresaId: string }) {
 
         <button
           onClick={() => { setApenasAtivas(!apenasAtivas); setPage(1) }}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${apenasAtivas ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-white border-border text-muted-foreground hover:bg-muted/50'}`}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${apenasAtivas ? 'bg-success/15 border-success/40 text-success' : 'bg-surface border-border text-muted-foreground hover:bg-muted/50'}`}
         >
           {apenasAtivas ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
           {apenasAtivas ? 'Só ativas' : 'Todas'}
@@ -171,12 +171,12 @@ export function RegrasTab({ empresaId }: { empresaId: string }) {
                   {/* Linha 1: nome + badges */}
                   <div className="flex items-center flex-wrap gap-2">
                     <span className="font-semibold text-sm truncate">{r.descricao}</span>
-                    <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold ${r.dc === 'D' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                    <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold ${r.dc === 'D' ? 'bg-danger/15 text-danger' : 'bg-success/15 text-success'}`}>
                       {r.dc === 'D' ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
                       {r.dc === 'D' ? 'Débito' : 'Crédito'}
                     </span>
                     {r.tipo === 'automatica' && (
-                      <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">
+                      <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-info/15 text-info font-medium">
                         <Zap className="h-3 w-3" /> Auto
                       </span>
                     )}
@@ -224,7 +224,7 @@ export function RegrasTab({ empresaId }: { empresaId: string }) {
                     className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded"
                   >
                     {r.ativa
-                      ? <ToggleRight className="h-5 w-5 text-emerald-600" />
+                      ? <ToggleRight className="h-5 w-5 text-success" />
                       : <ToggleLeft className="h-5 w-5" />
                     }
                   </button>
@@ -282,7 +282,7 @@ export function RegrasTab({ empresaId }: { empresaId: string }) {
         <DialogContent className="max-w-2xl overflow-visible">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Zap className="h-5 w-5 text-blue-500" /> Nova Regra de Categorização
+              <Zap className="h-5 w-5 text-brand" /> Nova Regra de Categorização
             </DialogTitle>
             <p className="text-sm text-muted-foreground">
               Defina um padrão de texto do extrato bancário e a conta contábil correspondente.
