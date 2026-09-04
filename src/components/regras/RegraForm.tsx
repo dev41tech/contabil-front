@@ -22,7 +22,7 @@ export const regraSchema = z.object({
   agencia_id: z
     .string()
     .refine(v => v === TODOS_OS_BANCOS || z.string().uuid().safeParse(v).success, {
-      message: 'Selecione a agência ou "Todos os bancos"',
+      message: 'Selecione a conta bancária ou "Todos os bancos"',
     }),
   dc: z.enum(['D', 'C'], {
     errorMap: () => ({ message: 'Selecione débito ou crédito' }),
@@ -105,11 +105,11 @@ export function RegraForm({
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label>
+          <Label htmlFor="components-regras-regraform-descricao-da-regra-nome-interno">
             Descrição da regra
             <span className="text-muted-foreground text-xs font-normal ml-1">(nome interno)</span>
           </Label>
-          <Input
+          <Input id="components-regras-regraform-descricao-da-regra-nome-interno"
             placeholder="Ex: Pagamento Fornecedores"
             disabled={!editable('descricao')}
             {...form.register('descricao')}
@@ -117,11 +117,11 @@ export function RegraForm({
           {form.formState.errors.descricao && <p className="text-xs text-destructive">{form.formState.errors.descricao.message}</p>}
         </div>
         <div className="space-y-1.5">
-          <Label>
+          <Label htmlFor="components-regras-regraform-padrao-no-extrato-texto-da-transacao">
             Padrão no extrato
             <span className="text-muted-foreground text-xs font-normal ml-1">(texto da transação)</span>
           </Label>
-          <Input
+          <Input id="components-regras-regraform-padrao-no-extrato-texto-da-transacao"
             placeholder="Ex: PAGTO FORNECEDOR"
             disabled={!editable('historico')}
             {...form.register('historico')}
@@ -133,10 +133,10 @@ export function RegraForm({
 
       <div className={`grid gap-4 ${agencia.mode === 'select' ? 'sm:grid-cols-2' : ''}`}>
         <div className="space-y-1.5">
-          <Label className="flex items-center gap-1.5">
+          <Label className="flex items-center gap-1.5" htmlFor="components-regras-regraform-conta-contabil">
             <BookOpen className="h-3.5 w-3.5 text-muted-foreground" /> Conta Contábil
           </Label>
-          <SearchableSelect
+          <SearchableSelect id="components-regras-regraform-conta-contabil"
             value={form.watch('conta_id')}
             onValueChange={value => form.setValue('conta_id', value, { shouldValidate: true })}
             options={contas}
@@ -149,16 +149,16 @@ export function RegraForm({
 
         {agencia.mode === 'select' && (
           <div className="space-y-1.5">
-            <Label>Agência Bancária</Label>
-            <SearchableSelect
+            <Label htmlFor="components-regras-regraform-agencia-bancaria">Conta bancária</Label>
+            <SearchableSelect id="components-regras-regraform-agencia-bancaria"
               value={form.watch('agencia_id')}
               onValueChange={value => form.setValue('agencia_id', value, { shouldValidate: true })}
               options={[
                 { value: TODOS_OS_BANCOS, label: 'Todos os bancos' },
                 ...agencia.options,
               ]}
-              placeholder="Selecione a agência"
-              searchPlaceholder="Buscar agência..."
+              placeholder="Selecione a conta bancária"
+              searchPlaceholder="Buscar conta..."
               disabled={!editable('agencia_id')}
             />
             {form.formState.errors.agencia_id && <p className="text-xs text-destructive">{form.formState.errors.agencia_id.message}</p>}
@@ -167,8 +167,8 @@ export function RegraForm({
       </div>
 
       <div className="space-y-1.5">
-        <Label>Natureza</Label>
-        <div className="grid grid-cols-2 gap-2 sm:max-w-md">
+        <Label id="regra-natureza-rotulo">Natureza</Label>
+        <div role="group" aria-labelledby="regra-natureza-rotulo" className="grid grid-cols-2 gap-2 sm:max-w-md">
           {(['D', 'C'] as const).map(dc => (
             <button
               key={dc}

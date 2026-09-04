@@ -19,9 +19,9 @@ export default function ConfiguracoesPage() {
       <Card>
         <CardContent className="pt-6">
           <div className="max-w-sm">
-            <label className="text-sm font-medium mb-1.5 block">Empresa</label>
+            <label className="text-sm font-medium mb-1.5 block" htmlFor="pages-configuracoes-empresa">Empresa</label>
             <Select value={selectedEmpresa} onValueChange={setSelectedEmpresa}>
-              <SelectTrigger>
+              <SelectTrigger id="pages-configuracoes-empresa">
                 <SelectValue placeholder="Selecione a empresa" />
               </SelectTrigger>
               <SelectContent>
@@ -40,7 +40,7 @@ export default function ConfiguracoesPage() {
             <BookOpen className="h-4 w-4" /> Plano de Contas
           </TabsTrigger>
           <TabsTrigger value="agencias" className="gap-1.5">
-            <Building2 className="h-4 w-4" /> Agências
+            <Building2 className="h-4 w-4" /> Contas bancárias
           </TabsTrigger>
           <TabsTrigger value="empresas" className="gap-1.5">
             <Users className="h-4 w-4" /> Empresas
@@ -68,7 +68,7 @@ export default function ConfiguracoesPage() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  <Building2 className="h-5 w-5 text-brand" /> Agências Bancárias
+                  <Building2 className="h-5 w-5 text-brand" /> Contas Bancárias
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
                   Contas bancárias cadastradas para esta empresa.

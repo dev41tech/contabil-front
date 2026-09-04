@@ -343,12 +343,12 @@ export default function PermissoesPage() {
         <CardContent className="pt-6">
           <div className="flex gap-4 items-end flex-wrap">
             <div className="flex-1 min-w-[240px]">
-              <label className="text-sm font-medium mb-1 block">Empresa</label>
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-permissoes-empresa">Empresa</label>
               <Select
                 value={selectedEmpresa}
                 onValueChange={v => setSelectedEmpresa(v)}
               >
-                <SelectTrigger>
+                <SelectTrigger id="pages-permissoes-empresa">
                   <SelectValue placeholder="Selecione a empresa" />
                 </SelectTrigger>
                 <SelectContent>
@@ -493,9 +493,9 @@ export default function PermissoesPage() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1">
-              <label className="text-sm font-medium">Usuário</label>
+              <label className="text-sm font-medium" htmlFor="pages-permissoes-usuario">Usuário</label>
               <Select value={novoUsuarioId} onValueChange={setNovoUsuarioId}>
-                <SelectTrigger>
+                <SelectTrigger id="pages-permissoes-usuario">
                   <SelectValue placeholder="Selecione o usuário" />
                 </SelectTrigger>
                 <SelectContent>
@@ -514,16 +514,20 @@ export default function PermissoesPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-medium">Papel</label>
-              <PapelSelector value={papelSelecionado} onChange={setPapelSelecionado} />
+              <label className="text-sm font-medium" id="permissoes-papel-rotulo">Papel</label>
+              <div role="group" aria-labelledby="permissoes-papel-rotulo">
+                <PapelSelector value={papelSelecionado} onChange={setPapelSelecionado} />
+              </div>
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-medium">Módulos permitidos</label>
-              <ModulosSelector
-                value={modulosSelecionados}
-                onChange={setModulosSelecionados}
-              />
+              <label className="text-sm font-medium" id="permissoes-modulos-rotulo">Módulos permitidos</label>
+              <div role="group" aria-labelledby="permissoes-modulos-rotulo">
+                <ModulosSelector
+                  value={modulosSelecionados}
+                  onChange={setModulosSelecionados}
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -558,15 +562,19 @@ export default function PermissoesPage() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1">
-              <label className="text-sm font-medium">Papel</label>
-              <PapelSelector value={papelSelecionado} onChange={setPapelSelecionado} />
+              <label className="text-sm font-medium" id="permissoes-editar-papel-rotulo">Papel</label>
+              <div role="group" aria-labelledby="permissoes-editar-papel-rotulo">
+                <PapelSelector value={papelSelecionado} onChange={setPapelSelecionado} />
+              </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium">Módulos permitidos</label>
-              <ModulosSelector
-                value={modulosSelecionados}
-                onChange={setModulosSelecionados}
-              />
+              <label className="text-sm font-medium" id="permissoes-editar-modulos-rotulo">Módulos permitidos</label>
+              <div role="group" aria-labelledby="permissoes-editar-modulos-rotulo">
+                <ModulosSelector
+                  value={modulosSelecionados}
+                  onChange={setModulosSelecionados}
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>

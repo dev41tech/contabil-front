@@ -465,23 +465,23 @@ export function PlanoContasTab({ empresaId }: { empresaId: string }) {
           <form onSubmit={createForm.handleSubmit(d => createMutation.mutate(d))} className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
-                <Label>Conta <span className="text-muted-foreground font-normal text-xs">(nº)</span></Label>
-                <Input placeholder="Ex: 551" type="number" {...createForm.register('conta_numero')} />
+                <Label htmlFor="components-configuracoes-planocontastab-conta-no">Conta <span className="text-muted-foreground font-normal text-xs">(nº)</span></Label>
+                <Input id="components-configuracoes-planocontastab-conta-no" placeholder="Ex: 551" type="number" {...createForm.register('conta_numero')} />
               </div>
               <div className="space-y-1.5">
-                <Label>Classificação</Label>
-                <Input placeholder="Ex: 3.2.01" {...createForm.register('codigo')} />
+                <Label htmlFor="components-configuracoes-planocontastab-classificacao">Classificação</Label>
+                <Input id="components-configuracoes-planocontastab-classificacao" placeholder="Ex: 3.2.01" {...createForm.register('codigo')} />
                 {createForm.formState.errors.codigo && (
                   <p className="text-xs text-destructive">{createForm.formState.errors.codigo.message}</p>
                 )}
               </div>
               <div className="space-y-1.5">
-                <Label>S/A</Label>
+                <Label htmlFor="components-configuracoes-planocontastab-s-a">S/A</Label>
                 <Select
                   value={createForm.watch('tipo_sa')}
                   onValueChange={v => createForm.setValue('tipo_sa', v as 'S' | 'A')}
                 >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="components-configuracoes-planocontastab-s-a"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="A">A — Analítica</SelectItem>
                     <SelectItem value="S">S — Sintética</SelectItem>
@@ -490,16 +490,16 @@ export function PlanoContasTab({ empresaId }: { empresaId: string }) {
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>Descrição</Label>
-              <Input placeholder="Ex: Receitas de Serviços" {...createForm.register('descricao')} />
+              <Label htmlFor="components-configuracoes-planocontastab-descricao">Descrição</Label>
+              <Input id="components-configuracoes-planocontastab-descricao" placeholder="Ex: Receitas de Serviços" {...createForm.register('descricao')} />
               {createForm.formState.errors.descricao && (
                 <p className="text-xs text-destructive">{createForm.formState.errors.descricao.message}</p>
               )}
             </div>
             <div className="space-y-1.5">
-              <Label>Tipo</Label>
+              <Label htmlFor="components-configuracoes-planocontastab-tipo">Tipo</Label>
               <Select value={createForm.watch('tipo')} onValueChange={v => createForm.setValue('tipo', v, { shouldValidate: true })}>
-                <SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
+                <SelectTrigger id="components-configuracoes-planocontastab-tipo"><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
                 <SelectContent>
                   {TIPOS_OPCOES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                 </SelectContent>
@@ -533,12 +533,12 @@ export function PlanoContasTab({ empresaId }: { empresaId: string }) {
             {/* Conta + Classificação */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>Conta <span className="text-muted-foreground font-normal text-xs">(nº)</span></Label>
-                <Input type="number" placeholder="Ex: 551" {...editForm.register('conta_numero')} />
+                <Label htmlFor="components-configuracoes-planocontastab-conta-no-2">Conta <span className="text-muted-foreground font-normal text-xs">(nº)</span></Label>
+                <Input id="components-configuracoes-planocontastab-conta-no-2" type="number" placeholder="Ex: 551" {...editForm.register('conta_numero')} />
               </div>
               <div className="space-y-1.5">
-                <Label>Classificação</Label>
-                <Input placeholder="Ex: 1.1.02.0001" {...editForm.register('codigo')} />
+                <Label htmlFor="components-configuracoes-planocontastab-classificacao-2">Classificação</Label>
+                <Input id="components-configuracoes-planocontastab-classificacao-2" placeholder="Ex: 1.1.02.0001" {...editForm.register('codigo')} />
                 {editForm.formState.errors.codigo && (
                   <p className="text-xs text-destructive">{editForm.formState.errors.codigo.message}</p>
                 )}
@@ -546,26 +546,26 @@ export function PlanoContasTab({ empresaId }: { empresaId: string }) {
             </div>
             {/* Descrição */}
             <div className="space-y-1.5">
-              <Label>Descrição</Label>
-              <Input {...editForm.register('descricao')} />
+              <Label htmlFor="components-configuracoes-planocontastab-descricao-2">Descrição</Label>
+              <Input id="components-configuracoes-planocontastab-descricao-2" {...editForm.register('descricao')} />
               {editForm.formState.errors.descricao && (
                 <p className="text-xs text-destructive">{editForm.formState.errors.descricao.message}</p>
               )}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>Tipo</Label>
+                <Label htmlFor="components-configuracoes-planocontastab-tipo-2">Tipo</Label>
                 <Select value={editForm.watch('tipo')} onValueChange={v => editForm.setValue('tipo', v, { shouldValidate: true })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectTrigger id="components-configuracoes-planocontastab-tipo-2"><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
                     {TIPOS_OPCOES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>S/A</Label>
+                <Label htmlFor="components-configuracoes-planocontastab-s-a-2">S/A</Label>
                 <Select value={editForm.watch('tipo_sa')} onValueChange={v => editForm.setValue('tipo_sa', v as 'S' | 'A')}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="components-configuracoes-planocontastab-s-a-2"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="A">A — Analítica</SelectItem>
                     <SelectItem value="S">S — Sintética</SelectItem>

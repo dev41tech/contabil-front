@@ -204,32 +204,32 @@ export default function AuditoriaPage() {
         <CardContent className="pt-6">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <div className="xl:col-span-2">
-              <Label className="mb-1.5 block">Empresa</Label>
-              <SearchableSelect value={selectedEmpresa} onValueChange={changeFilter(setSelectedEmpresa)} options={empresas.map(empresa => ({ value: empresa.id, label: empresa.razao_social }))} placeholder="Selecione a empresa" searchPlaceholder="Buscar empresa..." />
+              <Label className="mb-1.5 block" htmlFor="pages-auditoria-empresa">Empresa</Label>
+              <SearchableSelect id="pages-auditoria-empresa" value={selectedEmpresa} onValueChange={changeFilter(setSelectedEmpresa)} options={empresas.map(empresa => ({ value: empresa.id, label: empresa.razao_social }))} placeholder="Selecione a empresa" searchPlaceholder="Buscar empresa..." />
             </div>
             <div>
-              <Label className="mb-1.5 block">Usuário</Label>
-              <SearchableSelect value={usuarioId} onValueChange={changeFilter(setUsuarioId)} options={[{ value: 'todos', label: 'Todos os usuários' }, ...(usuariosQuery.data?.items ?? []).map(usuario => ({ value: usuario.id, label: `${usuario.nome} — ${usuario.email}` }))]} searchPlaceholder="Buscar usuário..." />
+              <Label className="mb-1.5 block" htmlFor="pages-auditoria-usuario">Usuário</Label>
+              <SearchableSelect id="pages-auditoria-usuario" value={usuarioId} onValueChange={changeFilter(setUsuarioId)} options={[{ value: 'todos', label: 'Todos os usuários' }, ...(usuariosQuery.data?.items ?? []).map(usuario => ({ value: usuario.id, label: `${usuario.nome} — ${usuario.email}` }))]} searchPlaceholder="Buscar usuário..." />
             </div>
             <div>
-              <Label className="mb-1.5 block">Ação</Label>
-              <Select value={acao} onValueChange={changeFilter(setAcao)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todas">Todas as ações</SelectItem>{actionOptions.map(value => <SelectItem key={value} value={value}>{labelAcao(value)}</SelectItem>)}</SelectContent></Select>
+              <Label className="mb-1.5 block" htmlFor="pages-auditoria-acao">Ação</Label>
+              <Select value={acao} onValueChange={changeFilter(setAcao)}><SelectTrigger id="pages-auditoria-acao"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todas">Todas as ações</SelectItem>{actionOptions.map(value => <SelectItem key={value} value={value}>{labelAcao(value)}</SelectItem>)}</SelectContent></Select>
             </div>
             <div>
-              <Label className="mb-1.5 block">Entidade</Label>
-              <Select value={entidade} onValueChange={changeFilter(setEntidade)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todas">Todas as entidades</SelectItem>{entityOptions.map(value => <SelectItem key={value} value={value}>{labelEntidade(value)}</SelectItem>)}</SelectContent></Select>
+              <Label className="mb-1.5 block" htmlFor="pages-auditoria-entidade">Entidade</Label>
+              <Select value={entidade} onValueChange={changeFilter(setEntidade)}><SelectTrigger id="pages-auditoria-entidade"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todas">Todas as entidades</SelectItem>{entityOptions.map(value => <SelectItem key={value} value={value}>{labelEntidade(value)}</SelectItem>)}</SelectContent></Select>
             </div>
             <div>
-              <Label className="mb-1.5 block">Competência</Label>
-              <Input type="month" value={mes} onChange={event => changeFilter(setMes)(event.target.value)} />
+              <Label className="mb-1.5 block" htmlFor="pages-auditoria-competencia">Competência</Label>
+              <Input id="pages-auditoria-competencia" type="month" value={mes} onChange={event => changeFilter(setMes)(event.target.value)} />
             </div>
             <div>
-              <Label className="mb-1.5 block">Período — de</Label>
-              <Input type="date" value={dataDe} max={dataAte || undefined} onChange={event => changeFilter(setDataDe)(event.target.value)} />
+              <Label className="mb-1.5 block" htmlFor="pages-auditoria-periodo-de">Período — de</Label>
+              <Input id="pages-auditoria-periodo-de" type="date" value={dataDe} max={dataAte || undefined} onChange={event => changeFilter(setDataDe)(event.target.value)} />
             </div>
             <div>
-              <Label className="mb-1.5 block">Período — até</Label>
-              <Input type="date" value={dataAte} min={dataDe || undefined} onChange={event => changeFilter(setDataAte)(event.target.value)} />
+              <Label className="mb-1.5 block" htmlFor="pages-auditoria-periodo-ate">Período — até</Label>
+              <Input id="pages-auditoria-periodo-ate" type="date" value={dataAte} min={dataDe || undefined} onChange={event => changeFilter(setDataAte)(event.target.value)} />
             </div>
           </div>
           {(usuarioId !== 'todos' || acao !== 'todas' || entidade !== 'todas' || mes || dataDe || dataAte) && (

@@ -4,12 +4,14 @@ import { ChevronDown, Search } from 'lucide-react'
 export interface ComboOption { value: string; label: string; sublabel?: string }
 
 export function SearchableCombobox({
-  options, value, onChange, placeholder = 'Selecione...',
+  options, value, onChange, placeholder = 'Selecione...', id,
 }: {
   options: ComboOption[]
   value: string
   onChange: (v: string) => void
   placeholder?: string
+  /** Para o `htmlFor` de um <Label> externo apontar para o gatilho. */
+  id?: string
 }) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -48,6 +50,7 @@ export function SearchableCombobox({
     <div ref={containerRef} className="relative">
       <button
         type="button"
+        id={id}
         onClick={handleOpen}
         className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-input-bg px-3 py-2 text-sm hover:bg-muted/30 transition-colors"
       >

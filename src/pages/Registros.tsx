@@ -220,21 +220,21 @@ export default function RegistrosPage() {
         <CardContent className="pt-6">
           <div className="flex gap-4 flex-wrap items-end">
             <div className="flex-1 min-w-[200px]">
-              <label className="text-sm font-medium mb-1 block">Empresa</label>
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-registros-empresa">Empresa</label>
               <Select value={selectedEmpresa} onValueChange={v => { setSelectedEmpresa(v); setPage(1) }}>
-                <SelectTrigger><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
+                <SelectTrigger id="pages-registros-empresa"><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
                 <SelectContent>
                   {empresas.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.razao_social}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">De</label>
-              <Input type="date" value={dataInicio} onChange={e => { setDataInicio(e.target.value); setPage(1) }} className="w-40" />
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-registros-de">De</label>
+              <Input id="pages-registros-de" type="date" value={dataInicio} onChange={e => { setDataInicio(e.target.value); setPage(1) }} className="w-40" />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">Até</label>
-              <Input type="date" value={dataFim} onChange={e => { setDataFim(e.target.value); setPage(1) }} className="w-40" />
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-registros-ate">Até</label>
+              <Input id="pages-registros-ate" type="date" value={dataFim} onChange={e => { setDataFim(e.target.value); setPage(1) }} className="w-40" />
             </div>
             {(dataInicio || dataFim) && (
               <Button variant="ghost" size="sm" className="self-end" onClick={() => { setDataInicio(''); setDataFim(''); setPage(1) }}>

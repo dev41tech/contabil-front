@@ -183,17 +183,17 @@ export function ContrapartesTab({ empresaId }: { empresaId: string }) {
         <CardContent className="pt-6">
           <div className="flex gap-4 flex-wrap items-end">
             <div className="flex-1 min-w-[220px]">
-              <label className="text-sm font-medium mb-1 block">Buscar</label>
-              <Input
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-contrapartes-buscar">Buscar</label>
+              <Input id="pages-contrapartes-buscar"
                 placeholder="Razão social, nome fantasia ou CPF/CNPJ"
                 value={termoInput}
                 onChange={e => setTermoInput(e.target.value)}
               />
             </div>
             <div className="min-w-[140px]">
-              <label className="text-sm font-medium mb-1 block">Tipo</label>
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-contrapartes-tipo">Tipo</label>
               <Select value={tipoFiltro} onValueChange={v => { setTipoFiltro(v); setPage(1) }}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="pages-contrapartes-tipo"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
                   {TIPOS_CONTRAPARTE.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
@@ -308,35 +308,35 @@ export function ContrapartesTab({ empresaId }: { empresaId: string }) {
           <form onSubmit={createForm.handleSubmit(d => createMutation.mutate(d))} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <Label>Tipo</Label>
+                <Label htmlFor="pages-contrapartes-tipo-2">Tipo</Label>
                 <Select value={createForm.watch('tipo')} onValueChange={v => createForm.setValue('tipo', v as any, { shouldValidate: true })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="pages-contrapartes-tipo-2"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {TIPOS_CONTRAPARTE.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label>CPF/CNPJ</Label>
-                <Input placeholder="000.000.000-00 ou 00.000.000/0000-00" {...createForm.register('documento')} />
+                <Label htmlFor="pages-contrapartes-cpf-cnpj">CPF/CNPJ</Label>
+                <Input id="pages-contrapartes-cpf-cnpj" placeholder="000.000.000-00 ou 00.000.000/0000-00" {...createForm.register('documento')} />
                 {createForm.formState.errors.documento && (
                   <p className="text-xs text-destructive">{createForm.formState.errors.documento.message}</p>
                 )}
               </div>
               <div className="space-y-1 col-span-2">
-                <Label>Razão Social</Label>
-                <Input placeholder="Ex: Axel Tecnologia Ltda" {...createForm.register('razao_social')} />
+                <Label htmlFor="pages-contrapartes-razao-social">Razão Social</Label>
+                <Input id="pages-contrapartes-razao-social" placeholder="Ex: Axel Tecnologia Ltda" {...createForm.register('razao_social')} />
                 {createForm.formState.errors.razao_social && (
                   <p className="text-xs text-destructive">{createForm.formState.errors.razao_social.message}</p>
                 )}
               </div>
               <div className="space-y-1 col-span-2">
-                <Label>Nome Fantasia <span className="text-muted-foreground text-xs">(opcional)</span></Label>
-                <Input placeholder="Ex: Axel Tech" {...createForm.register('nome_fantasia')} />
+                <Label htmlFor="pages-contrapartes-nome-fantasia-opcional">Nome Fantasia <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+                <Input id="pages-contrapartes-nome-fantasia-opcional" placeholder="Ex: Axel Tech" {...createForm.register('nome_fantasia')} />
               </div>
               <div className="space-y-1 col-span-2">
-                <Label>Conta Contábil</Label>
-                <SearchableSelect
+                <Label htmlFor="pages-contrapartes-conta-contabil">Conta Contábil</Label>
+                <SearchableSelect id="pages-contrapartes-conta-contabil"
                   value={createForm.watch('conta_contabil_id')}
                   onValueChange={v => createForm.setValue('conta_contabil_id', v, { shouldValidate: true })}
                   options={contaOptions}
@@ -377,28 +377,28 @@ export function ContrapartesTab({ empresaId }: { empresaId: string }) {
           >
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <Label>Tipo</Label>
+                <Label htmlFor="pages-contrapartes-tipo-3">Tipo</Label>
                 <Select value={editForm.watch('tipo')} onValueChange={v => editForm.setValue('tipo', v as any, { shouldValidate: true })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="pages-contrapartes-tipo-3"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {TIPOS_CONTRAPARTE.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1 col-span-2">
-                <Label>Razão Social</Label>
-                <Input {...editForm.register('razao_social')} />
+                <Label htmlFor="pages-contrapartes-razao-social-2">Razão Social</Label>
+                <Input id="pages-contrapartes-razao-social-2" {...editForm.register('razao_social')} />
                 {editForm.formState.errors.razao_social && (
                   <p className="text-xs text-destructive">{editForm.formState.errors.razao_social.message}</p>
                 )}
               </div>
               <div className="space-y-1 col-span-2">
-                <Label>Nome Fantasia <span className="text-muted-foreground text-xs">(opcional)</span></Label>
-                <Input {...editForm.register('nome_fantasia')} />
+                <Label htmlFor="pages-contrapartes-nome-fantasia-opcional-2">Nome Fantasia <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+                <Input id="pages-contrapartes-nome-fantasia-opcional-2" {...editForm.register('nome_fantasia')} />
               </div>
               <div className="space-y-1 col-span-2">
-                <Label>Conta Contábil</Label>
-                <SearchableSelect
+                <Label htmlFor="pages-contrapartes-conta-contabil-2">Conta Contábil</Label>
+                <SearchableSelect id="pages-contrapartes-conta-contabil-2"
                   value={editForm.watch('conta_contabil_id')}
                   onValueChange={v => editForm.setValue('conta_contabil_id', v, { shouldValidate: true })}
                   options={contaOptions}

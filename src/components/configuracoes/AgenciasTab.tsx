@@ -55,7 +55,7 @@ export function AgenciasTab({ empresaId }: { empresaId: string }) {
     mutationFn: (d: AgenciaForm) => api.post(`/empresas/${empresaId}/agencias`, d),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['agencias', empresaId] })
-      toast({ title: 'Agência criada!', variant: 'success' })
+      toast({ title: 'Conta bancária criada!', variant: 'success' })
       setOpen(false)
       reset()
     },
@@ -123,7 +123,7 @@ export function AgenciasTab({ empresaId }: { empresaId: string }) {
       setConfirmarReapontar(false)
       setRelatorio(dados)
       if (!dados.length) {
-        toast({ title: 'Nada a corrigir', description: 'Nenhuma agência com conta sintética pendente.', variant: 'default' })
+        toast({ title: 'Nada a corrigir', description: 'Nenhuma conta bancária com conta contábil sintética pendente.', variant: 'default' })
       }
     },
     onError: (e: unknown) => toast({ title: 'Erro ao reapontar', description: extractApiError(e), variant: 'destructive' }),
@@ -143,13 +143,13 @@ export function AgenciasTab({ empresaId }: { empresaId: string }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{data.length} agência{data.length !== 1 ? 's' : ''} cadastrada{data.length !== 1 ? 's' : ''}</p>
+        <p className="text-sm text-muted-foreground">{data.length} conta{data.length !== 1 ? 's' : ''} bancária{data.length !== 1 ? 's' : ''} cadastrada{data.length !== 1 ? 's' : ''}</p>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" onClick={() => setConfirmarReapontar(true)}>
             <Wrench className="h-4 w-4 mr-1" /> Corrigir conta do razão
           </Button>
           <Button size="sm" onClick={() => setOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" /> Nova Agência
+            <Plus className="h-4 w-4 mr-1" /> Nova Conta Bancária
           </Button>
         </div>
       </div>
@@ -159,7 +159,7 @@ export function AgenciasTab({ empresaId }: { empresaId: string }) {
       ) : !data.length ? (
         <div className="text-center py-10 border-2 border-dashed rounded-lg">
           <Building2 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">Nenhuma agência cadastrada.</p>
+          <p className="text-sm text-muted-foreground">Nenhuma conta bancária cadastrada.</p>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -211,35 +211,35 @@ export function AgenciasTab({ empresaId }: { empresaId: string }) {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-muted-foreground" /> Nova Agência Bancária
+              <Building2 className="h-5 w-5 text-muted-foreground" /> Nova Conta Bancária
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(d => createMutation.mutate(d))} className="space-y-4">
             <div className="space-y-1">
-              <Label>Banco</Label>
-              <Input placeholder="Ex: BRADESCO" {...register('banco_sigla')} />
+              <Label htmlFor="components-configuracoes-agenciastab-banco">Banco</Label>
+              <Input id="components-configuracoes-agenciastab-banco" placeholder="Ex: BRADESCO" {...register('banco_sigla')} />
               {errors.banco_sigla && <p className="text-xs text-destructive">{errors.banco_sigla.message}</p>}
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
-                <Label>Agência</Label>
-                <Input placeholder="0001" {...register('agencia')} />
+                <Label htmlFor="components-configuracoes-agenciastab-agencia">Agência</Label>
+                <Input id="components-configuracoes-agenciastab-agencia" placeholder="0001" {...register('agencia')} />
                 {errors.agencia && <p className="text-xs text-destructive">{errors.agencia.message}</p>}
               </div>
               <div className="space-y-1">
-                <Label>Conta</Label>
-                <Input placeholder="12345" {...register('numero')} />
+                <Label htmlFor="components-configuracoes-agenciastab-conta">Conta</Label>
+                <Input id="components-configuracoes-agenciastab-conta" placeholder="12345" {...register('numero')} />
                 {errors.numero && <p className="text-xs text-destructive">{errors.numero.message}</p>}
               </div>
               <div className="space-y-1">
-                <Label>Dígito</Label>
-                <Input placeholder="6" {...register('digito')} />
+                <Label htmlFor="components-configuracoes-agenciastab-digito">Dígito</Label>
+                <Input id="components-configuracoes-agenciastab-digito" placeholder="6" {...register('digito')} />
               </div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
               <Button type="submit" disabled={createMutation.isPending}>
-                {createMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Salvando...</> : 'Criar Agência'}
+                {createMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Salvando...</> : 'Criar Conta Bancária'}
               </Button>
             </DialogFooter>
           </form>
@@ -255,29 +255,29 @@ export function AgenciasTab({ empresaId }: { empresaId: string }) {
           </DialogHeader>
           <form onSubmit={editForm.handleSubmit(d => editAgencia && editMutation.mutate({ id: editAgencia.id, data: d }))} className="space-y-4">
             <div className="space-y-1">
-              <Label>Banco</Label>
-              <Input placeholder="Ex: BRADESCO" {...editForm.register('banco_sigla')} />
+              <Label htmlFor="components-configuracoes-agenciastab-banco-2">Banco</Label>
+              <Input id="components-configuracoes-agenciastab-banco-2" placeholder="Ex: BRADESCO" {...editForm.register('banco_sigla')} />
               {editForm.formState.errors.banco_sigla && <p className="text-xs text-destructive">{editForm.formState.errors.banco_sigla.message}</p>}
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
-                <Label>Agência</Label>
-                <Input placeholder="0001" {...editForm.register('agencia')} />
+                <Label htmlFor="components-configuracoes-agenciastab-agencia-2">Agência</Label>
+                <Input id="components-configuracoes-agenciastab-agencia-2" placeholder="0001" {...editForm.register('agencia')} />
                 {editForm.formState.errors.agencia && <p className="text-xs text-destructive">{editForm.formState.errors.agencia.message}</p>}
               </div>
               <div className="space-y-1">
-                <Label>Conta</Label>
-                <Input placeholder="12345" {...editForm.register('numero')} />
+                <Label htmlFor="components-configuracoes-agenciastab-conta-2">Conta</Label>
+                <Input id="components-configuracoes-agenciastab-conta-2" placeholder="12345" {...editForm.register('numero')} />
                 {editForm.formState.errors.numero && <p className="text-xs text-destructive">{editForm.formState.errors.numero.message}</p>}
               </div>
               <div className="space-y-1">
-                <Label>Dígito</Label>
-                <Input placeholder="6" {...editForm.register('digito')} />
+                <Label htmlFor="components-configuracoes-agenciastab-digito-2">Dígito</Label>
+                <Input id="components-configuracoes-agenciastab-digito-2" placeholder="6" {...editForm.register('digito')} />
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>Conta do Plano de Contas</Label>
-              <SearchableCombobox
+              <Label htmlFor="components-configuracoes-agenciastab-conta-do-plano-de-contas">Conta do Plano de Contas</Label>
+              <SearchableCombobox id="components-configuracoes-agenciastab-conta-do-plano-de-contas"
                 options={contaOptions}
                 value={editForm.watch('conta_contabil_id') ?? ''}
                 onChange={v => editForm.setValue('conta_contabil_id', v, { shouldValidate: true })}
@@ -318,13 +318,13 @@ export function AgenciasTab({ empresaId }: { empresaId: string }) {
           <DialogHeader><DialogTitle>Corrigir a conta bancária do razão</DialogTitle></DialogHeader>
           <div className="space-y-3 text-sm text-muted-foreground">
             <p>
-              Quando uma agência fica <span className="font-medium text-foreground">sem conta do Plano de Contas</span>,
+              Quando uma conta bancária fica <span className="font-medium text-foreground">sem conta do Plano de Contas</span>,
               o motor NEO cria uma conta sintética (<code className="text-xs">1.1.B.…</code>) para a contrapartida
               bancária. Ela não tem número abreviado — e é o abreviado que a exportação de registros contábeis usa,
               então esses lançamentos saem num formato que o sistema contábil externo não importa.
             </p>
             <p>
-              Vincular a conta na agência resolve os lançamentos <span className="font-medium text-foreground">novos</span>.
+              Vincular a conta contábil à conta bancária resolve os lançamentos <span className="font-medium text-foreground">novos</span>.
               Esta ação corrige os que <span className="font-medium text-foreground">já estão gravados</span>: move o razão
               da conta sintética para a conta vinculada e desativa a sintética.
             </p>
