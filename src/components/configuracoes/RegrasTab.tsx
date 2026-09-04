@@ -118,10 +118,10 @@ export function RegrasTab({ empresaId }: { empresaId: string }) {
 
         <Select value={agenciaFiltro} onValueChange={v => { setAgenciaFiltro(v); setPage(1) }}>
           <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Todas as agências" />
+            <SelectValue placeholder="Todas as contas" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="todas">Todas as agências</SelectItem>
+            <SelectItem value="todas">Todas as contas</SelectItem>
             {agencias.map((a: any) => (
               <SelectItem key={a.id} value={a.id}>
                 {a.banco_sigla} {a.agencia}/{a.numero}
@@ -190,7 +190,7 @@ export function RegrasTab({ empresaId }: { empresaId: string }) {
                     </code>
                   </div>
 
-                  {/* Linha 3: conta + agência */}
+                  {/* Linha 3: conta contábil + conta bancária */}
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
                     {(r.conta_codigo || r.conta_descricao) && (
                       <div className="flex items-center gap-1.5">

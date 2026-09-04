@@ -108,7 +108,7 @@ export default function ExtratoPage() {
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
-      if (!selectedAgencia) throw new Error('Selecione uma agência primeiro')
+      if (!selectedAgencia) throw new Error('Selecione uma conta bancária primeiro')
       const form = new FormData()
       form.append('arquivo', file)
       return api.post(`/empresas/${selectedEmpresa}/extrato/importar?agencia_id=${selectedAgencia}`, form)
@@ -231,7 +231,7 @@ export default function ExtratoPage() {
 
       <Card>
         <CardContent className="pt-6 space-y-4">
-          {/* Linha 1: empresa, agência, importar */}
+          {/* Linha 1: empresa, conta bancária, importar */}
           <div className="flex gap-4 flex-wrap items-end">
             <div className="flex-1 min-w-[180px]">
               <label className="text-sm font-medium mb-1 block" htmlFor="pages-extrato-empresa">Empresa</label>
@@ -244,19 +244,19 @@ export default function ExtratoPage() {
               />
             </div>
             <div className="flex-1 min-w-[180px]">
-              <label className="text-sm font-medium mb-1 block" htmlFor="pages-extrato-agencia">Agência</label>
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-extrato-agencia">Conta bancária</label>
               <SearchableSelect id="pages-extrato-agencia"
                 value={selectedAgencia}
                 onValueChange={v => { setSelectedAgencia(v); setPage(1) }}
                 options={[
-                  { value: '', label: 'Todas as agências' },
+                  { value: '', label: 'Todas as contas' },
                   ...agencias.map((a: any) => ({
                     value: a.id,
                     label: `${a.banco_sigla} ${a.agencia}/${a.numero}`,
                   })),
                 ]}
-                placeholder="Todas as agências"
-                searchPlaceholder="Buscar agência..."
+                placeholder="Todas as contas"
+                searchPlaceholder="Buscar conta..."
                 disabled={!selectedEmpresa}
               />
             </div>
@@ -272,7 +272,7 @@ export default function ExtratoPage() {
               </Button>
               {selectedEmpresa && !selectedAgencia && (
                 <p className="text-xs text-muted-foreground">
-                  Selecione uma agência específica para importar
+                  Selecione uma conta bancária específica para importar
                 </p>
               )}
               <input ref={fileRef} type="file" accept=".ofx,.OFX,.pdf,.PDF" className="hidden" onChange={handleFile} />

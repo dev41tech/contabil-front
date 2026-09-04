@@ -22,7 +22,7 @@ export const regraSchema = z.object({
   agencia_id: z
     .string()
     .refine(v => v === TODOS_OS_BANCOS || z.string().uuid().safeParse(v).success, {
-      message: 'Selecione a agência ou "Todos os bancos"',
+      message: 'Selecione a conta bancária ou "Todos os bancos"',
     }),
   dc: z.enum(['D', 'C'], {
     errorMap: () => ({ message: 'Selecione débito ou crédito' }),
@@ -149,7 +149,7 @@ export function RegraForm({
 
         {agencia.mode === 'select' && (
           <div className="space-y-1.5">
-            <Label htmlFor="components-regras-regraform-agencia-bancaria">Agência Bancária</Label>
+            <Label htmlFor="components-regras-regraform-agencia-bancaria">Conta bancária</Label>
             <SearchableSelect id="components-regras-regraform-agencia-bancaria"
               value={form.watch('agencia_id')}
               onValueChange={value => form.setValue('agencia_id', value, { shouldValidate: true })}
@@ -157,8 +157,8 @@ export function RegraForm({
                 { value: TODOS_OS_BANCOS, label: 'Todos os bancos' },
                 ...agencia.options,
               ]}
-              placeholder="Selecione a agência"
-              searchPlaceholder="Buscar agência..."
+              placeholder="Selecione a conta bancária"
+              searchPlaceholder="Buscar conta..."
               disabled={!editable('agencia_id')}
             />
             {form.formState.errors.agencia_id && <p className="text-xs text-destructive">{form.formState.errors.agencia_id.message}</p>}

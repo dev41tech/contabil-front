@@ -286,7 +286,7 @@ export default function DashboardPage() {
                   </Card>
                 )}
 
-                {/* Conciliação por agência */}
+                {/* Conciliação por conta bancária */}
                 {stats.por_agencia.length > 0 && (
                   <Card>
                     <CardHeader>

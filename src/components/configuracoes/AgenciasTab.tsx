@@ -55,7 +55,7 @@ export function AgenciasTab({ empresaId }: { empresaId: string }) {
     mutationFn: (d: AgenciaForm) => api.post(`/empresas/${empresaId}/agencias`, d),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['agencias', empresaId] })
-      toast({ title: 'Agência criada!', variant: 'success' })
+      toast({ title: 'Conta bancária criada!', variant: 'success' })
       setOpen(false)
       reset()
     },
@@ -123,7 +123,7 @@ export function AgenciasTab({ empresaId }: { empresaId: string }) {
       setConfirmarReapontar(false)
       setRelatorio(dados)
       if (!dados.length) {
-        toast({ title: 'Nada a corrigir', description: 'Nenhuma agência com conta sintética pendente.', variant: 'default' })
+        toast({ title: 'Nada a corrigir', description: 'Nenhuma conta bancária com conta contábil sintética pendente.', variant: 'default' })
       }
     },
     onError: (e: unknown) => toast({ title: 'Erro ao reapontar', description: extractApiError(e), variant: 'destructive' }),
@@ -143,13 +143,13 @@ export function AgenciasTab({ empresaId }: { empresaId: string }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{data.length} agência{data.length !== 1 ? 's' : ''} cadastrada{data.length !== 1 ? 's' : ''}</p>
+        <p className="text-sm text-muted-foreground">{data.length} conta{data.length !== 1 ? 's' : ''} bancária{data.length !== 1 ? 's' : ''} cadastrada{data.length !== 1 ? 's' : ''}</p>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" onClick={() => setConfirmarReapontar(true)}>
             <Wrench className="h-4 w-4 mr-1" /> Corrigir conta do razão
           </Button>
           <Button size="sm" onClick={() => setOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" /> Nova Agência
+            <Plus className="h-4 w-4 mr-1" /> Nova Conta Bancária
           </Button>
         </div>
       </div>
@@ -159,7 +159,7 @@ export function AgenciasTab({ empresaId }: { empresaId: string }) {
       ) : !data.length ? (
         <div className="text-center py-10 border-2 border-dashed rounded-lg">
           <Building2 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">Nenhuma agência cadastrada.</p>
+          <p className="text-sm text-muted-foreground">Nenhuma conta bancária cadastrada.</p>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -211,7 +211,7 @@ export function AgenciasTab({ empresaId }: { empresaId: string }) {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-muted-foreground" /> Nova Agência Bancária
+              <Building2 className="h-5 w-5 text-muted-foreground" /> Nova Conta Bancária
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(d => createMutation.mutate(d))} className="space-y-4">
@@ -239,7 +239,7 @@ export function AgenciasTab({ empresaId }: { empresaId: string }) {
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
               <Button type="submit" disabled={createMutation.isPending}>
-                {createMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Salvando...</> : 'Criar Agência'}
+                {createMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Salvando...</> : 'Criar Conta Bancária'}
               </Button>
             </DialogFooter>
           </form>
@@ -318,13 +318,13 @@ export function AgenciasTab({ empresaId }: { empresaId: string }) {
           <DialogHeader><DialogTitle>Corrigir a conta bancária do razão</DialogTitle></DialogHeader>
           <div className="space-y-3 text-sm text-muted-foreground">
             <p>
-              Quando uma agência fica <span className="font-medium text-foreground">sem conta do Plano de Contas</span>,
+              Quando uma conta bancária fica <span className="font-medium text-foreground">sem conta do Plano de Contas</span>,
               o motor NEO cria uma conta sintética (<code className="text-xs">1.1.B.…</code>) para a contrapartida
               bancária. Ela não tem número abreviado — e é o abreviado que a exportação de registros contábeis usa,
               então esses lançamentos saem num formato que o sistema contábil externo não importa.
             </p>
             <p>
-              Vincular a conta na agência resolve os lançamentos <span className="font-medium text-foreground">novos</span>.
+              Vincular a conta contábil à conta bancária resolve os lançamentos <span className="font-medium text-foreground">novos</span>.
               Esta ação corrige os que <span className="font-medium text-foreground">já estão gravados</span>: move o razão
               da conta sintética para a conta vinculada e desativa a sintética.
             </p>

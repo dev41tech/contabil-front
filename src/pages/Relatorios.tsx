@@ -228,7 +228,7 @@ function LivroCaixaView({ data }: { data: LivroCaixaResponse }) {
   if (data.agencias.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground text-sm">
-        Nenhuma agência/conta bancária cadastrada.
+        Nenhuma conta bancária cadastrada.
       </div>
     )
   }

@@ -486,7 +486,7 @@ export default function NeoPage() {
 
   const empresaSelecionada = empresas.find((empresa: any) => empresa.id === selectedEmpresa)
   const agenciaSelecionada = agencias.find(agencia => agencia.id === agenciaFiltro)
-  const escopo = [empresaSelecionada?.razao_social, agenciaFiltro === 'todas' ? 'Todas as agências' : agenciaSelecionada && agenciaLabel(agenciaSelecionada), mesFiltro || 'Todas as competências'].filter(Boolean)
+  const escopo = [empresaSelecionada?.razao_social, agenciaFiltro === 'todas' ? 'Todas as contas' : agenciaSelecionada && agenciaLabel(agenciaSelecionada), mesFiltro || 'Todas as competências'].filter(Boolean)
   const escopoProcessamento = [agenciaFiltro !== 'todas' && agenciaSelecionada && agenciaLabel(agenciaSelecionada), mesFiltro].filter(Boolean).join(' · ')
   const total = decisoesQuery.data?.total ?? 0
   const processWithAlerts = processJob?.status === 'concluido_com_alertas'
@@ -502,7 +502,7 @@ export default function NeoPage() {
         <CardContent className="pt-6">
           <div className="flex flex-wrap items-end gap-4">
             <div className="min-w-[240px] flex-1"><Label className="mb-1 block" htmlFor="pages-neo-empresa">Empresa</Label><SearchableSelect id="pages-neo-empresa" value={selectedEmpresa} onValueChange={value => { setSelectedEmpresa(value); setAgenciaFiltro('todas'); setContaFiltro('todas'); setProcessResult(null); setProcessJobId(null); setPage(1) }} options={empresas.map((empresa: any) => ({ value: empresa.id, label: empresa.razao_social }))} placeholder="Selecione a empresa" searchPlaceholder="Buscar empresa..." /></div>
-            <div className="min-w-[190px]"><Label className="mb-1 block" htmlFor="pages-neo-agencia">Agência</Label><Select value={agenciaFiltro} onValueChange={value => { setAgenciaFiltro(value); setPage(1) }}><SelectTrigger id="pages-neo-agencia"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todas">Todas as agências</SelectItem>{agencias.map(agencia => <SelectItem key={agencia.id} value={agencia.id}>{agenciaLabel(agencia)}</SelectItem>)}</SelectContent></Select></div>
+            <div className="min-w-[190px]"><Label className="mb-1 block" htmlFor="pages-neo-agencia">Conta bancária</Label><Select value={agenciaFiltro} onValueChange={value => { setAgenciaFiltro(value); setPage(1) }}><SelectTrigger id="pages-neo-agencia"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todas">Todas as contas</SelectItem>{agencias.map(agencia => <SelectItem key={agencia.id} value={agencia.id}>{agenciaLabel(agencia)}</SelectItem>)}</SelectContent></Select></div>
             <Button onClick={() => processMutation.mutate()} disabled={!selectedEmpresa || processMutation.isPending || isJobRunning(processJob?.status)} className="bg-brand text-on-brand hover:bg-brand-hover">
               {processMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin" />Iniciando...</> : <><Zap className="h-4 w-4" />{escopoProcessamento ? `Processar ${escopoProcessamento}` : 'Executar NEO'}</>}
             </Button>
