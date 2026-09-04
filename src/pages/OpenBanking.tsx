@@ -138,9 +138,9 @@ function MockConnectModal({
             <p>A conexão com bancos reais não está disponível neste ambiente. Para habilitá-la, acione o suporte.</p>
           </div>
           <div className="space-y-1">
-            <label className="text-sm font-medium">Selecione o banco</label>
+            <label className="text-sm font-medium" htmlFor="pages-openbanking-selecione-o-banco">Selecione o banco</label>
             <Select value={banco} onValueChange={setBanco}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger id="pages-openbanking-selecione-o-banco"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {MOCK_BANKS.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
               </SelectContent>
@@ -313,9 +313,9 @@ export default function OpenBankingPage() {
         <CardContent className="pt-6">
           <div className="flex gap-4 items-end flex-wrap">
             <div className="flex-1 min-w-[240px]">
-              <label className="text-sm font-medium mb-1 block">Empresa</label>
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-openbanking-empresa">Empresa</label>
               <Select value={selectedEmpresa} onValueChange={setSelectedEmpresa}>
-                <SelectTrigger><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
+                <SelectTrigger id="pages-openbanking-empresa"><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
                 <SelectContent>
                   {empresas.map((e: any) => (
                     <SelectItem key={e.id} value={e.id}>{e.razao_social}</SelectItem>
@@ -325,9 +325,9 @@ export default function OpenBankingPage() {
             </div>
             <div className="flex items-end gap-2">
               <div>
-                <label className="text-sm font-medium mb-1 block">Dias retroativos</label>
+                <label className="text-sm font-medium mb-1 block" htmlFor="pages-openbanking-dias-retroativos">Dias retroativos</label>
                 <Select value={diasSync} onValueChange={setDiasSync}>
-                  <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="pages-openbanking-dias-retroativos" className="w-32"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="30">30 dias</SelectItem>
                     <SelectItem value="60">60 dias</SelectItem>

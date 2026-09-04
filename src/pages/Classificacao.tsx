@@ -26,9 +26,9 @@ export default function ClassificacaoPage() {
       <Card>
         <CardContent className="pt-6">
           <div className="max-w-sm">
-            <label className="mb-1.5 block text-sm font-medium">Empresa</label>
+            <label className="mb-1.5 block text-sm font-medium" htmlFor="pages-classificacao-empresa">Empresa</label>
             <Select value={selectedEmpresa} onValueChange={setSelectedEmpresa}>
-              <SelectTrigger>
+              <SelectTrigger id="pages-classificacao-empresa">
                 <SelectValue placeholder="Selecione a empresa" />
               </SelectTrigger>
               <SelectContent>

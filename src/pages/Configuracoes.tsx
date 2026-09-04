@@ -19,9 +19,9 @@ export default function ConfiguracoesPage() {
       <Card>
         <CardContent className="pt-6">
           <div className="max-w-sm">
-            <label className="text-sm font-medium mb-1.5 block">Empresa</label>
+            <label className="text-sm font-medium mb-1.5 block" htmlFor="pages-configuracoes-empresa">Empresa</label>
             <Select value={selectedEmpresa} onValueChange={setSelectedEmpresa}>
-              <SelectTrigger>
+              <SelectTrigger id="pages-configuracoes-empresa">
                 <SelectValue placeholder="Selecione a empresa" />
               </SelectTrigger>
               <SelectContent>

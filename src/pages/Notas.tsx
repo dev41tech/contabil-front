@@ -344,18 +344,18 @@ export default function NotasPage() {
         <CardContent className="pt-6">
           <div className="flex gap-4 flex-wrap items-end">
             <div className="flex-1 min-w-[180px]">
-              <label className="text-sm font-medium mb-1 block">Empresa</label>
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-notas-empresa">Empresa</label>
               <Select value={selectedEmpresa} onValueChange={v => { setSelectedEmpresa(v); setPage(1) }}>
-                <SelectTrigger><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
+                <SelectTrigger id="pages-notas-empresa"><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
                 <SelectContent>
                   {empresas.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.razao_social}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="min-w-[120px]">
-              <label className="text-sm font-medium mb-1 block">Tipo</label>
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-notas-tipo">Tipo</label>
               <Select value={tipoFiltro} onValueChange={v => { setTipoFiltro(v); setPage(1) }}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="pages-notas-tipo"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
                   <SelectItem value="nfe">NF-e</SelectItem>
@@ -364,9 +364,9 @@ export default function NotasPage() {
               </Select>
             </div>
             <div className="min-w-[130px]">
-              <label className="text-sm font-medium mb-1 block">Status</label>
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-notas-status">Status</label>
               <Select value={statusFiltro} onValueChange={v => { setStatusFiltro(v); setPage(1) }}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="pages-notas-status"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
                   <SelectItem value="pendente">Pendente</SelectItem>
@@ -380,44 +380,44 @@ export default function NotasPage() {
           {/* Busca */}
           <div className="flex gap-4 flex-wrap items-end mt-4 pt-4 border-t">
             <div className="min-w-[140px]">
-              <label className="text-sm font-medium mb-1 block">Número</label>
-              <Input
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-notas-numero">Número</label>
+              <Input id="pages-notas-numero"
                 placeholder="Buscar por número"
                 value={buscaInputs.numero}
                 onChange={e => setBuscaInputs(b => ({ ...b, numero: e.target.value }))}
               />
             </div>
             <div className="flex-1 min-w-[180px]">
-              <label className="text-sm font-medium mb-1 block">Emitente</label>
-              <Input
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-notas-emitente">Emitente</label>
+              <Input id="pages-notas-emitente"
                 placeholder="Buscar por nome do emitente"
                 value={buscaInputs.emitente}
                 onChange={e => setBuscaInputs(b => ({ ...b, emitente: e.target.value }))}
               />
             </div>
             <div className="min-w-[160px]">
-              <label className="text-sm font-medium mb-1 block">CNPJ</label>
-              <Input
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-notas-cnpj">CNPJ</label>
+              <Input id="pages-notas-cnpj"
                 placeholder="Emitente ou destinatário"
                 value={buscaInputs.cnpj}
                 onChange={e => setBuscaInputs(b => ({ ...b, cnpj: e.target.value }))}
               />
             </div>
             <div className="min-w-[180px]">
-              <label className="text-sm font-medium mb-1 block">Chave de Acesso</label>
-              <Input
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-notas-chave-de-acesso">Chave de Acesso</label>
+              <Input id="pages-notas-chave-de-acesso"
                 placeholder="Trecho da chave (44 dígitos)"
                 value={buscaInputs.chave_acesso}
                 onChange={e => setBuscaInputs(b => ({ ...b, chave_acesso: e.target.value }))}
               />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">Emissão de</label>
-              <Input type="date" value={dataDe} onChange={e => { setDataDe(e.target.value); setPage(1) }} className="w-40" />
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-notas-emissao-de">Emissão de</label>
+              <Input id="pages-notas-emissao-de" type="date" value={dataDe} onChange={e => { setDataDe(e.target.value); setPage(1) }} className="w-40" />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">até</label>
-              <Input type="date" value={dataAte} onChange={e => { setDataAte(e.target.value); setPage(1) }} className="w-40" />
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-notas-ate">até</label>
+              <Input id="pages-notas-ate" type="date" value={dataAte} onChange={e => { setDataAte(e.target.value); setPage(1) }} className="w-40" />
             </div>
             {filtrosAtivos && (
               <Button variant="ghost" size="sm" onClick={limparFiltros}>Limpar busca</Button>
@@ -558,9 +558,9 @@ export default function NotasPage() {
           <form onSubmit={handleSubmit(d => createMutation.mutate(d))} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <Label>Tipo</Label>
+                <Label htmlFor="pages-notas-tipo-2">Tipo</Label>
                 <Select defaultValue="nfe" onValueChange={v => setValue('tipo', v as 'nfe' | 'nfse')}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="pages-notas-tipo-2"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="nfe">NF-e (Produto)</SelectItem>
                     <SelectItem value="nfse">NFS-e (Serviço)</SelectItem>
@@ -569,40 +569,40 @@ export default function NotasPage() {
                 {errors.tipo && <p className="text-xs text-destructive">{errors.tipo.message}</p>}
               </div>
               <div className="space-y-1">
-                <Label>Número</Label>
-                <Input placeholder="000001" {...register('numero')} />
+                <Label htmlFor="pages-notas-numero-2">Número</Label>
+                <Input id="pages-notas-numero-2" placeholder="000001" {...register('numero')} />
                 {errors.numero && <p className="text-xs text-destructive">{errors.numero.message}</p>}
               </div>
               <div className="space-y-1">
-                <Label>Série <span className="text-muted-foreground text-xs">(opcional)</span></Label>
-                <Input placeholder="1" {...register('serie')} />
+                <Label htmlFor="pages-notas-serie-opcional">Série <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+                <Input id="pages-notas-serie-opcional" placeholder="1" {...register('serie')} />
               </div>
               <div className="space-y-1">
-                <Label>Data de Emissão</Label>
-                <Input type="date" {...register('data_emissao')} />
+                <Label htmlFor="pages-notas-data-de-emissao">Data de Emissão</Label>
+                <Input id="pages-notas-data-de-emissao" type="date" {...register('data_emissao')} />
                 {errors.data_emissao && <p className="text-xs text-destructive">{errors.data_emissao.message}</p>}
               </div>
               <div className="space-y-1 col-span-2">
-                <Label>CNPJ Emitente</Label>
-                <Input placeholder="12.345.678/0001-90" {...register('cnpj_emitente')} />
+                <Label htmlFor="pages-notas-cnpj-emitente">CNPJ Emitente</Label>
+                <Input id="pages-notas-cnpj-emitente" placeholder="12.345.678/0001-90" {...register('cnpj_emitente')} />
                 {errors.cnpj_emitente && <p className="text-xs text-destructive">{errors.cnpj_emitente.message}</p>}
               </div>
               <div className="space-y-1 col-span-2">
-                <Label>Nome Emitente <span className="text-muted-foreground text-xs">(opcional)</span></Label>
-                <Input placeholder="FORNECEDOR XYZ LTDA" {...register('nome_emitente')} />
+                <Label htmlFor="pages-notas-nome-emitente-opcional">Nome Emitente <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+                <Input id="pages-notas-nome-emitente-opcional" placeholder="FORNECEDOR XYZ LTDA" {...register('nome_emitente')} />
               </div>
               <div className="space-y-1">
-                <Label>Valor (R$)</Label>
-                <Input type="number" step="0.01" placeholder="0,00" {...register('valor')} />
+                <Label htmlFor="pages-notas-valor-r">Valor (R$)</Label>
+                <Input id="pages-notas-valor-r" type="number" step="0.01" placeholder="0,00" {...register('valor')} />
                 {errors.valor && <p className="text-xs text-destructive">{errors.valor.message}</p>}
               </div>
               <div className="space-y-1">
-                <Label>Chave de Acesso <span className="text-muted-foreground text-xs">(opcional)</span></Label>
-                <Input placeholder="44 dígitos" {...register('chave_acesso')} />
+                <Label htmlFor="pages-notas-chave-de-acesso-opcional">Chave de Acesso <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+                <Input id="pages-notas-chave-de-acesso-opcional" placeholder="44 dígitos" {...register('chave_acesso')} />
               </div>
               <div className="space-y-1 col-span-2">
-                <Label>Observação <span className="text-muted-foreground text-xs">(opcional)</span></Label>
-                <Input placeholder="..." {...register('observacao')} />
+                <Label htmlFor="pages-notas-observacao-opcional">Observação <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+                <Input id="pages-notas-observacao-opcional" placeholder="..." {...register('observacao')} />
               </div>
             </div>
             <DialogFooter>

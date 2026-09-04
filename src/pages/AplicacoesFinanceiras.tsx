@@ -153,9 +153,9 @@ export default function AplicacoesFinanceirasPage() {
         <CardContent className="pt-6">
           <div className="flex gap-4 flex-wrap items-end">
             <div className="flex-1 min-w-[220px]">
-              <label className="text-sm font-medium mb-1 block">Empresa</label>
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-aplicacoesfinanceiras-empresa">Empresa</label>
               <Select value={selectedEmpresa} onValueChange={setSelectedEmpresa}>
-                <SelectTrigger><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
+                <SelectTrigger id="pages-aplicacoesfinanceiras-empresa"><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
                 <SelectContent>
                   {empresas.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.razao_social}</SelectItem>)}
                 </SelectContent>
@@ -294,23 +294,23 @@ export default function AplicacoesFinanceirasPage() {
           <form onSubmit={handleSubmit(d => createMutation.mutate(d))} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1 col-span-2">
-                <Label>Instituição</Label>
-                <Input placeholder="Ex: Banco do Brasil" {...register('instituicao')} />
+                <Label htmlFor="pages-aplicacoesfinanceiras-instituicao">Instituição</Label>
+                <Input id="pages-aplicacoesfinanceiras-instituicao" placeholder="Ex: Banco do Brasil" {...register('instituicao')} />
                 {errors.instituicao && <p className="text-xs text-destructive">{errors.instituicao.message}</p>}
               </div>
               <div className="space-y-1">
-                <Label>Tipo</Label>
+                <Label htmlFor="pages-aplicacoesfinanceiras-tipo">Tipo</Label>
                 <Select value={watch('tipo')} onValueChange={v => setValue('tipo', v, { shouldValidate: true })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="pages-aplicacoesfinanceiras-tipo"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {TIPOS_APLICACAO.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label>Conta bancária <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+                <Label htmlFor="pages-aplicacoesfinanceiras-conta-bancaria-opcional">Conta bancária <span className="text-muted-foreground text-xs">(opcional)</span></Label>
                 <Select value={watch('agencia_id') ?? ''} onValueChange={v => setValue('agencia_id', v)}>
-                  <SelectTrigger><SelectValue placeholder="Nenhuma" /></SelectTrigger>
+                  <SelectTrigger id="pages-aplicacoesfinanceiras-conta-bancaria-opcional"><SelectValue placeholder="Nenhuma" /></SelectTrigger>
                   <SelectContent>
                     {agencias.map((ag: any) => (
                       <SelectItem key={ag.id} value={ag.id}>{ag.descricao ?? `${ag.banco_sigla} ${ag.agencia}/${ag.numero}`}</SelectItem>
@@ -319,30 +319,30 @@ export default function AplicacoesFinanceirasPage() {
                 </Select>
               </div>
               <div className="space-y-1 col-span-2">
-                <Label>Descrição <span className="text-muted-foreground text-xs">(opcional)</span></Label>
-                <Input placeholder="Ex: CDB 110% CDI" {...register('descricao')} />
+                <Label htmlFor="pages-aplicacoesfinanceiras-descricao-opcional">Descrição <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+                <Input id="pages-aplicacoesfinanceiras-descricao-opcional" placeholder="Ex: CDB 110% CDI" {...register('descricao')} />
               </div>
               <div className="space-y-1">
-                <Label>Valor Aplicado</Label>
-                <Input type="number" step="0.01" placeholder="0,00" {...register('valor_aplicado')} />
+                <Label htmlFor="pages-aplicacoesfinanceiras-valor-aplicado">Valor Aplicado</Label>
+                <Input id="pages-aplicacoesfinanceiras-valor-aplicado" type="number" step="0.01" placeholder="0,00" {...register('valor_aplicado')} />
                 {errors.valor_aplicado && <p className="text-xs text-destructive">{errors.valor_aplicado.message}</p>}
               </div>
               <div className="space-y-1">
-                <Label>Data da Aplicação</Label>
-                <Input type="date" {...register('data_aplicacao')} />
+                <Label htmlFor="pages-aplicacoesfinanceiras-data-da-aplicacao">Data da Aplicação</Label>
+                <Input id="pages-aplicacoesfinanceiras-data-da-aplicacao" type="date" {...register('data_aplicacao')} />
                 {errors.data_aplicacao && <p className="text-xs text-destructive">{errors.data_aplicacao.message}</p>}
               </div>
               <div className="space-y-1">
-                <Label>Valor Atual <span className="text-muted-foreground text-xs">(se já souber)</span></Label>
-                <Input type="number" step="0.01" placeholder="0,00" {...register('valor_atual')} />
+                <Label htmlFor="pages-aplicacoesfinanceiras-valor-atual-se-ja-souber">Valor Atual <span className="text-muted-foreground text-xs">(se já souber)</span></Label>
+                <Input id="pages-aplicacoesfinanceiras-valor-atual-se-ja-souber" type="number" step="0.01" placeholder="0,00" {...register('valor_atual')} />
               </div>
               <div className="space-y-1">
-                <Label>Vencimento <span className="text-muted-foreground text-xs">(opcional)</span></Label>
-                <Input type="date" {...register('data_vencimento')} />
+                <Label htmlFor="pages-aplicacoesfinanceiras-vencimento-opcional">Vencimento <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+                <Input id="pages-aplicacoesfinanceiras-vencimento-opcional" type="date" {...register('data_vencimento')} />
               </div>
               <div className="space-y-1 col-span-2">
-                <Label>Observação <span className="text-muted-foreground text-xs">(opcional)</span></Label>
-                <Input placeholder="..." {...register('observacao')} />
+                <Label htmlFor="pages-aplicacoesfinanceiras-observacao-opcional">Observação <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+                <Input id="pages-aplicacoesfinanceiras-observacao-opcional" placeholder="..." {...register('observacao')} />
               </div>
             </div>
             <DialogFooter>
@@ -367,8 +367,8 @@ export default function AplicacoesFinanceirasPage() {
             className="space-y-4"
           >
             <div className="space-y-1">
-              <Label>Valor Atual</Label>
-              <Input type="number" step="0.01" placeholder="0,00" {...valorForm.register('valor_atual')} />
+              <Label htmlFor="pages-aplicacoesfinanceiras-valor-atual">Valor Atual</Label>
+              <Input id="pages-aplicacoesfinanceiras-valor-atual" type="number" step="0.01" placeholder="0,00" {...valorForm.register('valor_atual')} />
               {valorForm.formState.errors.valor_atual && (
                 <p className="text-xs text-destructive">{valorForm.formState.errors.valor_atual.message}</p>
               )}

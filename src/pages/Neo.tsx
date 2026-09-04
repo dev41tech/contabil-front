@@ -501,8 +501,8 @@ export default function NeoPage() {
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-wrap items-end gap-4">
-            <div className="min-w-[240px] flex-1"><Label className="mb-1 block">Empresa</Label><SearchableSelect value={selectedEmpresa} onValueChange={value => { setSelectedEmpresa(value); setAgenciaFiltro('todas'); setContaFiltro('todas'); setProcessResult(null); setProcessJobId(null); setPage(1) }} options={empresas.map((empresa: any) => ({ value: empresa.id, label: empresa.razao_social }))} placeholder="Selecione a empresa" searchPlaceholder="Buscar empresa..." /></div>
-            <div className="min-w-[190px]"><Label className="mb-1 block">Agência</Label><Select value={agenciaFiltro} onValueChange={value => { setAgenciaFiltro(value); setPage(1) }}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todas">Todas as agências</SelectItem>{agencias.map(agencia => <SelectItem key={agencia.id} value={agencia.id}>{agenciaLabel(agencia)}</SelectItem>)}</SelectContent></Select></div>
+            <div className="min-w-[240px] flex-1"><Label className="mb-1 block" htmlFor="pages-neo-empresa">Empresa</Label><SearchableSelect id="pages-neo-empresa" value={selectedEmpresa} onValueChange={value => { setSelectedEmpresa(value); setAgenciaFiltro('todas'); setContaFiltro('todas'); setProcessResult(null); setProcessJobId(null); setPage(1) }} options={empresas.map((empresa: any) => ({ value: empresa.id, label: empresa.razao_social }))} placeholder="Selecione a empresa" searchPlaceholder="Buscar empresa..." /></div>
+            <div className="min-w-[190px]"><Label className="mb-1 block" htmlFor="pages-neo-agencia">Agência</Label><Select value={agenciaFiltro} onValueChange={value => { setAgenciaFiltro(value); setPage(1) }}><SelectTrigger id="pages-neo-agencia"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todas">Todas as agências</SelectItem>{agencias.map(agencia => <SelectItem key={agencia.id} value={agencia.id}>{agenciaLabel(agencia)}</SelectItem>)}</SelectContent></Select></div>
             <Button onClick={() => processMutation.mutate()} disabled={!selectedEmpresa || processMutation.isPending || isJobRunning(processJob?.status)} className="bg-brand text-on-brand hover:bg-brand-hover">
               {processMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin" />Iniciando...</> : <><Zap className="h-4 w-4" />{escopoProcessamento ? `Processar ${escopoProcessamento}` : 'Executar NEO'}</>}
             </Button>
@@ -624,16 +624,16 @@ export default function NeoPage() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1">
-              <Label>Conta contábil</Label>
-              <SearchableSelect value={loteConta} onValueChange={setLoteConta} options={contaOptions} placeholder="Selecione a conta..." searchPlaceholder="Buscar conta..." />
+              <Label htmlFor="pages-neo-conta-contabil">Conta contábil</Label>
+              <SearchableSelect id="pages-neo-conta-contabil" value={loteConta} onValueChange={setLoteConta} options={contaOptions} placeholder="Selecione a conta..." searchPlaceholder="Buscar conta..." />
             </div>
             <div className="space-y-1">
-              <Label>Histórico contábil</Label>
-              <Input value={loteDescricao} onChange={e => setLoteDescricao(e.target.value)} />
+              <Label htmlFor="pages-neo-historico-contabil">Histórico contábil</Label>
+              <Input id="pages-neo-historico-contabil" value={loteDescricao} onChange={e => setLoteDescricao(e.target.value)} />
             </div>
 
             <div className="space-y-2 rounded-md border p-3">
-              <label className="flex items-center gap-2 text-sm font-medium">
+              <label className="flex items-center gap-2 text-sm font-medium" htmlFor="pages-neo-criar-regra-e-aplicar-nos-semelhantes">
                 <input type="checkbox" className="h-3.5 w-3.5" checked={criarRegra} onChange={e => setCriarRegra(e.target.checked)} />
                 Criar regra e aplicar nos semelhantes
               </label>
@@ -643,7 +643,7 @@ export default function NeoPage() {
                     Texto em comum às linhas selecionadas. Os próximos lançamentos que contiverem
                     este texto passam a cair sozinhos nesta conta.
                   </p>
-                  <Input value={regraHistorico} onChange={e => setRegraHistorico(e.target.value)} placeholder="Texto que dispara a regra" />
+                  <Input id="pages-neo-criar-regra-e-aplicar-nos-semelhantes" value={regraHistorico} onChange={e => setRegraHistorico(e.target.value)} placeholder="Texto que dispara a regra" />
                   {previaRegra.isFetching && <p className="text-xs text-muted-foreground">Medindo o alcance…</p>}
                   {previaRegra.data && (
                     <div className="space-y-1 text-xs">
@@ -687,15 +687,15 @@ export default function NeoPage() {
         <DialogContent className="max-w-md"><DialogHeader><DialogTitle>Associar manualmente</DialogTitle></DialogHeader><form onSubmit={associarForm.handleSubmit(data => associarManualMutation.mutate({ transacaoId: associarLinha!.transacaoId, body: data }))} className="space-y-4">
             <p className="text-sm text-muted-foreground">Transação: <span className="font-medium text-foreground">{associarLinha?.historico}</span></p>
             <div className="space-y-1">
-              <Label>Conta contábil</Label>
-              <SearchableSelect value={associarForm.watch('conta_id')} onValueChange={value => associarForm.setValue('conta_id', value, { shouldValidate: true })} options={contaOptions} placeholder="Selecione a conta..." searchPlaceholder="Buscar conta..." />
+              <Label htmlFor="pages-neo-conta-contabil-2">Conta contábil</Label>
+              <SearchableSelect id="pages-neo-conta-contabil-2" value={associarForm.watch('conta_id')} onValueChange={value => associarForm.setValue('conta_id', value, { shouldValidate: true })} options={contaOptions} placeholder="Selecione a conta..." searchPlaceholder="Buscar conta..." />
               {associarForm.formState.errors.conta_id && <p className="text-xs text-destructive">{associarForm.formState.errors.conta_id.message}</p>}
             </div>
             <div className="space-y-1">
               {/* É o texto que vai para o razão como histórico do lançamento —
                   e é o que a coluna Histórico passa a mostrar. */}
-              <Label>Histórico contábil</Label>
-              <Input {...associarForm.register('descricao')} />
+              <Label htmlFor="pages-neo-historico-contabil-2">Histórico contábil</Label>
+              <Input id="pages-neo-historico-contabil-2" {...associarForm.register('descricao')} />
               {associarForm.formState.errors.descricao && <p className="text-xs text-destructive">{associarForm.formState.errors.descricao.message}</p>}
             </div>
             <DialogFooter>
@@ -718,20 +718,20 @@ export default function NeoPage() {
               O lançamento atual — <span className="font-medium text-foreground">{alterarLinha?.detalhe ?? 'conta atual'}</span> — será desfeito e um novo será criado na conta escolhida.
             </p>
             <div className="space-y-1">
-              <Label>Nova conta contábil</Label>
-              <SearchableSelect value={associarForm.watch('conta_id')} onValueChange={value => associarForm.setValue('conta_id', value, { shouldValidate: true })} options={contaOptions} placeholder="Selecione a conta..." searchPlaceholder="Buscar conta..." />
+              <Label htmlFor="pages-neo-nova-conta-contabil">Nova conta contábil</Label>
+              <SearchableSelect id="pages-neo-nova-conta-contabil" value={associarForm.watch('conta_id')} onValueChange={value => associarForm.setValue('conta_id', value, { shouldValidate: true })} options={contaOptions} placeholder="Selecione a conta..." searchPlaceholder="Buscar conta..." />
               {associarForm.formState.errors.conta_id && <p className="text-xs text-destructive">{associarForm.formState.errors.conta_id.message}</p>}
             </div>
             <div className="space-y-1">
               {/* É o texto que vai para o razão como histórico do lançamento —
                   e é o que a coluna Histórico passa a mostrar. */}
-              <Label>Histórico contábil</Label>
-              <Input {...associarForm.register('descricao')} />
+              <Label htmlFor="pages-neo-historico-contabil-3">Histórico contábil</Label>
+              <Input id="pages-neo-historico-contabil-3" {...associarForm.register('descricao')} />
               {associarForm.formState.errors.descricao && <p className="text-xs text-destructive">{associarForm.formState.errors.descricao.message}</p>}
             </div>
             <div className="space-y-1">
-              <Label>Motivo</Label>
-              <Input value={motivoAlterar} onChange={event => setMotivoAlterar(event.target.value)} placeholder="Ex.: conta errada na classificação anterior" />
+              <Label htmlFor="pages-neo-motivo">Motivo</Label>
+              <Input id="pages-neo-motivo" value={motivoAlterar} onChange={event => setMotivoAlterar(event.target.value)} placeholder="Ex.: conta errada na classificação anterior" />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setAlterarLinha(null)}>Cancelar</Button>
@@ -784,14 +784,14 @@ function DecisionFilters(props: DecisionFiltersProps) {
         {props.filtrosAtivos && <Button variant="ghost" size="sm" onClick={props.limparFiltros}>Limpar filtros</Button>}
       </div>
       <div className={`flex flex-wrap items-end gap-4 rounded-md border border-border bg-surface-hover p-3 ${aberto ? '' : 'hidden'}`}>
-        {!props.apenasFiltrosDeTransacao && <div className="min-w-[160px]"><Label className="mb-1 block">Estratégia</Label><Select value={props.estrategiaFiltro} onValueChange={update(props.setEstrategiaFiltro)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todas">Todas</SelectItem><SelectItem value="exato">Texto exato</SelectItem><SelectItem value="substring">Contém o texto</SelectItem><SelectItem value="todas_palavras">Contém todas as palavras</SelectItem><SelectItem value="contraparte">Por CNPJ do favorecido</SelectItem><SelectItem value="manual">Associação manual</SelectItem></SelectContent></Select></div>}
-        <div className="min-w-[120px]"><Label className="mb-1 block">D/C</Label><Select value={props.dcFiltro} onValueChange={update(props.setDcFiltro)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Todos</SelectItem><SelectItem value="D">Débito</SelectItem><SelectItem value="C">Crédito</SelectItem></SelectContent></Select></div>
-        {!props.apenasFiltrosDeTransacao && <div className="min-w-[240px] flex-1"><Label className="mb-1 block">Conta contábil</Label><SearchableSelect value={props.contaFiltro} onValueChange={update(props.setContaFiltro)} options={[{ value: 'todas', label: 'Todas' }, ...props.contaOptions]} searchPlaceholder="Buscar conta..." /></div>}
-        <div className="w-[150px]"><Label className="mb-1 block">De</Label><Input type="date" value={props.dataDeFiltro} onChange={event => update(props.setDataDeFiltro)(event.target.value)} /></div>
-        <div className="w-[150px]"><Label className="mb-1 block">Até</Label><Input type="date" value={props.dataAteFiltro} onChange={event => update(props.setDataAteFiltro)(event.target.value)} /></div>
-        {!props.apenasFiltrosDeTransacao && <div className="min-w-[180px] flex-1"><Label className="mb-1 block">Motivo</Label><Input placeholder="Por que parou na fila" value={props.motivoInput} onChange={event => props.setMotivoInput(event.target.value)} /></div>}
-        <div className="w-[140px]"><Label className="mb-1 block">Valor mínimo</Label><Input type="number" min="0" step="0.01" value={props.valorMinFiltro} onChange={event => { if (!event.target.value || Number(event.target.value) >= 0) update(props.setValorMinFiltro)(event.target.value) }} /></div>
-        <div className="w-[140px]"><Label className="mb-1 block">Valor máximo</Label><Input type="number" min="0" step="0.01" value={props.valorMaxFiltro} onChange={event => { if (!event.target.value || Number(event.target.value) >= 0) update(props.setValorMaxFiltro)(event.target.value) }} /></div>
+        {!props.apenasFiltrosDeTransacao && <div className="min-w-[160px]"><Label className="mb-1 block" htmlFor="pages-neo-estrategia">Estratégia</Label><Select value={props.estrategiaFiltro} onValueChange={update(props.setEstrategiaFiltro)}><SelectTrigger id="pages-neo-estrategia"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todas">Todas</SelectItem><SelectItem value="exato">Texto exato</SelectItem><SelectItem value="substring">Contém o texto</SelectItem><SelectItem value="todas_palavras">Contém todas as palavras</SelectItem><SelectItem value="contraparte">Por CNPJ do favorecido</SelectItem><SelectItem value="manual">Associação manual</SelectItem></SelectContent></Select></div>}
+        <div className="min-w-[120px]"><Label className="mb-1 block" htmlFor="pages-neo-d-c">D/C</Label><Select value={props.dcFiltro} onValueChange={update(props.setDcFiltro)}><SelectTrigger id="pages-neo-d-c"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todos">Todos</SelectItem><SelectItem value="D">Débito</SelectItem><SelectItem value="C">Crédito</SelectItem></SelectContent></Select></div>
+        {!props.apenasFiltrosDeTransacao && <div className="min-w-[240px] flex-1"><Label className="mb-1 block" htmlFor="pages-neo-conta-contabil-3">Conta contábil</Label><SearchableSelect id="pages-neo-conta-contabil-3" value={props.contaFiltro} onValueChange={update(props.setContaFiltro)} options={[{ value: 'todas', label: 'Todas' }, ...props.contaOptions]} searchPlaceholder="Buscar conta..." /></div>}
+        <div className="w-[150px]"><Label className="mb-1 block" htmlFor="pages-neo-de">De</Label><Input id="pages-neo-de" type="date" value={props.dataDeFiltro} onChange={event => update(props.setDataDeFiltro)(event.target.value)} /></div>
+        <div className="w-[150px]"><Label className="mb-1 block" htmlFor="pages-neo-ate">Até</Label><Input id="pages-neo-ate" type="date" value={props.dataAteFiltro} onChange={event => update(props.setDataAteFiltro)(event.target.value)} /></div>
+        {!props.apenasFiltrosDeTransacao && <div className="min-w-[180px] flex-1"><Label className="mb-1 block" htmlFor="pages-neo-motivo-2">Motivo</Label><Input id="pages-neo-motivo-2" placeholder="Por que parou na fila" value={props.motivoInput} onChange={event => props.setMotivoInput(event.target.value)} /></div>}
+        <div className="w-[140px]"><Label className="mb-1 block" htmlFor="pages-neo-valor-minimo">Valor mínimo</Label><Input id="pages-neo-valor-minimo" type="number" min="0" step="0.01" value={props.valorMinFiltro} onChange={event => { if (!event.target.value || Number(event.target.value) >= 0) update(props.setValorMinFiltro)(event.target.value) }} /></div>
+        <div className="w-[140px]"><Label className="mb-1 block" htmlFor="pages-neo-valor-maximo">Valor máximo</Label><Input id="pages-neo-valor-maximo" type="number" min="0" step="0.01" value={props.valorMaxFiltro} onChange={event => { if (!event.target.value || Number(event.target.value) >= 0) update(props.setValorMaxFiltro)(event.target.value) }} /></div>
       </div>
     </div>
   )

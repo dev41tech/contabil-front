@@ -174,22 +174,22 @@ function EmpresaFields({ form }: { form: UseFormReturn<EmpresaFormData> }) {
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <Label>Razão Social</Label>
-        <Input placeholder="ACME COMERCIO LTDA" {...form.register('razao_social')} />
+        <Label htmlFor="components-configuracoes-empresastab-razao-social">Razão Social</Label>
+        <Input id="components-configuracoes-empresastab-razao-social" placeholder="ACME COMERCIO LTDA" {...form.register('razao_social')} />
         {form.formState.errors.razao_social && <p className="text-xs text-destructive">{form.formState.errors.razao_social.message}</p>}
       </div>
       <div className="space-y-1">
-        <Label>CNPJ</Label>
-        <Input placeholder="12.345.678/0001-90" {...form.register('cnpj')} />
+        <Label htmlFor="components-configuracoes-empresastab-cnpj">CNPJ</Label>
+        <Input id="components-configuracoes-empresastab-cnpj" placeholder="12.345.678/0001-90" {...form.register('cnpj')} />
         {form.formState.errors.cnpj && <p className="text-xs text-destructive">{form.formState.errors.cnpj.message}</p>}
       </div>
       <div className="space-y-1">
-        <Label>Regime Tributário</Label>
+        <Label htmlFor="components-configuracoes-empresastab-regime-tributario">Regime Tributário</Label>
         <Select
           value={form.watch('regime_tributario')}
           onValueChange={value => form.setValue('regime_tributario', value as EmpresaFormData['regime_tributario'], { shouldValidate: true })}
         >
-          <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+          <SelectTrigger id="components-configuracoes-empresastab-regime-tributario"><SelectValue placeholder="Selecione" /></SelectTrigger>
           <SelectContent>
             {Object.entries(REGIME_LABEL).map(([value, label]) => (
               <SelectItem key={value} value={value}>{label}</SelectItem>

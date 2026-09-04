@@ -461,9 +461,9 @@ export default function ConcilProPage() {
       {/* Seletor de empresa */}
       <Card>
         <CardContent className="pt-6">
-          <label className="text-sm font-medium mb-1 block">Empresa</label>
+          <label className="text-sm font-medium mb-1 block" htmlFor="pages-concilpro-empresa">Empresa</label>
           <Select value={selectedEmpresa} onValueChange={setSelectedEmpresa}>
-            <SelectTrigger className="max-w-xs"><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
+            <SelectTrigger id="pages-concilpro-empresa" className="max-w-xs"><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
             <SelectContent>
               {empresas.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.razao_social}</SelectItem>)}
             </SelectContent>
@@ -485,7 +485,7 @@ export default function ConcilProPage() {
           <div className="flex gap-4 items-end flex-wrap">
             {/* Upload */}
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Importar Razão</label>
+              <label className="text-sm font-medium" htmlFor="pages-concilpro-importar-razao">Importar Razão</label>
               <Button
                 onClick={() => fileRef.current?.click()}
                 disabled={uploadMutation.isPending || processando}
@@ -502,7 +502,7 @@ export default function ConcilProPage() {
                 Aceita <strong>Excel (.xlsx)</strong> ou PDF do Razão de Fornecedores.
                 Prefira Excel quando o sistema contábil permitir — a leitura é mais precisa.
               </p>
-              <input
+              <input id="pages-concilpro-importar-razao"
                 ref={fileRef}
                 type="file"
                 accept=".xlsx,.XLSX,.xls,.XLS,.pdf,.PDF,.zip,.ZIP"
@@ -514,12 +514,12 @@ export default function ConcilProPage() {
             {/* Seletor de arquivo */}
             {arquivos.length > 0 && (
               <div className="flex-1 min-w-[240px]">
-                <label className="text-sm font-medium mb-1 block">Arquivo analisado</label>
+                <label className="text-sm font-medium mb-1 block" htmlFor="pages-concilpro-arquivo-analisado">Arquivo analisado</label>
                 <Select
                   value={arquivoSelecionado?.toString() ?? ''}
                   onValueChange={v => { setArquivoSelecionado(Number(v)); setAbaAtiva('fornecedores') }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="pages-concilpro-arquivo-analisado">
                     <SelectValue placeholder="Selecione um arquivo…" />
                   </SelectTrigger>
                   <SelectContent>

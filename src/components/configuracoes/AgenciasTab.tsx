@@ -216,24 +216,24 @@ export function AgenciasTab({ empresaId }: { empresaId: string }) {
           </DialogHeader>
           <form onSubmit={handleSubmit(d => createMutation.mutate(d))} className="space-y-4">
             <div className="space-y-1">
-              <Label>Banco</Label>
-              <Input placeholder="Ex: BRADESCO" {...register('banco_sigla')} />
+              <Label htmlFor="components-configuracoes-agenciastab-banco">Banco</Label>
+              <Input id="components-configuracoes-agenciastab-banco" placeholder="Ex: BRADESCO" {...register('banco_sigla')} />
               {errors.banco_sigla && <p className="text-xs text-destructive">{errors.banco_sigla.message}</p>}
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
-                <Label>Agência</Label>
-                <Input placeholder="0001" {...register('agencia')} />
+                <Label htmlFor="components-configuracoes-agenciastab-agencia">Agência</Label>
+                <Input id="components-configuracoes-agenciastab-agencia" placeholder="0001" {...register('agencia')} />
                 {errors.agencia && <p className="text-xs text-destructive">{errors.agencia.message}</p>}
               </div>
               <div className="space-y-1">
-                <Label>Conta</Label>
-                <Input placeholder="12345" {...register('numero')} />
+                <Label htmlFor="components-configuracoes-agenciastab-conta">Conta</Label>
+                <Input id="components-configuracoes-agenciastab-conta" placeholder="12345" {...register('numero')} />
                 {errors.numero && <p className="text-xs text-destructive">{errors.numero.message}</p>}
               </div>
               <div className="space-y-1">
-                <Label>Dígito</Label>
-                <Input placeholder="6" {...register('digito')} />
+                <Label htmlFor="components-configuracoes-agenciastab-digito">Dígito</Label>
+                <Input id="components-configuracoes-agenciastab-digito" placeholder="6" {...register('digito')} />
               </div>
             </div>
             <DialogFooter>
@@ -255,29 +255,29 @@ export function AgenciasTab({ empresaId }: { empresaId: string }) {
           </DialogHeader>
           <form onSubmit={editForm.handleSubmit(d => editAgencia && editMutation.mutate({ id: editAgencia.id, data: d }))} className="space-y-4">
             <div className="space-y-1">
-              <Label>Banco</Label>
-              <Input placeholder="Ex: BRADESCO" {...editForm.register('banco_sigla')} />
+              <Label htmlFor="components-configuracoes-agenciastab-banco-2">Banco</Label>
+              <Input id="components-configuracoes-agenciastab-banco-2" placeholder="Ex: BRADESCO" {...editForm.register('banco_sigla')} />
               {editForm.formState.errors.banco_sigla && <p className="text-xs text-destructive">{editForm.formState.errors.banco_sigla.message}</p>}
             </div>
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
-                <Label>Agência</Label>
-                <Input placeholder="0001" {...editForm.register('agencia')} />
+                <Label htmlFor="components-configuracoes-agenciastab-agencia-2">Agência</Label>
+                <Input id="components-configuracoes-agenciastab-agencia-2" placeholder="0001" {...editForm.register('agencia')} />
                 {editForm.formState.errors.agencia && <p className="text-xs text-destructive">{editForm.formState.errors.agencia.message}</p>}
               </div>
               <div className="space-y-1">
-                <Label>Conta</Label>
-                <Input placeholder="12345" {...editForm.register('numero')} />
+                <Label htmlFor="components-configuracoes-agenciastab-conta-2">Conta</Label>
+                <Input id="components-configuracoes-agenciastab-conta-2" placeholder="12345" {...editForm.register('numero')} />
                 {editForm.formState.errors.numero && <p className="text-xs text-destructive">{editForm.formState.errors.numero.message}</p>}
               </div>
               <div className="space-y-1">
-                <Label>Dígito</Label>
-                <Input placeholder="6" {...editForm.register('digito')} />
+                <Label htmlFor="components-configuracoes-agenciastab-digito-2">Dígito</Label>
+                <Input id="components-configuracoes-agenciastab-digito-2" placeholder="6" {...editForm.register('digito')} />
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>Conta do Plano de Contas</Label>
-              <SearchableCombobox
+              <Label htmlFor="components-configuracoes-agenciastab-conta-do-plano-de-contas">Conta do Plano de Contas</Label>
+              <SearchableCombobox id="components-configuracoes-agenciastab-conta-do-plano-de-contas"
                 options={contaOptions}
                 value={editForm.watch('conta_contabil_id') ?? ''}
                 onChange={v => editForm.setValue('conta_contabil_id', v, { shouldValidate: true })}

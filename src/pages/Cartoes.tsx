@@ -617,15 +617,15 @@ export default function CartoesPage() {
           <DialogHeader><DialogTitle>Novo Cartão de Crédito</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-1">
-              <label className="text-sm font-medium">Nome</label>
-              <Input placeholder="Nubank Empresarial" value={formCartao.nome}
+              <label className="text-sm font-medium" htmlFor="pages-cartoes-nome">Nome</label>
+              <Input id="pages-cartoes-nome" placeholder="Nubank Empresarial" value={formCartao.nome}
                 onChange={e => setFormCartao(p => ({ ...p, nome: e.target.value }))} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-sm font-medium">Bandeira</label>
+                <label className="text-sm font-medium" htmlFor="pages-cartoes-bandeira">Bandeira</label>
                 <Select value={formCartao.bandeira} onValueChange={v => setFormCartao(p => ({ ...p, bandeira: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="pages-cartoes-bandeira"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {Object.entries(BANDEIRA_LABEL).map(([v, l]) =>
                       <SelectItem key={v} value={v}>{l}</SelectItem>
@@ -634,26 +634,26 @@ export default function CartoesPage() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-sm font-medium">Últimos 4 dígitos</label>
-                <Input placeholder="1234" maxLength={4} value={formCartao.ultimos_digitos}
+                <label className="text-sm font-medium" htmlFor="pages-cartoes-ultimos-4-digitos">Últimos 4 dígitos</label>
+                <Input id="pages-cartoes-ultimos-4-digitos" placeholder="1234" maxLength={4} value={formCartao.ultimos_digitos}
                   onChange={e => setFormCartao(p => ({ ...p, ultimos_digitos: e.target.value }))} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-sm font-medium">Dia de Fechamento</label>
-                <Input type="number" min={1} max={28} value={formCartao.dia_fechamento}
+                <label className="text-sm font-medium" htmlFor="pages-cartoes-dia-de-fechamento">Dia de Fechamento</label>
+                <Input id="pages-cartoes-dia-de-fechamento" type="number" min={1} max={28} value={formCartao.dia_fechamento}
                   onChange={e => setFormCartao(p => ({ ...p, dia_fechamento: e.target.value }))} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm font-medium">Dia de Vencimento</label>
-                <Input type="number" min={1} max={28} value={formCartao.dia_vencimento}
+                <label className="text-sm font-medium" htmlFor="pages-cartoes-dia-de-vencimento">Dia de Vencimento</label>
+                <Input id="pages-cartoes-dia-de-vencimento" type="number" min={1} max={28} value={formCartao.dia_vencimento}
                   onChange={e => setFormCartao(p => ({ ...p, dia_vencimento: e.target.value }))} />
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium">Limite (opcional)</label>
-              <Input type="number" placeholder="5000.00" value={formCartao.limite}
+              <label className="text-sm font-medium" htmlFor="pages-cartoes-limite-opcional">Limite (opcional)</label>
+              <Input id="pages-cartoes-limite-opcional" type="number" placeholder="5000.00" value={formCartao.limite}
                 onChange={e => setFormCartao(p => ({ ...p, limite: e.target.value }))} />
             </div>
           </div>
@@ -752,18 +752,18 @@ export default function CartoesPage() {
           <DialogHeader><DialogTitle>Nova Fatura</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-1">
-              <label className="text-sm font-medium">Competência (mês)</label>
-              <Input type="month" value={formFatura.competencia}
+              <label className="text-sm font-medium" htmlFor="pages-cartoes-competencia-mes">Competência (mês)</label>
+              <Input id="pages-cartoes-competencia-mes" type="month" value={formFatura.competencia}
                 onChange={e => setFormFatura(p => ({ ...p, competencia: e.target.value }))} />
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium">Data de Vencimento (opcional)</label>
-              <Input type="date" value={formFatura.data_vencimento}
+              <label className="text-sm font-medium" htmlFor="pages-cartoes-data-de-vencimento-opcional">Data de Vencimento (opcional)</label>
+              <Input id="pages-cartoes-data-de-vencimento-opcional" type="date" value={formFatura.data_vencimento}
                 onChange={e => setFormFatura(p => ({ ...p, data_vencimento: e.target.value }))} />
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium">Observação (opcional)</label>
-              <Input placeholder="..." value={formFatura.observacao}
+              <label className="text-sm font-medium" htmlFor="pages-cartoes-observacao-opcional">Observação (opcional)</label>
+              <Input id="pages-cartoes-observacao-opcional" placeholder="..." value={formFatura.observacao}
                 onChange={e => setFormFatura(p => ({ ...p, observacao: e.target.value }))} />
             </div>
           </div>
@@ -783,29 +783,29 @@ export default function CartoesPage() {
           <DialogHeader><DialogTitle>Novo Lançamento</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-1">
-              <label className="text-sm font-medium">Data da Compra</label>
-              <Input type="date" value={formLanc.data_compra}
+              <label className="text-sm font-medium" htmlFor="pages-cartoes-data-da-compra">Data da Compra</label>
+              <Input id="pages-cartoes-data-da-compra" type="date" value={formLanc.data_compra}
                 onChange={e => setFormLanc(p => ({ ...p, data_compra: e.target.value }))} />
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium">Descrição</label>
-              <Input placeholder="Amazon Prime, Posto Shell..." value={formLanc.descricao}
+              <label className="text-sm font-medium" htmlFor="pages-cartoes-descricao">Descrição</label>
+              <Input id="pages-cartoes-descricao" placeholder="Amazon Prime, Posto Shell..." value={formLanc.descricao}
                 onChange={e => setFormLanc(p => ({ ...p, descricao: e.target.value }))} />
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium">Valor (R$)</label>
-              <Input type="number" step="0.01" placeholder="129.90" value={formLanc.valor}
+              <label className="text-sm font-medium" htmlFor="pages-cartoes-valor-r">Valor (R$)</label>
+              <Input id="pages-cartoes-valor-r" type="number" step="0.01" placeholder="129.90" value={formLanc.valor}
                 onChange={e => setFormLanc(p => ({ ...p, valor: e.target.value }))} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-sm font-medium">Parcela Atual</label>
-                <Input type="number" min={1} placeholder="1" value={formLanc.parcela_atual}
+                <label className="text-sm font-medium" htmlFor="pages-cartoes-parcela-atual">Parcela Atual</label>
+                <Input id="pages-cartoes-parcela-atual" type="number" min={1} placeholder="1" value={formLanc.parcela_atual}
                   onChange={e => setFormLanc(p => ({ ...p, parcela_atual: e.target.value }))} />
               </div>
               <div className="space-y-1">
-                <label className="text-sm font-medium">Total Parcelas</label>
-                <Input type="number" min={1} placeholder="3" value={formLanc.parcela_total}
+                <label className="text-sm font-medium" htmlFor="pages-cartoes-total-parcelas">Total Parcelas</label>
+                <Input id="pages-cartoes-total-parcelas" type="number" min={1} placeholder="3" value={formLanc.parcela_total}
                   onChange={e => setFormLanc(p => ({ ...p, parcela_total: e.target.value }))} />
               </div>
             </div>

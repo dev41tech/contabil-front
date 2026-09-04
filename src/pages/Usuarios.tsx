@@ -214,24 +214,24 @@ export default function UsuariosPage() {
           </DialogHeader>
           <form onSubmit={handleSubmit(d => createMutation.mutate(d))} className="space-y-4">
             <div className="space-y-1">
-              <Label>Nome completo</Label>
-              <Input placeholder="João da Silva" {...register('nome')} />
+              <Label htmlFor="pages-usuarios-nome-completo">Nome completo</Label>
+              <Input id="pages-usuarios-nome-completo" placeholder="João da Silva" {...register('nome')} />
               {errors.nome && <p className="text-xs text-destructive">{errors.nome.message}</p>}
             </div>
             <div className="space-y-1">
-              <Label>E-mail</Label>
-              <Input type="email" placeholder="joao@exemplo.com" {...register('email')} />
+              <Label htmlFor="pages-usuarios-e-mail">E-mail</Label>
+              <Input id="pages-usuarios-e-mail" type="email" placeholder="joao@exemplo.com" {...register('email')} />
               {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
             </div>
             <div className="space-y-1">
-              <Label>Senha inicial</Label>
-              <Input type="password" placeholder="Mínimo 8 caracteres" {...register('senha')} />
+              <Label htmlFor="pages-usuarios-senha-inicial">Senha inicial</Label>
+              <Input id="pages-usuarios-senha-inicial" type="password" placeholder="Mínimo 8 caracteres" {...register('senha')} />
               {errors.senha && <p className="text-xs text-destructive">{errors.senha.message}</p>}
             </div>
             <div className="space-y-1">
-              <Label>Perfil de acesso</Label>
+              <Label htmlFor="pages-usuarios-perfil-de-acesso">Perfil de acesso</Label>
               <Select defaultValue="contador" onValueChange={v => setValue('role', v as 'admin' | 'contador')}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="pages-usuarios-perfil-de-acesso"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="contador">Contador</SelectItem>
                   <SelectItem value="admin">Administrador</SelectItem>

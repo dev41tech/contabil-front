@@ -234,8 +234,8 @@ export default function ExtratoPage() {
           {/* Linha 1: empresa, agência, importar */}
           <div className="flex gap-4 flex-wrap items-end">
             <div className="flex-1 min-w-[180px]">
-              <label className="text-sm font-medium mb-1 block">Empresa</label>
-              <SearchableSelect
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-extrato-empresa">Empresa</label>
+              <SearchableSelect id="pages-extrato-empresa"
                 value={selectedEmpresa}
                 onValueChange={v => { setSelectedEmpresa(v); setSelectedAgencia(''); setUploadJobId(null); setRejeicoes([]); setPage(1) }}
                 options={empresas.map((e: any) => ({ value: e.id, label: e.razao_social }))}
@@ -244,8 +244,8 @@ export default function ExtratoPage() {
               />
             </div>
             <div className="flex-1 min-w-[180px]">
-              <label className="text-sm font-medium mb-1 block">Agência</label>
-              <SearchableSelect
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-extrato-agencia">Agência</label>
+              <SearchableSelect id="pages-extrato-agencia"
                 value={selectedAgencia}
                 onValueChange={v => { setSelectedAgencia(v); setPage(1) }}
                 options={[
@@ -353,9 +353,9 @@ export default function ExtratoPage() {
 
           <div className={`flex flex-wrap items-end gap-4 rounded-md border border-border bg-surface-hover p-3 ${filtrosAbertos ? '' : 'hidden'}`}>
             <div className="min-w-[140px]">
-              <label className="text-sm font-medium mb-1 block">Status</label>
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-extrato-status">Status</label>
               <Select value={statusFiltro} onValueChange={v => { setStatusFiltro(v); setPage(1) }}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="pages-extrato-status"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
                   <SelectItem value="pendente">Pendente</SelectItem>
@@ -365,17 +365,17 @@ export default function ExtratoPage() {
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">De</label>
-              <Input type="date" value={dataInicio} onChange={e => { setDataInicio(e.target.value); setPage(1) }} className="w-40" />
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-extrato-de">De</label>
+              <Input id="pages-extrato-de" type="date" value={dataInicio} onChange={e => { setDataInicio(e.target.value); setPage(1) }} className="w-40" />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">Até</label>
-              <Input type="date" value={dataFim} onChange={e => { setDataFim(e.target.value); setPage(1) }} className="w-40" />
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-extrato-ate">Até</label>
+              <Input id="pages-extrato-ate" type="date" value={dataFim} onChange={e => { setDataFim(e.target.value); setPage(1) }} className="w-40" />
             </div>
             <div className="min-w-[120px]">
-              <label className="text-sm font-medium mb-1 block">D/C</label>
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-extrato-d-c">D/C</label>
               <Select value={dcFiltro} onValueChange={v => { setDcFiltro(v); setPage(1) }}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="pages-extrato-d-c"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
                   <SelectItem value="D">Débito</SelectItem>
@@ -386,8 +386,8 @@ export default function ExtratoPage() {
             {/* O valor gravado é sempre positivo — o sinal mora em D/C. A faixa,
                 portanto, é sobre o módulo do lançamento, e o rótulo diz isso. */}
             <div>
-              <label className="text-sm font-medium mb-1 block">Valor de</label>
-              <Input
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-extrato-valor-de">Valor de</label>
+              <Input id="pages-extrato-valor-de"
                 type="number" min="0" step="0.01" placeholder="0,00"
                 value={buscaInputs.valorMin}
                 onChange={e => setBuscaInputs(s => ({ ...s, valorMin: e.target.value }))}
@@ -395,8 +395,8 @@ export default function ExtratoPage() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">até</label>
-              <Input
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-extrato-ate-2">até</label>
+              <Input id="pages-extrato-ate-2"
                 type="number" min="0" step="0.01" placeholder="0,00"
                 value={buscaInputs.valorMax}
                 onChange={e => setBuscaInputs(s => ({ ...s, valorMax: e.target.value }))}
@@ -404,9 +404,9 @@ export default function ExtratoPage() {
               />
             </div>
             <div className="min-w-[110px]">
-              <label className="text-sm font-medium mb-1 block">Por página</label>
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-extrato-por-pagina">Por página</label>
               <Select value={String(pageSize)} onValueChange={v => { setPageSize(Number(v)); setPage(1) }}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="pages-extrato-por-pagina"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {/* O backend aceita de 1 a 200; 200 é o teto de lá. */}
                   {[20, 50, 100, 200].map(n => (

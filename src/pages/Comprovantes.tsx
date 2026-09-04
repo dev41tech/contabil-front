@@ -368,18 +368,18 @@ export default function ComprovantesPage() {
         <CardContent className="pt-6">
           <div className="flex gap-4 flex-wrap items-end">
             <div className="flex-1 min-w-[180px]">
-              <label className="text-sm font-medium mb-1 block">Empresa</label>
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-comprovantes-empresa">Empresa</label>
               <Select value={selectedEmpresa} onValueChange={v => { setSelectedEmpresa(v); setPage(1) }}>
-                <SelectTrigger><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
+                <SelectTrigger id="pages-comprovantes-empresa"><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
                 <SelectContent>
                   {empresas.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.razao_social}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="min-w-[140px]">
-              <label className="text-sm font-medium mb-1 block">Status</label>
+              <label className="text-sm font-medium mb-1 block" htmlFor="pages-comprovantes-status">Status</label>
               <Select value={statusFiltro} onValueChange={v => { setStatusFiltro(v); setPage(1) }}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="pages-comprovantes-status"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos</SelectItem>
                   <SelectItem value="associado">Associados</SelectItem>
@@ -516,52 +516,52 @@ export default function ComprovantesPage() {
           <form onSubmit={handleSubmit(d => createMutation.mutate(d))} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1 col-span-2">
-                <Label>Favorecido</Label>
-                <Input placeholder="Nome do favorecido" {...register('favorecido')} />
+                <Label htmlFor="pages-comprovantes-favorecido">Favorecido</Label>
+                <Input id="pages-comprovantes-favorecido" placeholder="Nome do favorecido" {...register('favorecido')} />
               </div>
               <div className="space-y-1">
-                <Label>CPF/CNPJ</Label>
-                <Input placeholder="000.000.000-00" {...register('cpf_cnpj')} />
+                <Label htmlFor="pages-comprovantes-cpf-cnpj">CPF/CNPJ</Label>
+                <Input id="pages-comprovantes-cpf-cnpj" placeholder="000.000.000-00" {...register('cpf_cnpj')} />
               </div>
               <div className="space-y-1">
-                <Label>Valor Pago *</Label>
-                <Input type="number" step="0.01" placeholder="0,00" {...register('valor_pago')} />
+                <Label htmlFor="pages-comprovantes-valor-pago">Valor Pago *</Label>
+                <Input id="pages-comprovantes-valor-pago" type="number" step="0.01" placeholder="0,00" {...register('valor_pago')} />
                 {errors.valor_pago && <p className="text-xs text-destructive">{errors.valor_pago.message}</p>}
               </div>
               <div className="space-y-1">
-                <Label>Valor do Documento</Label>
-                <Input type="number" step="0.01" placeholder="0,00" {...register('valor_documento')} />
+                <Label htmlFor="pages-comprovantes-valor-do-documento">Valor do Documento</Label>
+                <Input id="pages-comprovantes-valor-do-documento" type="number" step="0.01" placeholder="0,00" {...register('valor_documento')} />
               </div>
               <div className="space-y-1">
-                <Label>Data Pagamento</Label>
-                <Input type="date" {...register('data_pagamento')} />
+                <Label htmlFor="pages-comprovantes-data-pagamento">Data Pagamento</Label>
+                <Input id="pages-comprovantes-data-pagamento" type="date" {...register('data_pagamento')} />
               </div>
               <div className="space-y-1">
-                <Label>Data Vencimento</Label>
-                <Input type="date" {...register('data_vencimento')} />
+                <Label htmlFor="pages-comprovantes-data-vencimento">Data Vencimento</Label>
+                <Input id="pages-comprovantes-data-vencimento" type="date" {...register('data_vencimento')} />
               </div>
               <div className="space-y-1">
-                <Label>Juros</Label>
-                <Input type="number" step="0.01" placeholder="0,00" {...register('juros')} />
+                <Label htmlFor="pages-comprovantes-juros">Juros</Label>
+                <Input id="pages-comprovantes-juros" type="number" step="0.01" placeholder="0,00" {...register('juros')} />
               </div>
               <div className="space-y-1">
-                <Label>Multa</Label>
-                <Input type="number" step="0.01" placeholder="0,00" {...register('multa')} />
+                <Label htmlFor="pages-comprovantes-multa">Multa</Label>
+                <Input id="pages-comprovantes-multa" type="number" step="0.01" placeholder="0,00" {...register('multa')} />
               </div>
               <div className="space-y-1">
-                <Label>Desconto</Label>
-                <Input type="number" step="0.01" placeholder="0,00" {...register('desconto')} />
+                <Label htmlFor="pages-comprovantes-desconto">Desconto</Label>
+                <Input id="pages-comprovantes-desconto" type="number" step="0.01" placeholder="0,00" {...register('desconto')} />
               </div>
               <div className="space-y-1 col-span-2">
-                <Label>Observação</Label>
-                <Input placeholder="Opcional" {...register('observacao')} />
+                <Label htmlFor="pages-comprovantes-observacao">Observação</Label>
+                <Input id="pages-comprovantes-observacao" placeholder="Opcional" {...register('observacao')} />
               </div>
             </div>
 
             {/* Anexo */}
             <div className="space-y-1">
-              <Label>Arquivo anexo (PDF, JPG, PNG)</Label>
-              <div className="flex gap-2 items-center">
+              <Label id="comprovante-arquivo-rotulo">Arquivo anexo (PDF, JPG, PNG)</Label>
+              <div role="group" aria-labelledby="comprovante-arquivo-rotulo" className="flex gap-2 items-center">
                 <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                   <FileText className="h-4 w-4 mr-2" />
                   {pendingFile ? pendingFile.nome : 'Selecionar arquivo'}

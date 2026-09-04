@@ -389,9 +389,9 @@ export default function RelatoriosPage() {
         <CardContent className="pt-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div className="space-y-1">
-              <Label className="text-xs">Empresa *</Label>
+              <Label className="text-xs" htmlFor="pages-relatorios-empresa">Empresa *</Label>
               <Select value={selectedEmpresa} onValueChange={setSelectedEmpresa}>
-                <SelectTrigger>
+                <SelectTrigger id="pages-relatorios-empresa">
                   <SelectValue placeholder="Selecione a empresa" />
                 </SelectTrigger>
                 <SelectContent>
@@ -402,12 +402,12 @@ export default function RelatoriosPage() {
               </Select>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Data Início</Label>
-              <Input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} />
+              <Label className="text-xs" htmlFor="pages-relatorios-data-inicio">Data Início</Label>
+              <Input id="pages-relatorios-data-inicio" type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Data Fim</Label>
-              <Input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} />
+              <Label className="text-xs" htmlFor="pages-relatorios-data-fim">Data Fim</Label>
+              <Input id="pages-relatorios-data-fim" type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} />
             </div>
             <Button onClick={handleGerar} disabled={!selectedEmpresa} className="w-full">
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}

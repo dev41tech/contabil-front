@@ -91,9 +91,9 @@ export function ConflitosQualidadeTab({ empresaId }: { empresaId: string }) {
         <CardContent className="pt-6">
           <div className="flex flex-wrap items-end gap-4">
             <div className="min-w-[220px]">
-              <Label className="mb-1 block">Conta bancária</Label>
+              <Label className="mb-1 block" htmlFor="components-classificacao-conflitosqualidadetab-conta-bancaria">Conta bancária</Label>
               <Select value={agenciaId} onValueChange={setAgenciaId} disabled={!selectedEmpresa}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger id="components-classificacao-conflitosqualidadetab-conta-bancaria"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todas">Todas as contas bancárias</SelectItem>
                   {agencias.map((agencia: any) => (
@@ -105,8 +105,8 @@ export function ConflitosQualidadeTab({ empresaId }: { empresaId: string }) {
               </Select>
             </div>
             <div className="min-w-[170px]">
-              <Label className="mb-1 block">Competência</Label>
-              <Input type="month" value={mes} onChange={event => setMes(event.target.value)} />
+              <Label className="mb-1 block" htmlFor="components-classificacao-conflitosqualidadetab-competencia">Competência</Label>
+              <Input id="components-classificacao-conflitosqualidadetab-competencia" type="month" value={mes} onChange={event => setMes(event.target.value)} />
             </div>
           </div>
         </CardContent>
