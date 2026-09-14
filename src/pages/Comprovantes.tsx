@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { api } from '@/lib/api'
-import { formatCurrency, formatDate, extractApiError } from '@/lib/utils'
+import { formatCurrency, formatDate, extractApiError, codigoDoErro } from '@/lib/utils'
 import { toast } from '@/hooks/useToast'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Pagination } from '@/components/ui/pagination'
-import { Plus, Loader2, Link2, Unlink, FileText, Eye, CheckCircle2, AlertCircle, FileUp, SkipForward } from 'lucide-react'
+import { Plus, Loader2, Link2, Unlink, FileText, Eye, CheckCircle2, AlertCircle, FileUp, SkipForward, Trash2, Ban } from 'lucide-react'
 import { useEmpresas } from '@/hooks/useEmpresas'
 
 const comprovanteSchema = z.object({
@@ -35,6 +35,10 @@ type ComprovanteForm = z.infer<typeof comprovanteSchema>
 
 const PAGE_SIZE = 20
 
+// Recusas em que o ARQUIVO é o problema — preencher à mão não resolve, e no
+// caso da nota fiscal é justamente como ela entrava na lista.
+const ERROS_QUE_PULAM_O_ARQUIVO = new Set(['DOCUMENTO_NAO_E_COMPROVANTE', 'COMPROVANTE_JA_IMPORTADO'])
+
 export default function ComprovantesPage() {
   const qc = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -47,9 +51,12 @@ export default function ComprovantesPage() {
   const [openAssociar, setOpenAssociar] = useState<string | null>(null)
   const [openArquivo, setOpenArquivo] = useState<any | null>(null)
   const [pendingFile, setPendingFile] = useState<{ nome: string; base64: string } | null>(null)
-  const [extracaoStatus, setExtracaoStatus] = useState<'idle' | 'extraindo' | 'extraido' | 'falhou'>('idle')
+  const [extracaoStatus, setExtracaoStatus] = useState<'idle' | 'extraindo' | 'extraido' | 'falhou' | 'recusado'>('idle')
   const [extracaoConfianca, setExtracaoConfianca] = useState<string | null>(null)
+  const [motivoRecusa, setMotivoRecusa] = useState<string | null>(null)
   const [confirmarDescarte, setConfirmarDescarte] = useState(false)
+  const [confirmarExclusao, setConfirmarExclusao] = useState<any | null>(null)
+  const [possivelDuplicado, setPossivelDuplicado] = useState<{ dados: ComprovanteForm; mensagem: string } | null>(null)
   const [abrindoArquivo, setAbrindoArquivo] = useState<string | null>(null)
 
   // Fila de arquivos soltos de uma vez (item 5 do PDF de feedback dos contadores).
@@ -57,6 +64,15 @@ export default function ComprovantesPage() {
   // sempre, só avança para o próximo arquivo depois que o atual é salvo ou pulado.
   const [batch, setBatch] = useState<File[]>([])
   const [batchIndex, setBatchIndex] = useState(0)
+  // Espelhos em ref para os callbacks assíncronos da extração: eles fecham
+  // sobre a renderização em que a extração começou, e precisam ver a fila e o
+  // arquivo de AGORA para não avançar a partir do lugar errado.
+  const batchRef = useRef<File[]>([])
+  const arquivoAtualRef = useRef<File | null>(null)
+  const definirFila = (fila: File[]) => {
+    batchRef.current = fila
+    setBatch(fila)
+  }
   const emLote = batch.length > 1
 
   const { data: empresas = [] } = useEmpresas()
@@ -88,19 +104,37 @@ export default function ComprovantesPage() {
   // ── Mutations ──────────────────────────────────────────────────────────────
 
   const createMutation = useMutation({
-    mutationFn: (data: ComprovanteForm) => api.post(`/empresas/${selectedEmpresa}/comprovantes`, {
-      ...data,
-      data_pagamento: data.data_pagamento ? new Date(data.data_pagamento).toISOString() : undefined,
-      data_vencimento: data.data_vencimento ? new Date(data.data_vencimento).toISOString() : undefined,
-      arquivo_nome: pendingFile?.nome,
-      arquivo_base64: pendingFile?.base64,
-    }),
+    mutationFn: ({ permitirDuplicado = false, ...data }: ComprovanteForm & { permitirDuplicado?: boolean }) =>
+      api.post(`/empresas/${selectedEmpresa}/comprovantes`, {
+        ...data,
+        data_pagamento: data.data_pagamento ? new Date(data.data_pagamento).toISOString() : undefined,
+        data_vencimento: data.data_vencimento ? new Date(data.data_vencimento).toISOString() : undefined,
+        arquivo_nome: pendingFile?.nome,
+        arquivo_base64: pendingFile?.base64,
+        permitir_duplicado: permitirDuplicado,
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['comprovantes', selectedEmpresa] })
       toast({ title: 'Comprovante criado!', variant: 'success' })
       avancarFila()
     },
-    onError: (e: unknown) => toast({ title: 'Erro ao criar', description: extractApiError(e), variant: 'destructive' }),
+    onError: (e: unknown, variaveis) => {
+      const codigo = codigoDoErro(e)
+      if (codigo === 'COMPROVANTE_POSSIVEL_DUPLICADO') {
+        // Mesmo valor, dia e favorecido com outro arquivo: pode ser o mesmo
+        // comprovante baixado de novo, ou um segundo pagamento de verdade. Só
+        // o contador sabe — então pergunta em vez de recusar.
+        const { permitirDuplicado: _, ...dados } = variaveis
+        setPossivelDuplicado({ dados, mensagem: extractApiError(e) })
+        return
+      }
+      if (codigo === 'COMPROVANTE_JA_IMPORTADO') {
+        toast({ title: 'Comprovante já importado', description: extractApiError(e), variant: 'destructive' })
+        avancarFila()
+        return
+      }
+      toast({ title: 'Erro ao criar', description: extractApiError(e), variant: 'destructive' })
+    },
   })
 
   const associarMutation = useMutation({
@@ -129,6 +163,7 @@ export default function ComprovantesPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['comprovantes', selectedEmpresa] })
       toast({ title: 'Comprovante excluído.', variant: 'default' })
+      setConfirmarExclusao(null)
     },
     onError: (e: unknown) => toast({ title: 'Erro ao excluir', description: extractApiError(e), variant: 'destructive' }),
   })
@@ -144,6 +179,7 @@ export default function ComprovantesPage() {
     onMutate: () => {
       setExtracaoStatus('extraindo')
       setExtracaoConfianca(null)
+      setMotivoRecusa(null)
     },
     onSuccess: (d: any) => {
       setExtracaoStatus('extraido')
@@ -163,7 +199,36 @@ export default function ComprovantesPage() {
         variant: 'success',
       })
     },
-    onError: (e: unknown) => {
+    onError: (e: unknown, arquivo) => {
+      // Resposta de um arquivo que já saiu da tela — a fila foi descartada ou
+      // já avançou. Aplicá-la marcaria o formulário errado.
+      if (arquivo !== arquivoAtualRef.current) return
+      const codigo = codigoDoErro(e)
+      if (codigo && ERROS_QUE_PULAM_O_ARQUIVO.has(codigo)) {
+        toast({
+          title: codigo === 'COMPROVANTE_JA_IMPORTADO'
+            ? `${arquivo.name}: já importado`
+            : `${arquivo.name}: não é comprovante`,
+          description: extractApiError(e),
+          variant: 'destructive',
+        })
+        // Na fila, segue para o próximo sozinho: reenviar uma pasta inteira
+        // não pode virar um clique de "pular" por arquivo repetido. Com um
+        // arquivo só, o formulário fica — sem o anexo e sem deixar salvar — até
+        // o contador remover ou trocar o arquivo.
+        // O índice sai da fila e não do estado: este callback foi criado na
+        // renderização em que a extração COMEÇOU, e o `batchIndex` dela ainda é
+        // o do arquivo anterior — avançar por ele recarregaria este mesmo.
+        const fila = batchRef.current
+        if (fila.length > 1) {
+          avancarFila(fila.indexOf(arquivo))
+          return
+        }
+        setPendingFile(null)
+        setExtracaoStatus('recusado')
+        setMotivoRecusa(extractApiError(e))
+        return
+      }
       setExtracaoStatus('falhou')
       toast({
         title: 'Não foi possível extrair os dados automaticamente',
@@ -185,11 +250,13 @@ export default function ComprovantesPage() {
     }
     reader.readAsDataURL(file)
 
+    arquivoAtualRef.current = file
     if (/\.(pdf|jpe?g|png)$/i.test(file.name)) {
       extrairMutation.mutate(file)
     } else {
       setExtracaoStatus('idle')
       setExtracaoConfianca(null)
+      setMotivoRecusa(null)
     }
   }
 
@@ -202,20 +269,23 @@ export default function ComprovantesPage() {
 
   // Depois de salvar (ou pular) o arquivo atual da fila, limpa o formulário e
   // carrega o próximo — se não houver mais nenhum, fecha o modal normalmente.
-  const avancarFila = () => {
+  const avancarFila = (indiceAtual: number = batchIndex) => {
     reset()
     setPendingFile(null)
     setExtracaoStatus('idle')
     setExtracaoConfianca(null)
+    setMotivoRecusa(null)
 
-    const proximoIndex = batchIndex + 1
-    if (proximoIndex < batch.length) {
+    const fila = batchRef.current
+    const proximoIndex = indiceAtual + 1
+    if (proximoIndex < fila.length) {
       setBatchIndex(proximoIndex)
-      carregarArquivo(batch[proximoIndex])
+      carregarArquivo(fila[proximoIndex])
     } else {
       setOpenCreate(false)
-      setBatch([])
+      definirFila([])
       setBatchIndex(0)
+      arquivoAtualRef.current = null
     }
   }
 
@@ -235,8 +305,10 @@ export default function ComprovantesPage() {
     setPendingFile(null)
     setExtracaoStatus('idle')
     setExtracaoConfianca(null)
-    setBatch([])
+    setMotivoRecusa(null)
+    definirFila([])
     setBatchIndex(0)
+    arquivoAtualRef.current = null
   }
 
   /** Quantos arquivos ainda restam na fila, contando o que está na tela. */
@@ -300,7 +372,7 @@ export default function ComprovantesPage() {
       toast({ title: 'Alguns arquivos foram ignorados', description: 'Só .pdf, .png e .jpg são aceitos.', variant: 'default' })
     }
 
-    setBatch(validos)
+    definirFila(validos)
     setBatchIndex(0)
     setOpenCreate(true)
     carregarArquivo(validos[0])
@@ -468,6 +540,17 @@ export default function ComprovantesPage() {
                                 <Unlink className="h-4 w-4 text-muted-foreground" />
                               </Button>
                             )}
+                            {/* A API e a mutação de exclusão existiam desde o início; faltava
+                                só o botão — e sem ele não havia como desfazer uma importação
+                                errada ou duplicada. */}
+                            <Button
+                              variant="ghost" size="sm"
+                              onClick={() => setConfirmarExclusao(c)}
+                              title="Excluir comprovante"
+                              aria-label={`Excluir comprovante de ${formatCurrency(c.valor_pago)}${c.favorecido ? ` para ${c.favorecido}` : ''}`}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
                           </div>
                         </td>
                       </tr>
@@ -480,6 +563,73 @@ export default function ComprovantesPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Confirmação de exclusão */}
+      <Dialog open={!!confirmarExclusao} onOpenChange={v => { if (!v && !deletarMutation.isPending) setConfirmarExclusao(null) }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Excluir comprovante?</DialogTitle></DialogHeader>
+          {confirmarExclusao && (
+            <div className="py-2 space-y-2 text-sm">
+              <p>
+                <span className="font-medium">{formatCurrency(confirmarExclusao.valor_pago)}</span>
+                {confirmarExclusao.favorecido && <> para <span className="font-medium">{confirmarExclusao.favorecido}</span></>}
+                {confirmarExclusao.data_pagamento && <>, pago em {formatDate(confirmarExclusao.data_pagamento)}</>}
+                {confirmarExclusao.arquivo_nome && <span className="block text-xs text-muted-foreground truncate">{confirmarExclusao.arquivo_nome}</span>}
+              </p>
+              {confirmarExclusao.transacao_id && (
+                <p className="text-muted-foreground">
+                  Ele está associado a um lançamento do extrato; a associação deixa de valer junto com o comprovante.
+                </p>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmarExclusao(null)} disabled={deletarMutation.isPending}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deletarMutation.isPending}
+              onClick={() => confirmarExclusao && deletarMutation.mutate(confirmarExclusao.id)}
+            >
+              {deletarMutation.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Excluindo...</> : 'Excluir'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Mesmo valor, dia e favorecido de um comprovante que já existe */}
+      <Dialog open={!!possivelDuplicado} onOpenChange={v => { if (!v && !createMutation.isPending) setPossivelDuplicado(null) }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Esse comprovante pode já existir</DialogTitle></DialogHeader>
+          <p className="py-2 text-sm text-muted-foreground">{possivelDuplicado?.mensagem}</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPossivelDuplicado(null)} disabled={createMutation.isPending}>
+              Voltar e revisar
+            </Button>
+            {emLote && (
+              <Button
+                variant="outline"
+                disabled={createMutation.isPending}
+                onClick={() => { setPossivelDuplicado(null); pularArquivo() }}
+              >
+                <SkipForward className="h-4 w-4 mr-2" /> Pular este
+              </Button>
+            )}
+            <Button
+              disabled={createMutation.isPending}
+              onClick={() => {
+                if (!possivelDuplicado) return
+                const dados = possivelDuplicado.dados
+                setPossivelDuplicado(null)
+                createMutation.mutate({ ...dados, permitirDuplicado: true })
+              }}
+            >
+              São pagamentos diferentes — salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Confirmação antes de jogar a fila fora */}
       <Dialog open={confirmarDescarte} onOpenChange={setConfirmarDescarte}>
@@ -569,7 +719,7 @@ export default function ComprovantesPage() {
                 {pendingFile && (
                   <Button
                     type="button" variant="ghost" size="sm"
-                    onClick={() => { setPendingFile(null); setExtracaoStatus('idle'); setExtracaoConfianca(null) }}
+                    onClick={() => { setPendingFile(null); setExtracaoStatus('idle'); setExtracaoConfianca(null); setMotivoRecusa(null) }}
                   >
                     Remover
                   </Button>
@@ -590,6 +740,12 @@ export default function ComprovantesPage() {
                   Dados extraídos{extracaoConfianca === 'ia' ? ' via IA' : ''} — revise os campos antes de salvar.
                 </p>
               )}
+              {extracaoStatus === 'recusado' && (
+                <p role="alert" className="text-xs text-destructive flex items-start gap-1.5">
+                  <Ban className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                  <span>{motivoRecusa} Escolha outro arquivo.</span>
+                </p>
+              )}
               {extracaoStatus === 'falhou' && (
                 <p className="text-xs text-warning flex items-center gap-1.5">
                   <AlertCircle className="h-3.5 w-3.5" />
@@ -607,7 +763,7 @@ export default function ComprovantesPage() {
                   <SkipForward className="h-4 w-4 mr-2" /> Pular este
                 </Button>
               )}
-              <Button type="submit" disabled={createMutation.isPending}>
+              <Button type="submit" disabled={createMutation.isPending || extracaoStatus === 'recusado'}>
                 {createMutation.isPending
                   ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Salvando...</>
                   : emLote ? 'Salvar e continuar' : 'Criar Comprovante'}

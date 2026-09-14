@@ -33,6 +33,18 @@ export function formatCompetencia(competencia: string): string {
   return mes && ano ? `${mes}/${ano}` : competencia
 }
 
+/**
+ * O código do erro de domínio (`{"error": "COMPROVANTE_JA_IMPORTADO", ...}`).
+ *
+ * A mensagem diz o que mostrar; o código diz o que FAZER — pular o arquivo da
+ * fila, pedir confirmação. Decidir comparando o texto da mensagem quebraria na
+ * primeira revisão de redação.
+ */
+export function codigoDoErro(e: unknown): string | undefined {
+  const codigo = (e as any)?.response?.data?.error
+  return typeof codigo === 'string' ? codigo : undefined
+}
+
 export function extractApiError(e: unknown, fallback = 'Ocorreu um erro.'): string {
   if (!e || typeof e !== 'object') return fallback
   const err = e as any
