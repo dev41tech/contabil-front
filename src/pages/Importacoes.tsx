@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { FileText, FileX2, Inbox, Loader2, Trash2, Upload } from 'lucide-react'
+import { Copy, FileText, FileX2, Inbox, Loader2, Trash2, Upload, X } from 'lucide-react'
 import { api } from '@/lib/api'
 import { formatDate, extractApiError } from '@/lib/utils'
 import { toast } from '@/hooks/useToast'
@@ -24,6 +24,7 @@ interface Importacao {
   nome_arquivo: string
   created_at: string
   importadas: number
+  duplicadas: number
   transacoes_ativas: number
   rejeitadas: number
   cancelada_em: string | null
@@ -66,6 +67,7 @@ export default function ImportacoesPage() {
   const [alvo, setAlvo] = useState<Importacao | null>(null)
   const [motivo, setMotivo] = useState('')
   const [busca, setBusca] = useState('')
+  const [alvoExclusao, setAlvoExclusao] = useState<Importacao | null>(null)
 
   const { data, isLoading, isError, refetch } = useQuery<{ items: Importacao[] }>({
     queryKey: ['extrato-importacoes', empresaId],
@@ -101,6 +103,25 @@ export default function ImportacoesPage() {
     onError: (e: unknown) =>
       toast({
         title: 'Não foi possível desfazer',
+        description: extractApiError(e),
+        variant: 'destructive',
+      }),
+  })
+
+  // O "Desfazer" só existe para lote com transação — e era desabilitado nos
+  // outros. Reenvio que entrou zerado, leitura que falhou e lote já desfeito
+  // ficavam na tela para sempre. Excluir tira só o registro; a API recusa
+  // (409) lote que ainda tenha transação.
+  const excluir = useMutation({
+    mutationFn: (id: string) => api.delete(`/empresas/${empresaId}/extrato/importacoes/${id}`),
+    onSuccess: () => {
+      toast({ title: 'Registro excluído', variant: 'success' })
+      setAlvoExclusao(null)
+      qc.invalidateQueries({ queryKey: ['extrato-importacoes', empresaId] })
+    },
+    onError: (e: unknown) =>
+      toast({
+        title: 'Não foi possível excluir',
         description: extractApiError(e),
         variant: 'destructive',
       }),
@@ -195,7 +216,12 @@ export default function ImportacoesPage() {
                   </div>
                   <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {grupo.arquivos.map(imp => (
-                      <ArquivoCard key={imp.id} imp={imp} onDesfazer={() => setAlvo(imp)} />
+                      <ArquivoCard
+                        key={imp.id}
+                        imp={imp}
+                        onDesfazer={() => setAlvo(imp)}
+                        onExcluir={() => setAlvoExclusao(imp)}
+                      />
                     ))}
                   </div>
                 </section>
@@ -243,13 +269,62 @@ export default function ImportacoesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Excluir o registro de um lote sem transações */}
+      <Dialog
+        open={!!alvoExclusao}
+        onOpenChange={aberto => { if (!aberto && !excluir.isPending) setAlvoExclusao(null) }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Excluir registro da importação?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">
+              Arquivo: <span className="font-mono text-foreground">{alvoExclusao?.nome_arquivo}</span>
+            </p>
+            <p>
+              {alvoExclusao?.cancelada_em
+                ? 'Esta importação já foi desfeita. '
+                : alvoExclusao && alvoExclusao.importadas === 0 && alvoExclusao.duplicadas > 0
+                  ? `As ${alvoExclusao.duplicadas} linhas deste arquivo já estavam no sistema por outra importação. `
+                  : 'Este arquivo não tem nenhuma transação no sistema. '}
+              O cartão sai da lista; nenhum lançamento é alterado.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAlvoExclusao(null)} disabled={excluir.isPending}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={excluir.isPending}
+              onClick={() => alvoExclusao && excluir.mutate(alvoExclusao.id)}
+            >
+              {excluir.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              Excluir registro
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
 
-function ArquivoCard({ imp, onDesfazer }: { imp: Importacao; onDesfazer: () => void }) {
+function ArquivoCard({
+  imp,
+  onDesfazer,
+  onExcluir,
+}: {
+  imp: Importacao
+  onDesfazer: () => void
+  onExcluir: () => void
+}) {
   const desfeita = !!imp.cancelada_em
   const semTransacoes = imp.transacoes_ativas === 0
+  // O reenvio de antes de 14/09/2026: todas as linhas já estavam no sistema,
+  // e o card dizia "Concluída" com tudo zerado — sem pista de por que existia.
+  const soDuplicadas = !desfeita && imp.importadas === 0 && imp.duplicadas > 0
 
   return (
     <Card className="flex flex-col gap-3 p-4">
@@ -262,6 +337,11 @@ function ArquivoCard({ imp, onDesfazer }: { imp: Importacao; onDesfazer: () => v
           <Badge variant="secondary" className="gap-1.5">
             <FileX2 className="h-3.5 w-3.5" />
             Desfeita em {formatDate(imp.cancelada_em!)}
+          </Badge>
+        ) : soDuplicadas ? (
+          <Badge variant="secondary" className="gap-1.5" title="Todas as linhas deste arquivo já tinham entrado por outra importação">
+            <Copy className="h-3.5 w-3.5" />
+            Arquivo repetido
           </Badge>
         ) : imp.rejeitadas > 0 ? (
           <Badge variant="warning" className="tnum">{imp.rejeitadas} recusadas</Badge>
@@ -298,16 +378,22 @@ function ArquivoCard({ imp, onDesfazer }: { imp: Importacao; onDesfazer: () => v
           <Button asChild variant="outline" size="xs">
             <Link to="/extrato">Ver lançamentos</Link>
           </Button>
-          {!desfeita && (
+          {semTransacoes ? (
+            <Button
+              variant="outline"
+              size="xs"
+              title="Tira este cartão da lista — o arquivo não tem transações no sistema"
+              aria-label={`Excluir registro de ${imp.nome_arquivo}`}
+              onClick={onExcluir}
+            >
+              <X className="h-3.5 w-3.5" />
+              Excluir
+            </Button>
+          ) : !desfeita && (
             <Button
               variant="destructive"
               size="xs"
-              disabled={semTransacoes}
-              title={
-                semTransacoes
-                  ? 'Este arquivo não tem mais transações no sistema'
-                  : 'Remove as transações que vieram deste arquivo'
-              }
+              title="Remove as transações que vieram deste arquivo"
               onClick={onDesfazer}
             >
               <Trash2 className="h-3.5 w-3.5" />
