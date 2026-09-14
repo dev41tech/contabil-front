@@ -30,6 +30,22 @@ interface Importacao {
   cancelada_em: string | null
 }
 
+interface SemLote {
+  agencia_id: string
+  banco_sigla: string | null
+  agencia: string
+  numero: string
+  agencia_ativa: boolean
+  transacoes_ativas: number
+  lancamentos_ativos: number
+  primeira_data: string
+  ultima_data: string
+}
+
+function nomeDaConta(g: SemLote) {
+  return `${g.banco_sigla ?? ''} ${g.agencia}/${g.numero}`.trim()
+}
+
 const MESES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
@@ -68,6 +84,48 @@ export default function ImportacoesPage() {
   const [motivo, setMotivo] = useState('')
   const [busca, setBusca] = useState('')
   const [alvoExclusao, setAlvoExclusao] = useState<Importacao | null>(null)
+  const [alvoSemLote, setAlvoSemLote] = useState<SemLote | null>(null)
+  const [motivoSemLote, setMotivoSemLote] = useState('')
+
+  // Transações que não pertencem a lote nenhum: importadas antes de 25/08/2026,
+  // quando o sistema ainda não registrava de qual arquivo cada linha veio, ou
+  // sincronizadas pelo Open Banking. Na SINCOPEÇAS, desfazer todas as
+  // importações deixava essas no Extrato e nos Registros — nenhum card as
+  // representava, e nenhum "Desfazer" as alcançava.
+  const { data: semLote } = useQuery<{ items: SemLote[] }>({
+    queryKey: ['extrato-sem-lote', empresaId],
+    queryFn: () => api.get(`/empresas/${empresaId}/extrato/importacoes/sem-lote`).then(r => r.data),
+    enabled: !!empresaId,
+  })
+
+  const removerSemLote = useMutation({
+    mutationFn: ({ agenciaId, motivo }: { agenciaId: string; motivo: string }) =>
+      api.post(`/empresas/${empresaId}/extrato/importacoes/sem-lote/remover`, {
+        agencia_id: agenciaId,
+        motivo,
+      }),
+    onSuccess: res => {
+      const d = res.data
+      toast({
+        title: 'Transações sem lote removidas',
+        description:
+          `${d.transacoes_removidas} transações removidas` +
+          (d.lancamentos_cancelados ? `, ${d.lancamentos_cancelados} com lançamento cancelado.` : '.'),
+        variant: 'success',
+      })
+      setAlvoSemLote(null)
+      setMotivoSemLote('')
+      qc.invalidateQueries({ queryKey: ['extrato-sem-lote', empresaId] })
+      qc.invalidateQueries({ queryKey: ['extrato', empresaId] })
+      qc.invalidateQueries({ queryKey: ['registros', empresaId] })
+      qc.invalidateQueries({ queryKey: ['neo-decisoes', empresaId] })
+      qc.invalidateQueries({ queryKey: ['neo-desfeitas', empresaId] })
+      qc.invalidateQueries({ queryKey: ['neo-resumo', empresaId] })
+      qc.invalidateQueries({ queryKey: ['neo-pendencias-agrupadas', empresaId] })
+    },
+    onError: (e: unknown) =>
+      toast({ title: 'Não foi possível remover', description: extractApiError(e), variant: 'destructive' }),
+  })
 
   const { data, isLoading, isError, refetch } = useQuery<{ items: Importacao[] }>({
     queryKey: ['extrato-importacoes', empresaId],
@@ -184,6 +242,26 @@ export default function ImportacoesPage() {
             </span>
           </div>
 
+          {/* Fora da árvore de lotes de propósito: aparece mesmo quando não
+              sobrou lote nenhum — que é justamente o caso relatado. */}
+          {(semLote?.items?.length ?? 0) > 0 && (
+            <section>
+              <div className="mb-2.5">
+                <h2 className="text-base font-semibold">Sem lote de importação</h2>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  Transações importadas antes de 25/08/2026, quando o sistema ainda não registrava de qual
+                  arquivo cada uma veio, ou sincronizadas pelo Open Banking. Não aparecem nos arquivos abaixo e
+                  não saem pelo "Desfazer" deles.
+                </p>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {semLote!.items.map(grupo => (
+                  <SemLoteCard key={grupo.agencia_id} grupo={grupo} onRemover={() => setAlvoSemLote(grupo)} />
+                ))}
+              </div>
+            </section>
+          )}
+
           {isLoading ? (
             <div className="flex justify-center py-16">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -230,6 +308,67 @@ export default function ImportacoesPage() {
           )}
         </>
       )}
+
+      {/* Remover as transações sem lote de uma conta */}
+      <Dialog
+        open={!!alvoSemLote}
+        onOpenChange={aberto => {
+          if (!aberto && !removerSemLote.isPending) { setAlvoSemLote(null); setMotivoSemLote('') }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remover transações sem lote</DialogTitle>
+          </DialogHeader>
+          {alvoSemLote && (
+            <div className="space-y-3 text-sm">
+              <p className="text-muted-foreground">
+                Conta: <span className="font-mono text-foreground">{nomeDaConta(alvoSemLote)}</span>
+                {' · '}
+                {formatDate(alvoSemLote.primeira_data)} a {formatDate(alvoSemLote.ultima_data)}
+              </p>
+              <p>
+                As <strong className="tnum">{alvoSemLote.transacoes_ativas}</strong> transações sem lote desta
+                conta serão removidas
+                {alvoSemLote.lancamentos_ativos > 0 && (
+                  <>, e os <strong className="tnum">{alvoSemLote.lancamentos_ativos}</strong> lançamentos delas
+                  cancelados antes — senão sobrariam partidas no razão sem transação que as explicasse</>
+                )}
+                . As transações que vieram de arquivos com lote não são tocadas.
+              </p>
+              <div className="space-y-1.5">
+                <Label htmlFor="motivo-sem-lote">Motivo</Label>
+                <Input
+                  id="motivo-sem-lote"
+                  value={motivoSemLote}
+                  onChange={e => setMotivoSemLote(e.target.value)}
+                  placeholder="Ex.: limpando a empresa para reimportar"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              disabled={removerSemLote.isPending}
+              onClick={() => { setAlvoSemLote(null); setMotivoSemLote('') }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={removerSemLote.isPending || motivoSemLote.trim().length < 3}
+              onClick={() =>
+                alvoSemLote &&
+                removerSemLote.mutate({ agenciaId: alvoSemLote.agencia_id, motivo: motivoSemLote.trim() })
+              }
+            >
+              {removerSemLote.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              Remover transações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Desfazer a importação inteira */}
       <Dialog open={!!alvo} onOpenChange={aberto => { if (!aberto) { setAlvo(null); setMotivo('') } }}>
@@ -401,6 +540,49 @@ function ArquivoCard({
             </Button>
           )}
         </div>
+      </div>
+    </Card>
+  )
+}
+
+function SemLoteCard({ grupo, onRemover }: { grupo: SemLote; onRemover: () => void }) {
+  return (
+    <Card className="flex flex-col gap-3 p-4">
+      <div className="flex items-center justify-between gap-2">
+        <Badge variant="outline" className="gap-1.5">
+          <FileText className="h-3.5 w-3.5" />
+          Sem lote
+        </Badge>
+        {!grupo.agencia_ativa && <Badge variant="secondary">Conta inativa</Badge>}
+      </div>
+
+      <p className="truncate font-mono text-sm" title={nomeDaConta(grupo)}>{nomeDaConta(grupo)}</p>
+
+      <div className="grid grid-cols-2 gap-2 border-y border-border py-3">
+        <div>
+          <p className="tnum text-card-title font-semibold leading-tight">{grupo.transacoes_ativas}</p>
+          <p className="text-xs text-muted-foreground">No sistema</p>
+        </div>
+        <div>
+          <p className="tnum text-card-title font-semibold leading-tight">{grupo.lancamentos_ativos}</p>
+          <p className="text-xs text-muted-foreground">Com lançamento</p>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-2">
+        <p className="truncate text-xs text-muted-foreground">
+          {formatDate(grupo.primeira_data)} a {formatDate(grupo.ultima_data)}
+        </p>
+        <Button
+          variant="destructive"
+          size="xs"
+          title="Remove as transações sem lote desta conta, cancelando antes os lançamentos"
+          aria-label={`Remover transações sem lote de ${nomeDaConta(grupo)}`}
+          onClick={onRemover}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+          Remover
+        </Button>
       </div>
     </Card>
   )
