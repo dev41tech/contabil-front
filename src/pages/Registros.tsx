@@ -55,6 +55,7 @@ export default function RegistrosPage() {
   const [selectedEmpresa, setSelectedEmpresa] = useEmpresaDefault()
   const [dataInicio, setDataInicio] = useState('')
   const [dataFim, setDataFim] = useState('')
+  const [incluirInativas, setIncluirInativas] = useState(false)
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 20
 
@@ -77,7 +78,7 @@ export default function RegistrosPage() {
 
   const exportMutation = useMutation({
     mutationFn: async ({ tipo, formato }: { tipo: ExportTipo; formato: 'csv' | 'xlsx' | 'txt' }) => {
-      const body: any = { formato, tipo }
+      const body: any = { formato, tipo, incluir_contas_inativas: incluirInativas }
       if (dataInicio) body.data_de = new Date(dataInicio).toISOString()
       if (dataFim) body.data_ate = new Date(dataFim + 'T23:59:59').toISOString()
 
@@ -117,7 +118,24 @@ export default function RegistrosPage() {
         <h1 className="text-3xl font-bold">Registros Contábeis</h1>
 
         {selectedEmpresa && (
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
+            {/* Conta inativada fica fora da exportação por padrão. Inativar
+                preserva o histórico de propósito (conta encerrada), então a
+                opção existe para o mês em que a conta ainda estava aberta.
+                Não afeta as baixas de nota, que não têm conta bancária. */}
+            <label
+              className="flex items-center gap-2 text-sm text-muted-foreground mr-2 cursor-pointer select-none"
+              title="Lançamentos e conferência de contas bancárias inativadas ficam fora do arquivo, a menos que isto esteja marcado"
+            >
+              <input
+                type="checkbox"
+                className="h-3.5 w-3.5"
+                checked={incluirInativas}
+                onChange={e => setIncluirInativas(e.target.checked)}
+              />
+              Incluir contas inativas
+            </label>
+
             {/* Exportação padrão: lançamentos */}
             <Button
               variant="outline"
