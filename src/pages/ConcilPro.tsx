@@ -42,6 +42,7 @@ import {
   type ConciliacaoFifoItem,
   type Divergencia,
 } from '@/lib/concilpro-api'
+import RazaoExtratoTab from '@/components/conciliacao/RazaoExtratoTab'
 
 // ─── Cores de status ──────────────────────────────────────────────────────────
 
@@ -355,6 +356,9 @@ export default function ConcilProPage() {
   const [busca, setBusca] = useState('')
   const [fornecedorModal, setFornecedorModal] = useState<Fornecedor | null>(null)
   const [abaAtiva, setAbaAtiva] = useState('fornecedores')
+  // Duas conciliacoes na mesma tela: a de fornecedores (FIFO) e a da conta
+  // banco contra o extrato. Fluxos separados no backend; so a porta e a mesma.
+  const [modulo, setModulo] = useState('fornecedores')
 
   // Poll de status enquanto PROCESSANDO
   const [pollingId, setPollingId] = useState<number | null>(null)
@@ -449,10 +453,10 @@ export default function ConcilProPage() {
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <Scale className="h-7 w-7 text-primary" />
-            CONCILPRO
+            Conciliação Bancária
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Conciliação inteligente de fornecedores — Razão de Contas a Pagar
+            Razão de fornecedores e razão da conta banco conferidos contra o que aconteceu de fato
           </p>
         </div>
 
@@ -478,7 +482,15 @@ export default function ConcilProPage() {
           </CardContent>
         </Card>
       ) : (
-      <>
+      <Tabs value={modulo} onValueChange={setModulo}>
+      <TabsList>
+        <TabsTrigger value="fornecedores">Razão de Fornecedores</TabsTrigger>
+        <TabsTrigger value="razao-extrato">Razão × Extrato</TabsTrigger>
+      </TabsList>
+      <TabsContent value="razao-extrato">
+        <RazaoExtratoTab empresaId={selectedEmpresa} />
+      </TabsContent>
+      <TabsContent value="fornecedores" className="space-y-6">
       {/* Controles: upload + seletor de arquivo */}
       <Card>
         <CardContent className="pt-6">
@@ -784,7 +796,8 @@ export default function ConcilProPage() {
         open={!!fornecedorModal}
         onClose={() => setFornecedorModal(null)}
       />
-      </>
+      </TabsContent>
+      </Tabs>
       )}
     </div>
   )

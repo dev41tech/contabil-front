@@ -42,7 +42,7 @@ const navGroups = [
   {
     label: 'Conferência e entrega',
     items: [
-      { to: '/concilpro', icon: Scale, label: 'CONCILPRO', adminOnly: false },
+      { to: '/concilpro', icon: Scale, label: 'Conciliação Bancária', adminOnly: false },
       { to: '/registros', icon: BookOpen, label: 'Registros', adminOnly: false },
       { to: '/relatorios', icon: TrendingUp, label: 'Relatórios', adminOnly: false },
     ],
