@@ -54,7 +54,7 @@ const TODOS_MODULOS = [
   { value: 'cartoes', label: 'Cartões de crédito' },
   { value: 'aplicacoes_financeiras', label: 'Aplicações financeiras' },
   { value: 'openbanking', label: 'Open Banking' },
-  { value: 'concilpro', label: 'ConcilPro' },
+  { value: 'concilpro', label: 'Conciliação Bancária' },
   { value: 'relatorios', label: 'Relatórios' },
   { value: 'exportacao', label: 'Exportações' },
   { value: 'stats', label: 'Estatísticas' },
