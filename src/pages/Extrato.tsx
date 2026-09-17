@@ -267,7 +267,7 @@ export default function ExtratoPage() {
               >
                 {uploadMutation.isPending
                   ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Importando...</>
-                  : <><Upload className="h-4 w-4 mr-2" />Importar OFX / PDF</>
+                  : <><Upload className="h-4 w-4 mr-2" />Importar extrato</>
                 }
               </Button>
               {selectedEmpresa && !selectedAgencia && (
@@ -275,7 +275,7 @@ export default function ExtratoPage() {
                   Selecione uma conta bancária específica para importar
                 </p>
               )}
-              <input ref={fileRef} type="file" accept=".ofx,.OFX,.pdf,.PDF" className="hidden" onChange={handleFile} />
+              <input ref={fileRef} type="file" accept=".ofx,.OFX,.pdf,.PDF,.xlsx,.XLSX,.xls,.XLS,.xlsm,.XLSM,.csv,.CSV" className="hidden" onChange={handleFile} />
             </div>
           </div>
 
@@ -434,7 +434,7 @@ export default function ExtratoPage() {
             <p className="text-muted-foreground text-center py-8">
               {filtrosAtivos
                 ? 'Nenhuma transação encontrada com esses filtros.'
-                : 'Nenhuma transação encontrada. Importe um arquivo OFX ou PDF.'}
+                : 'Nenhuma transação encontrada. Importe o extrato em OFX, PDF ou planilha.'}
             </p>
           ) : (
             <>
