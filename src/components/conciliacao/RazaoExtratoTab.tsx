@@ -21,10 +21,14 @@ interface Relatorio {
     movimento_razao: string; movimento_extrato: string; diferenca: string
     diferenca_explicada: boolean
     abertura: LinhaRazao[]
+    aplicacao_sem_extrato?: number
   }
   avisos: string[]
   conciliados_por_tipo: Record<string, number>
   pendencias: Grupo[]
+  // Aplicação automática do razão que o extrato não traz (internet banking).
+  // Não conferida: fica fora das pendências, com aviso.
+  aplicacao_sem_extrato?: LinhaRazao[]
 }
 
 const ROTULOS: Record<string, string> = {
@@ -269,6 +273,49 @@ export default function RazaoExtratoTab({ empresaId }: { empresaId: string }) {
               )}
             </CardContent>
           </Card>
+
+          {(relatorio.aplicacao_sem_extrato?.length ?? 0) > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">
+                  Aplicação automática não conferida ({relatorio.aplicacao_sem_extrato!.length})
+                </CardTitle>
+                <CardDescription>
+                  O extrato importado não traz estes lançamentos do razão. Eles ficam fora das pendências:
+                  confira no extrato consolidado ou no relatório de aplicações do banco.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <details>
+                  <summary className="cursor-pointer text-sm text-muted-foreground">Ver lançamentos</summary>
+                  <div className="overflow-x-auto mt-3">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b text-muted-foreground">
+                          <th className="text-left py-2 px-2">Data</th>
+                          <th className="text-left py-2 px-2">Histórico</th>
+                          <th className="text-left py-2 px-2">Lote</th>
+                          <th className="text-left py-2 px-2">Contrapartida</th>
+                          <th className="text-right py-2 px-2">Valor</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {relatorio.aplicacao_sem_extrato!.map((l, i) => (
+                          <tr key={i} className="border-b">
+                            <td className="py-2 px-2 font-mono">{formatDate(l.data)}</td>
+                            <td className="py-2 px-2">{l.historico}</td>
+                            <td className="py-2 px-2">{l.lote || '—'}</td>
+                            <td className="py-2 px-2">{l.contrapartida || '—'}</td>
+                            <td className="py-2 px-2 text-right font-mono">{formatCurrency(Number(l.valor))}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
+              </CardContent>
+            </Card>
+          )}
         </>
       )}
     </div>
