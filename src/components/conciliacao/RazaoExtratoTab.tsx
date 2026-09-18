@@ -378,7 +378,7 @@ export default function RazaoExtratoTab({ empresaId }: { empresaId: string }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {pendencias.map((g, i) => (
+                      {pendencias.map((g, i) => ehLote(g) ? <LinhaLote key={i} grupo={g} /> : (
                         <tr key={i} className="border-b align-top">
                           <td className="py-2 px-2"><Badge variant={VARIANTE[g.tipo] ?? 'outline'}>{ROTULOS[g.tipo] ?? g.tipo}</Badge></td>
                           <td className="py-2 px-2 space-y-1">
@@ -468,6 +468,122 @@ export default function RazaoExtratoTab({ empresaId }: { empresaId: string }) {
         </>
       )}
     </div>
+  )
+}
+
+// Lote (vários lançamentos de um lado, ou pagamento do SISPAG faltando) não cabe
+// nas colunas da tabela: 23 lançamentos empilhados escondiam o que importa, que
+// é o pagamento sem par. Aqui ele vem primeiro, e a composição fica recolhida.
+function ehLote(g: Grupo) {
+  return g.razao.length + g.extrato.length > 3 || (g.sispag_faltando?.length ?? 0) > 0
+}
+
+const soma = (linhas: { valor: string }[]) => linhas.reduce((s, l) => s + Number(l.valor), 0)
+const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`
+
+function LinhaLote({ grupo: g }: { grupo: Grupo }) {
+  const faltando = g.sispag_faltando ?? []
+  const data = (g.extrato[0] ?? g.razao[0])?.data
+  const diferenca = Number(g.diferenca)
+
+  return (
+    <tr className="border-b">
+      <td colSpan={4} className="py-3 px-2">
+        <div className="rounded-md border p-3 space-y-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge variant={VARIANTE[g.tipo] ?? 'outline'}>{ROTULOS[g.tipo] ?? g.tipo}</Badge>
+              {data && <span className="font-mono text-sm">{formatDate(data)}</span>}
+            </div>
+            <span className={`font-mono font-semibold whitespace-nowrap ${diferenca !== 0 ? 'text-warning' : ''}`}>
+              Diferença {formatCurrency(diferenca)}
+            </span>
+          </div>
+
+          {faltando.length > 0 && (
+            <div role="alert" className="rounded-md border border-warning/40 bg-warning/15 p-3">
+              <p className="flex items-center gap-2 text-sm font-medium text-warning">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                {faltando.length === 1
+                  ? 'Pago pelo banco neste lote, sem lançamento no razão'
+                  : `${faltando.length} pagamentos do lote feitos pelo banco, sem lançamento no razão`}
+              </p>
+              <ul className="mt-2 space-y-1">
+                {faltando.map((p, j) => (
+                  <li key={j} className="flex items-baseline justify-between gap-4 text-sm">
+                    <span>
+                      <span className="font-medium">{p.favorecido}</span>
+                      <span className="text-muted-foreground">
+                        {p.documento ? ` · ${p.documento}` : ''} · {p.tipo}
+                      </span>
+                    </span>
+                    <span className="font-mono font-semibold whitespace-nowrap">{formatCurrency(Number(p.valor))}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-3 text-sm">
+            <div>
+              <p className="text-xs text-muted-foreground">Extrato · {plural(g.extrato.length, 'linha', 'linhas')}</p>
+              <p className="font-mono whitespace-nowrap">{formatCurrency(soma(g.extrato))}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Razão · {plural(g.razao.length, 'lançamento', 'lançamentos')}</p>
+              <p className="font-mono whitespace-nowrap">{formatCurrency(soma(g.razao))}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Razão − extrato</p>
+              <p className={`font-mono whitespace-nowrap ${diferenca !== 0 ? 'text-warning font-semibold' : ''}`}>
+                {formatCurrency(diferenca)}
+              </p>
+            </div>
+          </div>
+
+          <details>
+            <summary className="cursor-pointer text-sm text-muted-foreground">
+              Ver a composição ({plural(g.extrato.length, 'linha', 'linhas')} do extrato,{' '}
+              {plural(g.razao.length, 'lançamento', 'lançamentos')} do razão)
+            </summary>
+            <div className="grid gap-4 lg:grid-cols-[2fr_3fr] mt-3">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Extrato</p>
+                <table className="w-full text-sm">
+                  <tbody>
+                    {g.extrato.map((l, j) => (
+                      <tr key={j} className="border-b last:border-0">
+                        <td className="py-1 pr-2 font-mono whitespace-nowrap">{formatDate(l.data)}</td>
+                        <td className="py-1 pr-2">{l.historico}</td>
+                        <td className="py-1 text-right font-mono whitespace-nowrap">{formatCurrency(Number(l.valor))}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Razão</p>
+                <div className="max-h-72 overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <tbody>
+                      {g.razao.map((l, j) => (
+                        <tr key={j} className="border-b last:border-0">
+                          <td className="py-1 pr-2">{l.historico}</td>
+                          <td className="py-1 pr-2 text-xs text-muted-foreground whitespace-nowrap">
+                            Lote {l.lote || '—'}{l.contrapartida ? ` · ${l.contrapartida}` : ''}
+                          </td>
+                          <td className="py-1 text-right font-mono whitespace-nowrap">{formatCurrency(Number(l.valor))}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </details>
+        </div>
+      </td>
+    </tr>
   )
 }
 
