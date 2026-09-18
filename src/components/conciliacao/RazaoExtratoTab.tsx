@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { AlertTriangle, CheckCircle2, FileSpreadsheet, Loader2, Upload } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, FileSpreadsheet, Loader2, Upload, X } from 'lucide-react'
 import { api } from '@/lib/api'
 import { extractApiError, formatCurrency, formatDate } from '@/lib/utils'
 import { toast } from '@/hooks/useToast'
@@ -11,7 +11,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 interface LinhaRazao { data: string; valor: string; historico: string; lote: string; contrapartida: string }
 interface LinhaExtrato { transacao_id: string; data: string; valor: string; historico: string }
-interface Grupo { tipo: string; razao: LinhaRazao[]; extrato: LinhaExtrato[]; diferenca: string }
+interface LinhaSispag { data: string; valor: string; tipo: string; favorecido: string; documento: string }
+interface Grupo {
+  tipo: string; razao: LinhaRazao[]; extrato: LinhaExtrato[]; diferenca: string
+  // Lote do SISPAG: pago pelo banco, sem lançamento no razão.
+  sispag_faltando?: LinhaSispag[]
+}
+interface ResumoDia {
+  data: string
+  lancamentos_razao: number; lancamentos_extrato: number
+  movimento_razao: string; movimento_extrato: string; diferenca: string
+  pendencias: number; data_diferente: number; aplicacao_sem_extrato: number
+}
 interface Relatorio {
   resumo: {
     empresa: string; conta_razao: string; conta_bancaria: string
@@ -29,9 +40,14 @@ interface Relatorio {
   // Aplicação automática do razão que o extrato não traz (internet banking).
   // Não conferida: fica fora das pendências, com aviso.
   aplicacao_sem_extrato?: LinhaRazao[]
+  por_dia?: ResumoDia[]
+  sispag_usado?: boolean
 }
 
 const ROTULOS: Record<string, string> = {
+  LOTE_SISPAG: 'Lote do SISPAG',
+  LOTE_SISPAG_DIVERGENTE: 'Lote do SISPAG com pagamento fora do razão',
+  LOTE_DO_DIA: 'Lote do dia',
   DUPLICIDADE_RAZAO: 'Possível duplicidade no razão',
   DUPLICIDADE_EXTRATO: 'Possível duplicidade no extrato',
   VALOR_DIVERGENTE: 'Valor divergente',
@@ -46,6 +62,7 @@ const VARIANTE: Record<string, any> = {
   DUPLICIDADE_RAZAO: 'warning',
   DUPLICIDADE_EXTRATO: 'warning',
   VALOR_DIVERGENTE: 'warning',
+  LOTE_SISPAG_DIVERGENTE: 'warning',
   SO_RAZAO: 'destructive',
   SO_EXTRATO: 'destructive',
 }
@@ -58,10 +75,14 @@ const VARIANTE: Record<string, any> = {
  */
 export default function RazaoExtratoTab({ empresaId }: { empresaId: string }) {
   const fileRef = useRef<HTMLInputElement>(null)
+  const sispagRef = useRef<HTMLInputElement>(null)
   const [agenciaId, setAgenciaId] = useState('')
   const [arquivo, setArquivo] = useState<File | null>(null)
+  const [sispag, setSispag] = useState<File | null>(null)
   const [relatorio, setRelatorio] = useState<Relatorio | null>(null)
   const [filtro, setFiltro] = useState<string>('todos')
+  const [dia, setDia] = useState<string | null>(null)
+  const [soDiasComDiferenca, setSoDiasComDiferenca] = useState(true)
 
   const { data: agencias = [] } = useQuery<any[]>({
     // Inclui as inativas: o razão de uma conta encerrada continua conciliável.
@@ -73,6 +94,7 @@ export default function RazaoExtratoTab({ empresaId }: { empresaId: string }) {
   const enviar = (formato: 'json' | 'xlsx') => {
     const form = new FormData()
     form.append('arquivo', arquivo!)
+    if (sispag) form.append('sispag', sispag)
     return api.post(
       `/empresas/${empresaId}/concilpro/razao-extrato?agencia_id=${agenciaId}&formato=${formato}`,
       form,
@@ -83,7 +105,7 @@ export default function RazaoExtratoTab({ empresaId }: { empresaId: string }) {
   const conciliar = useMutation({
     mutationFn: () => enviar('json').then(r => r.data as Relatorio),
     onMutate: () => setRelatorio(null),
-    onSuccess: data => { setRelatorio(data); setFiltro('todos') },
+    onSuccess: data => { setRelatorio(data); setFiltro('todos'); setDia(null) },
     onError: (e: unknown) =>
       toast({ title: 'Não foi possível conciliar', description: extractApiError(e), variant: 'destructive' }),
   })
@@ -104,11 +126,18 @@ export default function RazaoExtratoTab({ empresaId }: { empresaId: string }) {
   })
 
   const r = relatorio?.resumo
-  const contagem = (relatorio?.pendencias ?? []).reduce<Record<string, number>>((acc, g) => {
+  // O dia escolhido filtra tudo abaixo: tipos e lista de pendências.
+  const doDia = (relatorio?.pendencias ?? []).filter(
+    g => !dia || [...g.razao, ...g.extrato].some(l => l.data === dia),
+  )
+  const contagem = doDia.reduce<Record<string, number>>((acc, g) => {
     acc[g.tipo] = (acc[g.tipo] ?? 0) + 1
     return acc
   }, {})
-  const pendencias = (relatorio?.pendencias ?? []).filter(g => filtro === 'todos' || g.tipo === filtro)
+  const pendencias = doDia.filter(g => filtro === 'todos' || g.tipo === filtro)
+  const dias = (relatorio?.por_dia ?? []).filter(
+    d => !soDiasComDiferenca || Number(d.diferenca) !== 0 || d.pendencias > 0,
+  )
 
   return (
     <div className="space-y-6">
@@ -152,6 +181,32 @@ export default function RazaoExtratoTab({ empresaId }: { empresaId: string }) {
               />
             </div>
 
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium" htmlFor="razao-extrato-sispag">
+                SISPAG <span className="font-normal text-muted-foreground">(opcional)</span>
+              </label>
+              <div className="flex gap-1">
+                <Button variant="outline" onClick={() => sispagRef.current?.click()}>
+                  <Upload className="h-4 w-4 mr-2" />
+                  {sispag ? sispag.name : 'Consulta de pagamentos'}
+                </Button>
+                {sispag && (
+                  <Button variant="ghost" size="icon" aria-label="Remover SISPAG"
+                    onClick={() => { setSispag(null); setRelatorio(null) }}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              <input
+                id="razao-extrato-sispag"
+                ref={sispagRef}
+                type="file"
+                accept=".xlsx,.XLSX,.xls,.XLS"
+                className="hidden"
+                onChange={e => { setSispag(e.target.files?.[0] ?? null); setRelatorio(null); e.target.value = '' }}
+              />
+            </div>
+
             <Button onClick={() => conciliar.mutate()} disabled={!agenciaId || !arquivo || conciliar.isPending}>
               {conciliar.isPending ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Conciliando…</> : 'Conciliar'}
             </Button>
@@ -167,6 +222,8 @@ export default function RazaoExtratoTab({ empresaId }: { empresaId: string }) {
           </div>
           <p className="text-xs text-muted-foreground mt-2">
             O razão precisa ser de uma única conta, e o extrato do período já precisa estar importado.
+            Com a consulta de pagamentos do SISPAG, os lotes do Itaú (TED e crédito em conta) são
+            separados pagamento a pagamento.
           </p>
         </CardContent>
       </Card>
@@ -211,12 +268,89 @@ export default function RazaoExtratoTab({ empresaId }: { empresaId: string }) {
             </CardContent>
           </Card>
 
+          {(relatorio.por_dia?.length ?? 0) > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Por dia</CardTitle>
+                <CardDescription>
+                  Clique num dia para ver só as pendências daquela data.
+                </CardDescription>
+                <label className="flex items-center gap-2 text-sm pt-1 cursor-pointer w-fit">
+                  <input
+                    type="checkbox"
+                    checked={soDiasComDiferenca}
+                    onChange={e => setSoDiasComDiferenca(e.target.checked)}
+                  />
+                  Só dias com diferença ou pendência
+                </label>
+              </CardHeader>
+              <CardContent>
+                {dias.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">Todos os dias conferem.</p>
+                ) : (
+                  <div className="overflow-x-auto max-h-80 overflow-y-auto">
+                    <table className="w-full text-sm">
+                      <thead className="sticky top-0 bg-card">
+                        <tr className="border-b text-muted-foreground">
+                          <th className="text-left py-2 px-2">Data</th>
+                          <th className="text-right py-2 px-2">Razão</th>
+                          <th className="text-right py-2 px-2">Extrato</th>
+                          <th className="text-right py-2 px-2">Diferença</th>
+                          <th className="text-right py-2 px-2">Pendências</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dias.map(d => {
+                          const diferente = Number(d.diferenca) !== 0
+                          return (
+                            <tr
+                              key={d.data}
+                              onClick={() => setDia(dia === d.data ? null : d.data)}
+                              aria-selected={dia === d.data}
+                              className={`border-b cursor-pointer hover:bg-muted/50 ${dia === d.data ? 'bg-muted' : ''}`}
+                            >
+                              <td className="py-2 px-2 font-mono whitespace-nowrap">{formatDate(d.data)}</td>
+                              <td className="py-2 px-2 text-right font-mono whitespace-nowrap">
+                                {formatCurrency(Number(d.movimento_razao))}
+                                <span className="block text-xs text-muted-foreground">{d.lancamentos_razao} lanç.</span>
+                              </td>
+                              <td className="py-2 px-2 text-right font-mono whitespace-nowrap">
+                                {formatCurrency(Number(d.movimento_extrato))}
+                                <span className="block text-xs text-muted-foreground">{d.lancamentos_extrato} lanç.</span>
+                              </td>
+                              <td className={`py-2 px-2 text-right font-mono whitespace-nowrap ${diferente ? 'text-warning font-semibold' : ''}`}>
+                                {formatCurrency(Number(d.diferenca))}
+                                {d.data_diferente > 0 && (
+                                  <span className="block text-xs font-normal text-muted-foreground">
+                                    {d.data_diferente} casado(s) em outro dia
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-2 px-2 text-right">{d.pendencias || '—'}</td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Pendências</CardTitle>
+              <CardTitle className="text-base flex items-center gap-2 flex-wrap">
+                Pendências
+                {dia && (
+                  <Button size="sm" variant="secondary" onClick={() => setDia(null)}>
+                    {formatDate(dia)} <X className="h-3 w-3 ml-1" />
+                  </Button>
+                )}
+              </CardTitle>
               <div className="flex gap-2 flex-wrap pt-2">
                 <Button size="sm" variant={filtro === 'todos' ? 'default' : 'outline'} onClick={() => setFiltro('todos')}>
-                  Todas ({relatorio.pendencias.length})
+                  Todas ({doDia.length})
                 </Button>
                 {Object.entries(contagem).map(([tipo, n]) => (
                   <Button key={tipo} size="sm" variant={filtro === tipo ? 'default' : 'outline'} onClick={() => setFiltro(tipo)}>
@@ -227,7 +361,11 @@ export default function RazaoExtratoTab({ empresaId }: { empresaId: string }) {
             </CardHeader>
             <CardContent>
               {pendencias.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-6">Nenhuma pendência. Razão e extrato conferem.</p>
+                <p className="text-sm text-muted-foreground text-center py-6">
+                  {dia
+                    ? `Nenhuma pendência em ${formatDate(dia)}. A diferença do dia vem de lançamento casado em outra data.`
+                    : 'Nenhuma pendência. Razão e extrato conferem.'}
+                </p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -247,7 +385,7 @@ export default function RazaoExtratoTab({ empresaId }: { empresaId: string }) {
                             {g.razao.length === 0 && <span className="text-muted-foreground">—</span>}
                             {g.razao.map((l, j) => (
                               <div key={j}>
-                                <span className="font-mono">{formatDate(l.data)} · {formatCurrency(Number(l.valor))}</span>
+                                <span className="font-mono whitespace-nowrap">{formatDate(l.data)} · {formatCurrency(Number(l.valor))}</span>
                                 <span className="block text-xs">{l.historico}</span>
                                 <span className="block text-xs text-muted-foreground">
                                   Lote {l.lote || '—'}{l.contrapartida ? ` · Contrapartida ${l.contrapartida}` : ''}
@@ -259,12 +397,23 @@ export default function RazaoExtratoTab({ empresaId }: { empresaId: string }) {
                             {g.extrato.length === 0 && <span className="text-muted-foreground">—</span>}
                             {g.extrato.map((l, j) => (
                               <div key={j}>
-                                <span className="font-mono">{formatDate(l.data)} · {formatCurrency(Number(l.valor))}</span>
+                                <span className="font-mono whitespace-nowrap">{formatDate(l.data)} · {formatCurrency(Number(l.valor))}</span>
                                 <span className="block text-xs">{l.historico}</span>
                               </div>
                             ))}
+                            {(g.sispag_faltando?.length ?? 0) > 0 && (
+                              <div className="mt-2 rounded border border-warning/40 p-2">
+                                <p className="text-xs font-medium text-warning">Pago no banco, sem lançamento no razão:</p>
+                                {g.sispag_faltando!.map((p, j) => (
+                                  <p key={j} className="text-xs">
+                                    <span className="font-mono whitespace-nowrap">{formatCurrency(Number(p.valor))}</span>
+                                    {' · '}{p.favorecido}{p.documento ? ` (${p.documento})` : ''} · {p.tipo}
+                                  </p>
+                                ))}
+                              </div>
+                            )}
                           </td>
-                          <td className="py-2 px-2 text-right font-mono">{formatCurrency(Number(g.diferenca))}</td>
+                          <td className="py-2 px-2 text-right font-mono whitespace-nowrap">{formatCurrency(Number(g.diferenca))}</td>
                         </tr>
                       ))}
                     </tbody>
